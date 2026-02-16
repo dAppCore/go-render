@@ -1,6 +1,9 @@
 package html
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestRawNode_Render(t *testing.T) {
 	ctx := NewContext()
@@ -48,5 +51,26 @@ func TestElNode_VoidElement(t *testing.T) {
 	want := "<br>"
 	if got != want {
 		t.Errorf("El(\"br\").Render() = %q, want %q", got, want)
+	}
+}
+
+func TestTextNode_Render(t *testing.T) {
+	ctx := NewContext()
+	node := Text("hello")
+	got := node.Render(ctx)
+	if got != "hello" {
+		t.Errorf("Text(\"hello\").Render() = %q, want %q", got, "hello")
+	}
+}
+
+func TestTextNode_Escapes(t *testing.T) {
+	ctx := NewContext()
+	node := Text("<script>alert('xss')</script>")
+	got := node.Render(ctx)
+	if strings.Contains(got, "<script>") {
+		t.Errorf("Text node must HTML-escape output, got %q", got)
+	}
+	if !strings.Contains(got, "&lt;script&gt;") {
+		t.Errorf("Text node should contain escaped script tag, got %q", got)
 	}
 }

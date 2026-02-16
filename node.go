@@ -1,6 +1,10 @@
 package html
 
-import "strings"
+import (
+	"strings"
+
+	i18n "forge.lthn.ai/core/go-i18n"
+)
 
 // Node is anything renderable.
 type Node interface {
@@ -95,4 +99,39 @@ func (n *elNode) Render(ctx *Context) string {
 	b.WriteByte('>')
 
 	return b.String()
+}
+
+// --- escapeHTML ---
+
+// escapeHTML escapes a string for safe inclusion in HTML text content.
+func escapeHTML(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	s = strings.ReplaceAll(s, "\"", "&quot;")
+	s = strings.ReplaceAll(s, "'", "&#39;")
+	return s
+}
+
+// --- textNode ---
+
+type textNode struct {
+	key  string
+	args []any
+}
+
+// Text creates a node that renders through the go-i18n grammar pipeline.
+// Output is HTML-escaped by default. Safe-by-default path.
+func Text(key string, args ...any) Node {
+	return &textNode{key: key, args: args}
+}
+
+func (n *textNode) Render(ctx *Context) string {
+	var text string
+	if ctx != nil && ctx.service != nil {
+		text = ctx.service.T(n.key, n.args...)
+	} else {
+		text = i18n.T(n.key, n.args...)
+	}
+	return escapeHTML(text)
 }
