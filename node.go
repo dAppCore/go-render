@@ -135,3 +135,104 @@ func (n *textNode) Render(ctx *Context) string {
 	}
 	return escapeHTML(text)
 }
+
+// --- ifNode ---
+
+type ifNode struct {
+	cond func(*Context) bool
+	node Node
+}
+
+// If renders child only when condition is true.
+func If(cond func(*Context) bool, node Node) Node {
+	return &ifNode{cond: cond, node: node}
+}
+
+func (n *ifNode) Render(ctx *Context) string {
+	if n.cond(ctx) {
+		return n.node.Render(ctx)
+	}
+	return ""
+}
+
+// --- unlessNode ---
+
+type unlessNode struct {
+	cond func(*Context) bool
+	node Node
+}
+
+// Unless renders child only when condition is false.
+func Unless(cond func(*Context) bool, node Node) Node {
+	return &unlessNode{cond: cond, node: node}
+}
+
+func (n *unlessNode) Render(ctx *Context) string {
+	if !n.cond(ctx) {
+		return n.node.Render(ctx)
+	}
+	return ""
+}
+
+// --- entitledNode ---
+
+type entitledNode struct {
+	feature string
+	node    Node
+}
+
+// Entitled renders child only when entitlement is granted. Absent, not hidden.
+// If no entitlement function is set on the context, access is denied by default.
+func Entitled(feature string, node Node) Node {
+	return &entitledNode{feature: feature, node: node}
+}
+
+func (n *entitledNode) Render(ctx *Context) string {
+	if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(n.feature) {
+		return ""
+	}
+	return n.node.Render(ctx)
+}
+
+// --- switchNode ---
+
+type switchNode struct {
+	selector func(*Context) string
+	cases    map[string]Node
+}
+
+// Switch renders based on runtime selector value.
+func Switch(selector func(*Context) string, cases map[string]Node) Node {
+	return &switchNode{selector: selector, cases: cases}
+}
+
+func (n *switchNode) Render(ctx *Context) string {
+	key := n.selector(ctx)
+	if node, ok := n.cases[key]; ok {
+		return node.Render(ctx)
+	}
+	return ""
+}
+
+// --- eachNode ---
+
+type eachNode[T any] struct {
+	items []T
+	fn    func(T) Node
+}
+
+// Each iterates items and renders each via fn.
+func Each[T any](items []T, fn func(T) Node) Node {
+	return &eachNode[T]{items: items, fn: fn}
+}
+
+func (n *eachNode[T]) Render(ctx *Context) string {
+	if len(n.items) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, item := range n.items {
+		b.WriteString(n.fn(item).Render(ctx))
+	}
+	return b.String()
+}

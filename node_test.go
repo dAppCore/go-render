@@ -74,3 +74,97 @@ func TestTextNode_Escapes(t *testing.T) {
 		t.Errorf("Text node should contain escaped script tag, got %q", got)
 	}
 }
+
+func TestIfNode_True(t *testing.T) {
+	ctx := NewContext()
+	node := If(func(*Context) bool { return true }, Raw("visible"))
+	got := node.Render(ctx)
+	if got != "visible" {
+		t.Errorf("If(true) = %q, want %q", got, "visible")
+	}
+}
+
+func TestIfNode_False(t *testing.T) {
+	ctx := NewContext()
+	node := If(func(*Context) bool { return false }, Raw("hidden"))
+	got := node.Render(ctx)
+	if got != "" {
+		t.Errorf("If(false) = %q, want %q", got, "")
+	}
+}
+
+func TestUnlessNode(t *testing.T) {
+	ctx := NewContext()
+	node := Unless(func(*Context) bool { return false }, Raw("visible"))
+	got := node.Render(ctx)
+	if got != "visible" {
+		t.Errorf("Unless(false) = %q, want %q", got, "visible")
+	}
+}
+
+func TestEntitledNode_Granted(t *testing.T) {
+	ctx := NewContext()
+	ctx.Entitlements = func(feature string) bool { return feature == "premium" }
+	node := Entitled("premium", Raw("premium content"))
+	got := node.Render(ctx)
+	if got != "premium content" {
+		t.Errorf("Entitled(granted) = %q, want %q", got, "premium content")
+	}
+}
+
+func TestEntitledNode_Denied(t *testing.T) {
+	ctx := NewContext()
+	ctx.Entitlements = func(feature string) bool { return false }
+	node := Entitled("premium", Raw("premium content"))
+	got := node.Render(ctx)
+	if got != "" {
+		t.Errorf("Entitled(denied) = %q, want %q", got, "")
+	}
+}
+
+func TestEntitledNode_NoFunc(t *testing.T) {
+	ctx := NewContext()
+	node := Entitled("premium", Raw("premium content"))
+	got := node.Render(ctx)
+	if got != "" {
+		t.Errorf("Entitled(no func) = %q, want %q (deny by default)", got, "")
+	}
+}
+
+func TestEachNode(t *testing.T) {
+	ctx := NewContext()
+	items := []string{"a", "b", "c"}
+	node := Each(items, func(item string) Node {
+		return El("li", Raw(item))
+	})
+	got := node.Render(ctx)
+	want := "<li>a</li><li>b</li><li>c</li>"
+	if got != want {
+		t.Errorf("Each([a,b,c]) = %q, want %q", got, want)
+	}
+}
+
+func TestEachNode_Empty(t *testing.T) {
+	ctx := NewContext()
+	node := Each([]string{}, func(item string) Node {
+		return El("li", Raw(item))
+	})
+	got := node.Render(ctx)
+	if got != "" {
+		t.Errorf("Each([]) = %q, want %q", got, "")
+	}
+}
+
+func TestSwitchNode(t *testing.T) {
+	ctx := NewContext()
+	cases := map[string]Node{
+		"dark":  Raw("dark theme"),
+		"light": Raw("light theme"),
+	}
+	node := Switch(func(*Context) string { return "dark" }, cases)
+	got := node.Render(ctx)
+	want := "dark theme"
+	if got != want {
+		t.Errorf("Switch(\"dark\") = %q, want %q", got, want)
+	}
+}
