@@ -1,6 +1,7 @@
 package html
 
 import (
+	"sort"
 	"strings"
 
 	i18n "forge.lthn.ai/core/go-i18n"
@@ -76,11 +77,17 @@ func (n *elNode) Render(ctx *Context) string {
 	b.WriteByte('<')
 	b.WriteString(n.tag)
 
-	for key, val := range n.attrs {
+	// Sort attribute keys for deterministic output.
+	keys := make([]string, 0, len(n.attrs))
+	for k := range n.attrs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
 		b.WriteByte(' ')
 		b.WriteString(key)
 		b.WriteString(`="`)
-		b.WriteString(escapeAttr(val))
+		b.WriteString(escapeAttr(n.attrs[key]))
 		b.WriteByte('"')
 	}
 

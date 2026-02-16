@@ -100,9 +100,12 @@ func (l *Layout) Render(ctx *Context) string {
 		b.WriteString(`">`)
 
 		for _, child := range children {
-			// Propagate path to nested layouts.
+			// Clone nested layouts before setting path (thread-safe).
 			if inner, ok := child.(*Layout); ok {
-				inner.path = bid + "-"
+				clone := *inner
+				clone.path = bid + "-"
+				b.WriteString(clone.Render(ctx))
+				continue
 			}
 			b.WriteString(child.Render(ctx))
 		}
