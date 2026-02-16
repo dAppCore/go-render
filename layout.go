@@ -100,6 +100,10 @@ func (l *Layout) Render(ctx *Context) string {
 		b.WriteString(`">`)
 
 		for _, child := range children {
+			// Propagate path to nested layouts.
+			if inner, ok := child.(*Layout); ok {
+				inner.path = bid + "-"
+			}
 			b.WriteString(child.Render(ctx))
 		}
 
