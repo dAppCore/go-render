@@ -1,6 +1,10 @@
 package html
 
-import "testing"
+import (
+	"testing"
+
+	i18n "forge.lthn.ai/core/go-i18n"
+)
 
 func TestStripTags_Simple(t *testing.T) {
 	got := StripTags(`<div>hello</div>`)
@@ -45,5 +49,53 @@ func TestStripTags_Entities(t *testing.T) {
 	want := "&lt;script&gt;"
 	if got != want {
 		t.Errorf("StripTags should preserve entities, got %q, want %q", got, want)
+	}
+}
+
+func TestImprint_FromNode(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	ctx := NewContext()
+
+	page := NewLayout("HCF").
+		H(El("h1", Text("Building project"))).
+		C(El("p", Text("Files deleted successfully"))).
+		F(El("small", Text("Completed")))
+
+	imp := Imprint(page, ctx)
+
+	if imp.TokenCount == 0 {
+		t.Error("Imprint should produce non-zero token count")
+	}
+	if imp.UniqueVerbs == 0 {
+		t.Error("Imprint should find verbs in rendered content")
+	}
+}
+
+func TestImprint_SimilarPages(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	ctx := NewContext()
+
+	page1 := NewLayout("HCF").
+		H(El("h1", Text("Building project"))).
+		C(El("p", Text("Files deleted successfully")))
+
+	page2 := NewLayout("HCF").
+		H(El("h1", Text("Building system"))).
+		C(El("p", Text("Files removed successfully")))
+
+	different := NewLayout("HCF").
+		C(El("p", Raw("no grammar content here xyz abc")))
+
+	imp1 := Imprint(page1, ctx)
+	imp2 := Imprint(page2, ctx)
+	impDiff := Imprint(different, ctx)
+
+	sim := imp1.Similar(imp2)
+	diffSim := imp1.Similar(impDiff)
+
+	if sim <= diffSim {
+		t.Errorf("similar pages should score higher (%f) than different (%f)", sim, diffSim)
 	}
 }

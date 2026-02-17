@@ -1,6 +1,10 @@
 package html
 
-import "strings"
+import (
+	"strings"
+
+	"forge.lthn.ai/core/go-i18n/reversal"
+)
 
 // StripTags removes HTML tags from rendered output, returning plain text.
 // Tag boundaries are replaced with a single space; result is trimmed.
@@ -27,4 +31,17 @@ func StripTags(html string) string {
 		result = strings.ReplaceAll(result, "  ", " ")
 	}
 	return strings.TrimSpace(result)
+}
+
+// Imprint renders a node tree to HTML, strips tags, tokenises the text,
+// and returns a GrammarImprint — the full render-reverse pipeline.
+func Imprint(node Node, ctx *Context) reversal.GrammarImprint {
+	if ctx == nil {
+		ctx = NewContext()
+	}
+	rendered := node.Render(ctx)
+	text := StripTags(rendered)
+	tok := reversal.NewTokeniser()
+	tokens := tok.Tokenise(text)
+	return reversal.NewImprint(tokens)
 }
