@@ -50,9 +50,28 @@ func renderToString(_ js.Value, args []js.Value) any {
 	return layout.Render(ctx)
 }
 
+// registerComponentsJS wraps buildComponentJS for the WASM→JS bridge.
+// Takes a JSON string of slot assignments, generates the WC bundle,
+// and executes it in the browser via the Function constructor.
+func registerComponentsJS(_ js.Value, args []js.Value) any {
+	if len(args) < 1 {
+		return js.ValueOf("error: slotsJSON argument required")
+	}
+	jsCode, err := buildComponentJS(args[0].String())
+	if err != nil {
+		return js.ValueOf("error: " + err.Error())
+	}
+	// Execute the generated WC definitions in the browser context.
+	// Uses the standard Function constructor — the normal Go WASM→JS pattern.
+	fn := js.Global().Call("Function", jsCode)
+	fn.Invoke()
+	return js.ValueOf(jsCode)
+}
+
 func main() {
 	js.Global().Set("gohtml", js.ValueOf(map[string]any{
-		"renderToString": js.FuncOf(renderToString),
+		"renderToString":     js.FuncOf(renderToString),
+		"registerComponents": js.FuncOf(registerComponentsJS),
 	}))
 
 	select {}
