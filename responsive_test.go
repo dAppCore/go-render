@@ -54,6 +54,36 @@ func TestResponsive_VariantOrder(t *testing.T) {
 	}
 }
 
+func TestResponsive_NestedPaths(t *testing.T) {
+	ctx := NewContext()
+	inner := NewLayout("HCF").H(Raw("ih")).C(Raw("ic")).F(Raw("if"))
+	r := NewResponsive().
+		Variant("desktop", NewLayout("HLCRF").C(inner))
+
+	got := r.Render(ctx)
+
+	if !strings.Contains(got, `data-block="C-0-H-0"`) {
+		t.Errorf("nested layout in responsive variant missing C-0-H-0 in:\n%s", got)
+	}
+	if !strings.Contains(got, `data-block="C-0-C-0"`) {
+		t.Errorf("nested layout in responsive variant missing C-0-C-0 in:\n%s", got)
+	}
+}
+
+func TestResponsive_VariantsIndependent(t *testing.T) {
+	ctx := NewContext()
+	r := NewResponsive().
+		Variant("a", NewLayout("HLCRF").C(Raw("content-a"))).
+		Variant("b", NewLayout("HCF").C(Raw("content-b")))
+
+	got := r.Render(ctx)
+
+	count := strings.Count(got, `data-block="C-0"`)
+	if count != 2 {
+		t.Errorf("expected 2 independent C-0 blocks, got %d in:\n%s", count, got)
+	}
+}
+
 func TestResponsive_ImplementsNode(t *testing.T) {
 	var _ Node = NewResponsive()
 }
