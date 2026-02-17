@@ -99,3 +99,30 @@ func TestImprint_SimilarPages(t *testing.T) {
 		t.Errorf("similar pages should score higher (%f) than different (%f)", sim, diffSim)
 	}
 }
+
+func TestCompareVariants(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	ctx := NewContext()
+
+	r := NewResponsive().
+		Variant("desktop", NewLayout("HLCRF").
+			H(El("h1", Text("Building project"))).
+			C(El("p", Text("Files deleted successfully"))).
+			F(El("small", Text("Completed")))).
+		Variant("mobile", NewLayout("HCF").
+			H(El("h1", Text("Building project"))).
+			C(El("p", Text("Files deleted successfully"))).
+			F(El("small", Text("Completed"))))
+
+	scores := CompareVariants(r, ctx)
+
+	key := "desktop:mobile"
+	sim, ok := scores[key]
+	if !ok {
+		t.Fatalf("CompareVariants missing key %q, got keys: %v", key, scores)
+	}
+	if sim < 0.8 {
+		t.Errorf("same content in different variants should score >= 0.8, got %f", sim)
+	}
+}

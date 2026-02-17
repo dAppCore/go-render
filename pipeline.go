@@ -45,3 +45,31 @@ func Imprint(node Node, ctx *Context) reversal.GrammarImprint {
 	tokens := tok.Tokenise(text)
 	return reversal.NewImprint(tokens)
 }
+
+// CompareVariants runs the imprint pipeline on each responsive variant independently
+// and returns pairwise similarity scores. Key format: "name1:name2".
+func CompareVariants(r *Responsive, ctx *Context) map[string]float64 {
+	if ctx == nil {
+		ctx = NewContext()
+	}
+
+	type named struct {
+		name string
+		imp  reversal.GrammarImprint
+	}
+
+	var imprints []named
+	for _, v := range r.variants {
+		imp := Imprint(v.layout, ctx)
+		imprints = append(imprints, named{name: v.name, imp: imp})
+	}
+
+	scores := make(map[string]float64)
+	for i := 0; i < len(imprints); i++ {
+		for j := i + 1; j < len(imprints); j++ {
+			key := imprints[i].name + ":" + imprints[j].name
+			scores[key] = imprints[i].imp.Similar(imprints[j].imp)
+		}
+	}
+	return scores
+}
