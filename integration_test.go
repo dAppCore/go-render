@@ -1,11 +1,9 @@
 package html
 
 import (
-	"strings"
 	"testing"
 
 	i18n "forge.lthn.ai/core/go-i18n"
-	"forge.lthn.ai/core/go-i18n/reversal"
 )
 
 func TestIntegration_RenderThenReverse(t *testing.T) {
@@ -18,12 +16,7 @@ func TestIntegration_RenderThenReverse(t *testing.T) {
 		C(El("p", Text("Files deleted successfully"))).
 		F(El("small", Text("Completed")))
 
-	rendered := page.Render(ctx)
-	text := stripTags(rendered)
-
-	tok := reversal.NewTokeniser()
-	tokens := tok.Tokenise(text)
-	imp := reversal.NewImprint(tokens)
+	imp := Imprint(page, ctx)
 
 	if imp.UniqueVerbs == 0 {
 		t.Error("reversal found no verbs in rendered page")
@@ -33,23 +26,27 @@ func TestIntegration_RenderThenReverse(t *testing.T) {
 	}
 }
 
-// stripTags removes HTML tags for plain text extraction.
-func stripTags(html string) string {
-	var b strings.Builder
-	inTag := false
-	for _, r := range html {
-		if r == '<' {
-			inTag = true
-			b.WriteByte(' ')
-			continue
-		}
-		if r == '>' {
-			inTag = false
-			continue
-		}
-		if !inTag {
-			b.WriteRune(r)
-		}
+func TestIntegration_ResponsiveImprint(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	ctx := NewContext()
+
+	r := NewResponsive().
+		Variant("desktop", NewLayout("HLCRF").
+			H(El("h1", Text("Building project"))).
+			L(El("nav", Text("Deleted files"))).
+			C(El("p", Text("Files deleted successfully"))).
+			R(El("aside", Text("Completed"))).
+			F(El("small", Text("Completed")))).
+		Variant("mobile", NewLayout("C").
+			C(El("p", Text("Files deleted successfully"))))
+
+	imp := Imprint(r, ctx)
+
+	if imp.TokenCount == 0 {
+		t.Error("responsive imprint produced zero tokens")
 	}
-	return strings.TrimSpace(b.String())
+	if imp.UniqueVerbs == 0 {
+		t.Error("responsive imprint found no verbs")
+	}
 }
