@@ -183,6 +183,14 @@ func TestElNode_MultipleAttrs(t *testing.T) {
 	}
 }
 
+func TestAttr_NonElement(t *testing.T) {
+	node := Attr(Raw("text"), "class", "x")
+	got := node.Render(NewContext())
+	if got != "text" {
+		t.Errorf("Attr on non-element should return unchanged, got %q", got)
+	}
+}
+
 func TestSwitchNode(t *testing.T) {
 	ctx := NewContext()
 	cases := map[string]Node{

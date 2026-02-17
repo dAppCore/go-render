@@ -30,7 +30,7 @@ func (r *Responsive) Render(ctx *Context) string {
 	var b strings.Builder
 	for _, v := range r.variants {
 		b.WriteString(`<div data-variant="`)
-		b.WriteString(v.name)
+		b.WriteString(escapeAttr(v.name))
 		b.WriteString(`">`)
 		b.WriteString(v.layout.Render(ctx))
 		b.WriteString(`</div>`)

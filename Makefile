@@ -11,7 +11,7 @@ test:
 
 wasm: $(WASM_OUT)
 
-$(WASM_OUT):
+$(WASM_OUT): $(shell find . -name '*.go' -not -path './dist/*')
 	@mkdir -p dist
 	GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o $(WASM_OUT) ./cmd/wasm/
 	@RAW=$$(stat -c%s "$(WASM_OUT)" 2>/dev/null || stat -f%z "$(WASM_OUT)"); \

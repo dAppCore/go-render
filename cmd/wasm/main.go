@@ -8,6 +8,10 @@ import (
 	html "forge.lthn.ai/core/go-html"
 )
 
+// renderToString builds an HLCRF layout from JS arguments and returns HTML.
+// Slot content is injected via Raw() — the caller is responsible for sanitisation.
+// This is intentional: the WASM module is a rendering engine for trusted content
+// produced server-side or by the application's own templates.
 func renderToString(_ js.Value, args []js.Value) any {
 	if len(args) < 1 {
 		return ""
