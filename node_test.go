@@ -155,6 +155,34 @@ func TestEachNode_Empty(t *testing.T) {
 	}
 }
 
+func TestElNode_Attr(t *testing.T) {
+	ctx := NewContext()
+	node := Attr(El("div", Raw("content")), "class", "container")
+	got := node.Render(ctx)
+	want := `<div class="container">content</div>`
+	if got != want {
+		t.Errorf("Attr() = %q, want %q", got, want)
+	}
+}
+
+func TestElNode_AttrEscaping(t *testing.T) {
+	ctx := NewContext()
+	node := Attr(El("img"), "alt", `he said "hello"`)
+	got := node.Render(ctx)
+	if !strings.Contains(got, `alt="he said &quot;hello&quot;"`) {
+		t.Errorf("Attr should escape attribute values, got %q", got)
+	}
+}
+
+func TestElNode_MultipleAttrs(t *testing.T) {
+	ctx := NewContext()
+	node := Attr(Attr(El("a", Raw("link")), "href", "/home"), "class", "nav")
+	got := node.Render(ctx)
+	if !strings.Contains(got, `class="nav"`) || !strings.Contains(got, `href="/home"`) {
+		t.Errorf("multiple Attr() calls should stack, got %q", got)
+	}
+}
+
 func TestSwitchNode(t *testing.T) {
 	ctx := NewContext()
 	cases := map[string]Node{

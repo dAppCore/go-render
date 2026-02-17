@@ -71,6 +71,15 @@ func El(tag string, children ...Node) Node {
 	}
 }
 
+// Attr sets an attribute on an El node. Returns the node for chaining.
+// If the node is not an *elNode, returns it unchanged.
+func Attr(n Node, key, value string) Node {
+	if el, ok := n.(*elNode); ok {
+		el.attrs[key] = value
+	}
+	return n
+}
+
 func (n *elNode) Render(ctx *Context) string {
 	var b strings.Builder
 
