@@ -28,7 +28,7 @@ Root cause: `registerComponents()` pulled in `encoding/json` (~200KB gz), `text/
 
 ### Step 5: Tests
 
-- [ ] **WASM build gate test** — `TestWASMBinarySize` in `cmd/wasm/main_test.go`: build WASM, gzip, assert < 1MB
+- [x] **WASM build gate test** — `TestWASMBinarySize` in `cmd/wasm/size_test.go`: builds WASM, gzips, asserts < 1MB gzip and < 3MB raw. Result: 2.90MB raw, 842KB gzip. `//go:build !js` guarded.
 - [x] **Codegen CLI test** — `cmd/codegen/main_test.go`: pipe JSON stdin, verify JS output matches `GenerateBundle()`
 - [x] **renderToString still works** — Existing WASM tests for `renderToString` pass (build-tag guarded)
 - [x] **Existing tests still pass** — `go test ./...` (non-WASM) all 70+ tests pass, pipeline/codegen tests unaffected
