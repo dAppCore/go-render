@@ -21,7 +21,16 @@ GOOS=js GOARCH=wasm go build -o gohtml.wasm ./cmd/wasm/  # WASM build
 - **Responsive**: Multi-variant breakpoint wrapper (`data-variant` attributes)
 - **Pipeline**: Render → StripTags → go-i18n/reversal Tokenise → GrammarImprint
 - **Codegen**: Web Component classes with closed Shadow DOM
-- **WASM**: `cmd/wasm/` exports `renderToString()` and `registerComponents()` to JS
+- **WASM**: `cmd/wasm/` exports `renderToString()` only (lean client-side renderer, ~830KB gzip)
+- **Codegen CLI**: `cmd/codegen/` reads slot JSON from stdin, writes WC bundle JS to stdout (build-time tool, not in WASM)
+
+## Server/Client Split
+
+Files guarded with `//go:build !js` are excluded from WASM builds:
+- `pipeline.go` — Imprint/CompareVariants use `go-i18n/reversal` (heavyweight, server-side only)
+- `cmd/wasm/register.go` — encoding/json + codegen (replaced by `cmd/codegen/` CLI)
+
+WASM binary contains only: node types, layout, responsive, context, render, path, and go-i18n core (translation).
 
 ## Dependencies
 
@@ -51,4 +60,5 @@ No specific suffix pattern — use table-driven subtests with `t.Run()`.
 | `responsive.go` | Multi-variant breakpoint wrapper |
 | `context.go` | Rendering context (Identity, Locale, Entitlements, i18n Service) |
 | `codegen/codegen.go` | Web Component class generation |
-| `cmd/wasm/main.go` | WASM entry point |
+| `cmd/wasm/main.go` | WASM entry point (`renderToString` only) |
+| `cmd/codegen/main.go` | Build-time CLI for WC bundle generation |

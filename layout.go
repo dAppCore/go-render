@@ -1,9 +1,6 @@
 package html
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 // slotMeta holds the semantic HTML mapping for each HLCRF slot.
 type slotMeta struct {
@@ -69,7 +66,7 @@ func (l *Layout) F(nodes ...Node) *Layout {
 
 // blockID returns the deterministic data-block attribute value for a slot.
 func (l *Layout) blockID(slot byte) string {
-	return fmt.Sprintf("%s%c-0", l.path, slot)
+	return l.path + string(slot) + "-0"
 }
 
 // Render produces the semantic HTML for this layout.
