@@ -1,6 +1,6 @@
 module forge.lthn.ai/core/go-html
 
-go 1.25.5
+go 1.26.0
 
 require (
 	forge.lthn.ai/core/go-i18n v0.0.1
