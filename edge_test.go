@@ -180,7 +180,7 @@ func TestLayout_DeepNesting_10Levels(t *testing.T) {
 
 	// Build 10 levels of nested layouts
 	current := NewLayout("C").C(Raw("deepest"))
-	for i := 0; i < 9; i++ {
+	for range 9 {
 		current = NewLayout("C").C(current)
 	}
 
@@ -210,7 +210,7 @@ func TestLayout_DeepNesting_20Levels(t *testing.T) {
 	ctx := NewContext()
 
 	current := NewLayout("C").C(Raw("bottom"))
-	for i := 0; i < 19; i++ {
+	for range 19 {
 		current = NewLayout("C").C(current)
 	}
 
@@ -229,7 +229,7 @@ func TestLayout_DeepNesting_MixedSlots(t *testing.T) {
 
 	// Alternate slot types at each level: C -> L -> C -> L -> ...
 	current := NewLayout("C").C(Raw("leaf"))
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		if i%2 == 0 {
 			current = NewLayout("HLCRF").L(current)
 		} else {
