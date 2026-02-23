@@ -1,3 +1,7 @@
+[![Go Reference](https://pkg.go.dev/badge/forge.lthn.ai/core/go-html.svg)](https://pkg.go.dev/forge.lthn.ai/core/go-html)
+[![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg)](LICENSE.md)
+[![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat&logo=go)](go.mod)
+
 # go-html
 
 HLCRF DOM compositor with grammar pipeline integration for server-side HTML generation and optional WASM client rendering. Provides a type-safe node tree (El, Text, Raw, If, Each, Switch, Entitled), a five-slot Header/Left/Content/Right/Footer layout compositor with deterministic `data-block` path IDs and ARIA roles, a responsive multi-variant wrapper, a server-side grammar pipeline (StripTags, GrammarImprint via go-i18n reversal, CompareVariants), a build-time Web Component codegen CLI, and a WASM module (2.90 MB raw, 842 KB gzip) exposing `renderToString()`.
