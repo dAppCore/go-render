@@ -1,8 +1,7 @@
-forge.lthn.ai/core/go-i18n v0.0.1 h1:7I2cOv3GCc7MssLny/CAnwz3L7/Y4iqwzrCRQMQ+teA=
-forge.lthn.ai/core/go-i18n v0.0.1/go.mod h1:nyiGwZ3jV4h9Yge6mSrKVTo7CI1LI/p3ydI+9jUnMtk=
+forge.lthn.ai/core/go-i18n v0.0.3 h1:et3NkErxSIGxwj8rAK86UU56gYJWXSy66KZm/H4vld8=
+forge.lthn.ai/core/go-i18n v0.0.3/go.mod h1:Q4xsrxuNCl/6NfMv1daria7t1RSiyy8ml+6jiPtUcBs=
 forge.lthn.ai/core/go-inference v0.0.2 h1:aHjBkYyLKxLr9tbO4AvzzV/lsZueGq/jeo33SLh113k=
 forge.lthn.ai/core/go-inference v0.0.2/go.mod h1:jfWz+IJX55wAH98+ic6FEqqGB6/P31CHlg7VY7pxREw=
-github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
