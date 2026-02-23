@@ -74,7 +74,7 @@ func (l *Layout) blockID(slot byte) string {
 func (l *Layout) Render(ctx *Context) string {
 	var b strings.Builder
 
-	for i := 0; i < len(l.variant); i++ {
+	for i := range len(l.variant) {
 		slot := l.variant[i]
 		children := l.slots[slot]
 		if len(children) == 0 {

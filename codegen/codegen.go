@@ -54,9 +54,8 @@ func GenerateRegistration(tag, className string) string {
 
 // TagToClassName converts a kebab-case tag to PascalCase class name.
 func TagToClassName(tag string) string {
-	parts := strings.Split(tag, "-")
 	var b strings.Builder
-	for _, p := range parts {
+	for p := range strings.SplitSeq(tag, "-") {
 		if len(p) > 0 {
 			b.WriteString(strings.ToUpper(p[:1]))
 			b.WriteString(p[1:])

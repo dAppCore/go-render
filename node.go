@@ -1,7 +1,9 @@
 package html
 
 import (
-	"sort"
+	"iter"
+	"maps"
+	"slices"
 	"strings"
 
 	i18n "forge.lthn.ai/core/go-i18n"
@@ -87,11 +89,8 @@ func (n *elNode) Render(ctx *Context) string {
 	b.WriteString(n.tag)
 
 	// Sort attribute keys for deterministic output.
-	keys := make([]string, 0, len(n.attrs))
-	for k := range n.attrs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := slices.Collect(maps.Keys(n.attrs))
+	slices.Sort(keys)
 	for _, key := range keys {
 		b.WriteByte(' ')
 		b.WriteString(key)
@@ -106,8 +105,8 @@ func (n *elNode) Render(ctx *Context) string {
 		return b.String()
 	}
 
-	for _, child := range n.children {
-		b.WriteString(child.Render(ctx))
+	for i := range len(n.children) {
+		b.WriteString(n.children[i].Render(ctx))
 	}
 
 	b.WriteString("</")
@@ -233,21 +232,23 @@ func (n *switchNode) Render(ctx *Context) string {
 // --- eachNode ---
 
 type eachNode[T any] struct {
-	items []T
+	items iter.Seq[T]
 	fn    func(T) Node
 }
 
 // Each iterates items and renders each via fn.
 func Each[T any](items []T, fn func(T) Node) Node {
+	return EachSeq(slices.Values(items), fn)
+}
+
+// EachSeq iterates an iter.Seq and renders each via fn.
+func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 	return &eachNode[T]{items: items, fn: fn}
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
-	if len(n.items) == 0 {
-		return ""
-	}
 	var b strings.Builder
-	for _, item := range n.items {
+	for item := range n.items {
 		b.WriteString(n.fn(item).Render(ctx))
 	}
 	return b.String()

@@ -11,12 +11,13 @@ func ParseBlockID(id string) []byte {
 
 	// Split on "-" and take every other element (the slot letters).
 	// Format: "X-0" or "X-0-Y-0-Z-0"
-	parts := strings.Split(id, "-")
 	var slots []byte
-	for i := 0; i < len(parts); i += 2 {
-		if len(parts[i]) == 1 {
-			slots = append(slots, parts[i][0])
+	i := 0
+	for part := range strings.SplitSeq(id, "-") {
+		if i%2 == 0 && len(part) == 1 {
+			slots = append(slots, part[0])
 		}
+		i++
 	}
 	return slots
 }
