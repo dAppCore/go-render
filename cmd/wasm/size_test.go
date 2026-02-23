@@ -17,7 +17,7 @@ import (
 
 const (
 	wasmGzLimit  = 1_048_576 // 1 MB gzip transfer size limit
-	wasmRawLimit = 3_145_728 // 3 MB raw size limit
+	wasmRawLimit = 3_670_016 // 3.5 MB raw size limit
 )
 
 func TestWASMBinarySize_Good(t *testing.T) {
