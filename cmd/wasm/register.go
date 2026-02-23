@@ -20,3 +20,7 @@ func buildComponentJS(slotsJSON string) (string, error) {
 	}
 	return codegen.GenerateBundle(slots)
 }
+
+func main() {
+	fmt.Println("go-html WASM module — build with GOOS=js GOARCH=wasm")
+}
