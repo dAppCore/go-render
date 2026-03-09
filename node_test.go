@@ -169,7 +169,7 @@ func TestElNode_AttrEscaping(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("img"), "alt", `he said "hello"`)
 	got := node.Render(ctx)
-	if !strings.Contains(got, `alt="he said &quot;hello&quot;"`) {
+	if !strings.Contains(got, `alt="he said &#34;hello&#34;"`) {
 		t.Errorf("Attr should escape attribute values, got %q", got)
 	}
 }

@@ -447,7 +447,7 @@ func TestEscapeAttr_AllSpecialChars(t *testing.T) {
 	if strings.Contains(got, `"&<>"'"`) {
 		t.Error("attribute value with special chars must be fully escaped")
 	}
-	if !strings.Contains(got, "&amp;&lt;&gt;&quot;&#39;") {
+	if !strings.Contains(got, "&amp;&lt;&gt;&#34;&#39;") {
 		t.Errorf("expected all special chars escaped in attribute, got: %s", got)
 	}
 }

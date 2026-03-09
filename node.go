@@ -1,6 +1,7 @@
 package html
 
 import (
+	"html"
 	"iter"
 	"maps"
 	"slices"
@@ -33,12 +34,7 @@ var voidElements = map[string]bool{
 
 // escapeAttr escapes a string for use in an HTML attribute value.
 func escapeAttr(s string) string {
-	s = strings.ReplaceAll(s, "&", "&amp;")
-	s = strings.ReplaceAll(s, "\"", "&quot;")
-	s = strings.ReplaceAll(s, "'", "&#39;")
-	s = strings.ReplaceAll(s, "<", "&lt;")
-	s = strings.ReplaceAll(s, ">", "&gt;")
-	return s
+	return html.EscapeString(s)
 }
 
 // --- rawNode ---
@@ -74,10 +70,17 @@ func El(tag string, children ...Node) Node {
 }
 
 // Attr sets an attribute on an El node. Returns the node for chaining.
-// If the node is not an *elNode, returns it unchanged.
+// It recursively traverses through wrappers like If, Unless, and Entitled.
 func Attr(n Node, key, value string) Node {
-	if el, ok := n.(*elNode); ok {
-		el.attrs[key] = value
+	switch t := n.(type) {
+	case *elNode:
+		t.attrs[key] = value
+	case *ifNode:
+		Attr(t.node, key, value)
+	case *unlessNode:
+		Attr(t.node, key, value)
+	case *entitledNode:
+		Attr(t.node, key, value)
 	}
 	return n
 }
@@ -86,14 +89,14 @@ func (n *elNode) Render(ctx *Context) string {
 	var b strings.Builder
 
 	b.WriteByte('<')
-	b.WriteString(n.tag)
+	b.WriteString(escapeHTML(n.tag))
 
 	// Sort attribute keys for deterministic output.
 	keys := slices.Collect(maps.Keys(n.attrs))
 	slices.Sort(keys)
 	for _, key := range keys {
 		b.WriteByte(' ')
-		b.WriteString(key)
+		b.WriteString(escapeHTML(key))
 		b.WriteString(`="`)
 		b.WriteString(escapeAttr(n.attrs[key]))
 		b.WriteByte('"')
@@ -110,7 +113,7 @@ func (n *elNode) Render(ctx *Context) string {
 	}
 
 	b.WriteString("</")
-	b.WriteString(n.tag)
+	b.WriteString(escapeHTML(n.tag))
 	b.WriteByte('>')
 
 	return b.String()
@@ -120,12 +123,7 @@ func (n *elNode) Render(ctx *Context) string {
 
 // escapeHTML escapes a string for safe inclusion in HTML text content.
 func escapeHTML(s string) string {
-	s = strings.ReplaceAll(s, "&", "&amp;")
-	s = strings.ReplaceAll(s, "<", "&lt;")
-	s = strings.ReplaceAll(s, ">", "&gt;")
-	s = strings.ReplaceAll(s, "\"", "&quot;")
-	s = strings.ReplaceAll(s, "'", "&#39;")
-	return s
+	return html.EscapeString(s)
 }
 
 // --- textNode ---

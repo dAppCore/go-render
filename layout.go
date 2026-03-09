@@ -89,11 +89,11 @@ func (l *Layout) Render(ctx *Context) string {
 		bid := l.blockID(slot)
 
 		b.WriteByte('<')
-		b.WriteString(meta.tag)
+		b.WriteString(escapeHTML(meta.tag))
 		b.WriteString(` role="`)
-		b.WriteString(meta.role)
+		b.WriteString(escapeAttr(meta.role))
 		b.WriteString(`" data-block="`)
-		b.WriteString(bid)
+		b.WriteString(escapeAttr(bid))
 		b.WriteString(`">`)
 
 		for _, child := range children {
