@@ -1,12 +1,15 @@
+---
+title: Architecture
+description: Internals of the go-html HLCRF DOM compositor, covering the node interface, layout system, responsive wrapper, grammar pipeline, WASM module, and codegen CLI.
+---
+
 # Architecture
 
-`go-html` is an HLCRF DOM compositor with grammar pipeline integration. It provides a pure-Go, type-safe HTML rendering library designed for server-side generation with an optional lightweight WASM client module.
-
-Module path: `forge.lthn.ai/core/go-html`
+`go-html` is structured around a single interface, a layout compositor, and a server-side analysis pipeline. Everything renders to `string` -- there is no virtual DOM, no diffing, and no retained state between renders.
 
 ## Node Interface
 
-All renderable units implement a single interface:
+Every renderable unit implements one method:
 
 ```go
 type Node interface {
@@ -14,204 +17,282 @@ type Node interface {
 }
 ```
 
-Every node type is a private struct with a public constructor. The API surface is intentionally small: nine public constructors plus `Attr()` and `Render()` helpers.
+All concrete node types are unexported structs with exported constructor functions. The public API surface consists of nine constructors plus the `Attr()` and `Render()` helpers:
 
-| Constructor | Description |
-|-------------|-------------|
-| `El(tag, ...Node)` | HTML element with children |
-| `Attr(Node, key, value)` | Set attribute on an El node; chainable |
-| `Text(key, ...any)` | Translated, HTML-escaped text via go-i18n |
-| `Raw(content)` | Unescaped trusted content |
-| `If(cond, Node)` | Conditional render |
-| `Unless(cond, Node)` | Inverse conditional render |
-| `Each[T](items, fn)` | Type-safe iteration with generics |
-| `Switch(selector, cases)` | Runtime dispatch to named cases |
-| `Entitled(feature, Node)` | Entitlement-gated render; deny-by-default |
+| Constructor | Behaviour |
+|-------------|-----------|
+| `El(tag, ...Node)` | HTML element with children. Void elements (`br`, `img`, `input`, etc.) never emit a closing tag. |
+| `Attr(Node, key, value)` | Sets an attribute on an `El` node. Traverses through `If`, `Unless`, and `Entitled` wrappers. Returns the node for chaining. |
+| `Text(key, ...any)` | Translated text via `go-i18n`. Output is always HTML-escaped. |
+| `Raw(content)` | Unescaped trusted content. Explicit escape hatch. |
+| `If(cond, Node)` | Renders the child only when the condition function returns true. |
+| `Unless(cond, Node)` | Renders the child only when the condition function returns false. |
+| `Each[T](items, fn)` | Iterates a slice and renders each item via a mapping function. Generic over `T`. |
+| `EachSeq[T](items, fn)` | Same as `Each` but accepts an `iter.Seq[T]` instead of a slice. |
+| `Switch(selector, cases)` | Renders one of several named cases based on a runtime selector function. Returns empty string when no case matches. |
+| `Entitled(feature, Node)` | Renders the child only when the context's entitlement function grants the named feature. Deny-by-default: returns empty string when no entitlement function is set. |
 
-### Safety guarantees
+### Safety Guarantees
 
-- `Text` nodes are always HTML-escaped. XSS via user-supplied strings fed through `Text()` is not possible.
-- `Raw` is an explicit escape hatch for trusted content only. Its name signals intent.
-- `Entitled` returns an empty string when no entitlement function is set on the context. Access is denied by default, not granted.
-- `El` attributes are sorted alphabetically before output, producing deterministic HTML regardless of insertion order.
-- Void elements (`br`, `img`, `input`, etc.) never emit a closing tag.
-
-## HLCRF Layout
-
-The `Layout` type is a compositor for five named slots: **H**eader, **L**eft, **C**ontent, **R**ight, **F**ooter. Each slot maps to a specific semantic HTML element and ARIA role:
-
-| Slot | Element | ARIA role |
-|------|---------|-----------|
-| H | `<header>` | `banner` |
-| L | `<aside>` | `complementary` |
-| C | `<main>` | `main` |
-| R | `<aside>` | `complementary` |
-| F | `<footer>` | `contentinfo` |
-
-A layout variant string selects which slots are rendered and in which order:
-
-```go
-NewLayout("HLCRF")   // all five slots
-NewLayout("HCF")     // header, content, footer — no sidebars
-NewLayout("C")       // content only
-```
-
-Each rendered slot receives a deterministic `data-block` attribute encoding its position in the tree. The root layout produces IDs in the form `{slot}-0` (e.g., `H-0`, `C-0`). Nested layouts extend the parent's block ID as a path prefix: a `Layout` placed inside the `L` slot of a root layout will produce inner slot IDs like `L-0-H-0`, `L-0-C-0`.
-
-This path scheme is computed without `fmt.Sprintf` — using simple string concatenation — to keep `fmt` out of the WASM import graph.
-
-### Nested layouts
-
-`Layout` implements `Node`, so it can be placed inside any slot of another layout. At render time, nested layouts are cloned and their `path` field is set to the parent's block ID. This clone-on-render approach avoids shared mutation and is safe for concurrent use.
-
-```go
-inner := NewLayout("HCF").H(Raw("nav")).C(Raw("body")).F(Raw("links"))
-outer := NewLayout("HLCRF").H(Raw("top")).L(inner).C(Raw("main")).F(Raw("foot"))
-```
-
-### Fluent builder
-
-All slot methods return the `*Layout` for chaining. Multiple nodes may be appended to the same slot across multiple calls:
-
-```go
-NewLayout("HCF").
-    H(El("h1", Text("Title"))).
-    C(El("p", Text("Content")), Raw("<hr>")).
-    F(El("small", Text("Copyright")))
-```
-
-## Responsive Compositor
-
-`Responsive` wraps multiple named `Layout` variants for breakpoint-aware rendering. Each variant renders inside a `<div data-variant="name">` container, giving CSS media queries or JavaScript a stable hook for show/hide logic.
-
-```go
-NewResponsive().
-    Variant("desktop", NewLayout("HLCRF")...).
-    Variant("tablet", NewLayout("HCF")...).
-    Variant("mobile", NewLayout("C")...)
-```
-
-`Responsive` itself implements `Node` and may be passed to `Imprint()` for cross-variant semantic analysis.
-
-Note: `Responsive.Variant()` accepts only `*Layout`, not arbitrary `Node` values. Arbitrary subtrees must be wrapped in a layout first.
+- **XSS prevention**: `Text()` nodes always HTML-escape their output via `html.EscapeString()`. User-supplied strings passed through `Text()` cannot inject HTML.
+- **Attribute escaping**: Attribute values are escaped with `html.EscapeString()`, handling `&`, `<`, `>`, `"`, and `'`.
+- **Deterministic output**: Attribute keys on `El` nodes are sorted alphabetically before rendering, producing identical output regardless of insertion order.
+- **Void elements**: A lookup table of 13 void elements (`area`, `base`, `br`, `col`, `embed`, `hr`, `img`, `input`, `link`, `meta`, `source`, `track`, `wbr`) ensures these never emit a closing tag.
+- **Deny-by-default entitlements**: `Entitled` returns an empty string when the context is nil, when no entitlement function is set, or when the function returns false. Content is absent from the DOM, not merely hidden.
 
 ## Rendering Context
 
-`Context` carries per-request state through the entire node tree:
+The `Context` struct carries per-request state through the node tree during rendering:
 
 ```go
 type Context struct {
-    Identity     string
-    Locale       string
-    Entitlements func(feature string) bool
-    Data         map[string]any
-    service      *i18n.Service  // private; set via NewContextWithService()
+    Identity     string                     // e.g. user ID or session identifier
+    Locale       string                     // BCP 47 locale string
+    Entitlements func(feature string) bool  // feature gate callback
+    Data         map[string]any             // arbitrary per-request data
+    service      *i18n.Service              // unexported; set via constructor
 }
 ```
 
-The `service` field is intentionally unexported. Custom i18n adapter injection requires `NewContextWithService(svc)`. This prevents callers from setting it inconsistently after construction.
+Two constructors are provided:
 
-When `ctx.service` is nil, `Text` nodes fall back to the global `i18n.T()` default service.
+- `NewContext()` creates a context with sensible defaults and an empty `Data` map.
+- `NewContextWithService(svc)` creates a context backed by a specific `i18n.Service` instance.
 
-## Grammar Pipeline
+The `service` field is intentionally unexported. When nil, `Text` nodes fall back to the global `i18n.T()` default. This prevents callers from setting the service inconsistently after construction.
 
-The grammar pipeline is a server-side-only feature. It is guarded with `//go:build !js` and absent from all WASM builds.
+## HLCRF Layout
+
+The `Layout` type is a compositor for five named slots:
+
+| Slot Letter | Semantic Element | ARIA Role | Accessor |
+|-------------|-----------------|-----------|----------|
+| H | `<header>` | `banner` | `layout.H(...)` |
+| L | `<aside>` | `complementary` | `layout.L(...)` |
+| C | `<main>` | `main` | `layout.C(...)` |
+| R | `<aside>` | `complementary` | `layout.R(...)` |
+| F | `<footer>` | `contentinfo` | `layout.F(...)` |
+
+### Variant String
+
+The variant string passed to `NewLayout()` determines which slots render and in which order:
+
+```go
+NewLayout("HLCRF")  // all five slots
+NewLayout("HCF")    // header, content, footer (no sidebars)
+NewLayout("C")      // content only
+NewLayout("LC")     // left sidebar and content
+```
+
+Slot letters not present in the variant string are ignored, even if nodes have been appended to those slots. Unrecognised characters (lowercase, digits, special characters) are silently skipped -- no error is returned.
+
+### Deterministic Block IDs
+
+Each rendered slot receives a `data-block` attribute encoding its position in the layout tree. At the root level, IDs follow the pattern `{slot}-0`:
+
+```html
+<header role="banner" data-block="H-0">...</header>
+<main role="main" data-block="C-0">...</main>
+<footer role="contentinfo" data-block="F-0">...</footer>
+```
+
+Block IDs are constructed by simple string concatenation (no `fmt.Sprintf`) to keep the `fmt` package out of the WASM import graph.
+
+### Nested Layouts
+
+`Layout` implements `Node`, so a layout can be placed inside any slot of another layout. At render time, nested layouts are cloned and their internal `path` field is set to the parent's block ID as a prefix. This produces hierarchical paths:
+
+```go
+inner := html.NewLayout("HCF").
+    H(html.Raw("nav")).
+    C(html.Raw("body")).
+    F(html.Raw("links"))
+
+outer := html.NewLayout("HLCRF").
+    H(html.Raw("top")).
+    L(inner).              // inner layout nested in the Left slot
+    C(html.Raw("main")).
+    F(html.Raw("foot"))
+```
+
+The inner layout's slots render with prefixed block IDs: `L-0-H-0`, `L-0-C-0`, `L-0-F-0`. At 10 levels of nesting, the deepest block ID becomes `C-0-C-0-C-0-C-0-C-0-C-0-C-0-C-0-C-0-C-0` (tested in `edge_test.go`).
+
+The clone-on-render approach means the original layout is never mutated. This is safe for concurrent use.
+
+### Fluent Builder
+
+All slot methods return `*Layout` for chaining. Multiple nodes can be appended to the same slot across multiple calls:
+
+```go
+html.NewLayout("HCF").
+    H(html.El("h1", html.Text("page.title"))).
+    C(html.El("p", html.Text("intro"))).
+    C(html.El("p", html.Text("body"))).       // appends to the same C slot
+    F(html.El("small", html.Text("footer")))
+```
+
+### Block ID Parsing
+
+`ParseBlockID()` in `path.go` extracts the slot letter sequence from a `data-block` attribute value:
+
+```go
+ParseBlockID("L-0-C-0")       // returns ['L', 'C']
+ParseBlockID("C-0-C-0-C-0")   // returns ['C', 'C', 'C']
+ParseBlockID("H-0")           // returns ['H']
+ParseBlockID("")              // returns nil
+```
+
+This enables server-side or client-side code to locate a specific block in the rendered tree by its structural path.
+
+## Responsive Compositor
+
+`Responsive` wraps multiple named `Layout` variants for breakpoint-aware rendering:
+
+```go
+html.NewResponsive().
+    Variant("desktop", html.NewLayout("HLCRF").
+        H(html.Raw("header")).L(html.Raw("nav")).C(html.Raw("main")).
+        R(html.Raw("aside")).F(html.Raw("footer"))).
+    Variant("tablet", html.NewLayout("HCF").
+        H(html.Raw("header")).C(html.Raw("main")).F(html.Raw("footer"))).
+    Variant("mobile", html.NewLayout("C").
+        C(html.Raw("main")))
+```
+
+Each variant renders inside a `<div data-variant="name">` container. Variants render in insertion order. CSS media queries or JavaScript can target these containers for show/hide logic.
+
+`Responsive` implements `Node`, so it can be passed to `Render()` or `Imprint()`. The `Variant()` method accepts `*Layout` specifically, not arbitrary `Node` values.
+
+Each variant maintains independent block ID namespaces -- nesting a layout inside a responsive variant does not conflict with the same layout structure in another variant.
+
+## Grammar Pipeline (Server-Side Only)
+
+The grammar pipeline is excluded from WASM builds via `//go:build !js` on `pipeline.go`. It bridges the rendering layer to the semantic analysis layer.
 
 ### StripTags
 
-`StripTags(html string) string` converts rendered HTML to plain text. Tag boundaries are collapsed to single spaces; the result is trimmed. The implementation is a single-pass rune scanner: no regex, no allocations beyond the output builder. It does not attempt to elide `<script>` or `<style>` content because `go-html` never generates those elements.
+```go
+func StripTags(html string) string
+```
+
+Converts rendered HTML to plain text. Tag boundaries are collapsed into single spaces; the result is trimmed. The implementation is a single-pass rune scanner with no regular expressions and no allocations beyond the output `strings.Builder`. It does not handle `<script>` or `<style>` content because `go-html` never generates those elements.
 
 ### Imprint
 
-`Imprint(node Node, ctx *Context) reversal.GrammarImprint` runs the full render-to-analysis pipeline:
+```go
+func Imprint(node Node, ctx *Context) reversal.GrammarImprint
+```
 
-1. Call `node.Render(ctx)` to produce HTML.
-2. Pass HTML through `StripTags` to extract plain text.
-3. Pass plain text through `go-i18n/reversal.Tokeniser` to produce a token sequence.
-4. Wrap tokens in a `reversal.GrammarImprint` for structural analysis.
+Runs the full render-to-analysis pipeline:
 
-The resulting `GrammarImprint` exposes `TokenCount`, `UniqueVerbs`, and a `Similar()` method for pairwise semantic similarity scoring. This bridges the rendering layer to the privacy and analytics layers of the Lethean stack.
+1. Renders the node tree to HTML via `node.Render(ctx)`.
+2. Strips HTML tags via `StripTags()` to extract plain text.
+3. Tokenises the text via `go-i18n/reversal.NewTokeniser().Tokenise()`.
+4. Wraps tokens in a `reversal.GrammarImprint` for structural analysis.
+
+The resulting `GrammarImprint` exposes `TokenCount`, `UniqueVerbs`, and a `Similar()` method for pairwise semantic similarity scoring.
+
+A nil context is handled gracefully: `Imprint` creates a default context internally.
 
 ### CompareVariants
 
-`CompareVariants(r *Responsive, ctx *Context) map[string]float64` runs `Imprint` on each named layout variant in a `Responsive` and returns pairwise similarity scores. Keys are `"name1:name2"`. This enables detection of semantically divergent responsive variants — for example, a mobile layout that strips critical information that appears in the desktop variant.
+```go
+func CompareVariants(r *Responsive, ctx *Context) map[string]float64
+```
 
-## Server/Client Split
+Runs `Imprint` independently on each named layout variant in a `Responsive` and returns pairwise similarity scores. Keys are formatted as `"name1:name2"`.
 
-The binary split is enforced by Go build tags.
+This enables detection of semantically divergent responsive variants -- for example, a mobile layout that strips critical information present in the desktop variant. Same-content variants with different layout structures (e.g. `HLCRF` vs `HCF`) score above 0.8 similarity.
 
-| File | Build tag | Reason for exclusion from WASM |
-|------|-----------|-------------------------------|
-| `pipeline.go` | `//go:build !js` | Imports `go-i18n/reversal` (~250 KB gzip) |
-| `cmd/wasm/register.go` | `//go:build !js` | Imports `encoding/json` (~200 KB gzip) and `text/template` (~125 KB gzip) |
-
-The WASM binary includes only: node types, layout, responsive, context, render, path, and go-i18n core (translation). No codegen, no pipeline, no JSON, no templates, no `fmt`.
+A single-variant `Responsive` produces an empty score map (no pairs to compare).
 
 ## WASM Module
 
-The WASM entry point is `cmd/wasm/main.go`, compiled with `GOOS=js GOARCH=wasm`.
-
-It exposes a single JavaScript function on `window.gohtml`:
+The WASM entry point at `cmd/wasm/main.go` is compiled with `GOOS=js GOARCH=wasm` and exposes a single JavaScript function:
 
 ```js
 gohtml.renderToString(variant, locale, slots)
 ```
 
-- `variant`: HLCRF variant string, e.g. `"HCF"`.
-- `locale`: BCP 47 locale string for i18n, e.g. `"en-GB"`.
-- `slots`: object with optional keys `H`, `L`, `C`, `R`, `F` containing HTML strings.
+**Parameters:**
 
-Slot content is injected via `Raw()`. The caller is responsible for sanitisation. This is intentional: the WASM module is a rendering engine for trusted content produced server-side or by the application's own templates.
+- `variant` (string): HLCRF variant string, e.g. `"HCF"`.
+- `locale` (string): BCP 47 locale string for i18n, e.g. `"en-GB"`.
+- `slots` (object): Optional keys `H`, `L`, `C`, `R`, `F` containing HTML strings.
 
-### Size gate
+Slot content is injected via `Raw()`. The caller is responsible for sanitisation -- the WASM module is a rendering engine for trusted content produced server-side or by the application's own templates.
 
-`cmd/wasm/size_test.go` contains `TestWASMBinarySize_Good`, a build-gated test that:
+### Size Budget
 
-1. Builds the WASM binary with `-ldflags=-s -w`.
-2. Gzip-compresses the output at best compression.
-3. Asserts the compressed size is below 1,048,576 bytes (1 MB).
-4. Asserts the raw size is below 3,145,728 bytes (3 MB).
+The WASM binary has a size gate enforced by `cmd/wasm/size_test.go`:
 
-This test is skipped under `go test -short`. It is guarded with `//go:build !js` so it does not run within the WASM environment itself. Current measured size: 2.90 MB raw, 842 KB gzip.
+| Metric | Limit | Current |
+|--------|-------|---------|
+| Raw binary | 3.5 MB | ~2.90 MB |
+| Gzip compressed | 1 MB | ~842 KB |
+
+The test builds the WASM binary as a subprocess and is skipped under `go test -short`. The Makefile `wasm` target performs the same build with size checking.
+
+### Server/Client Split
+
+The binary split is enforced by Go build tags:
+
+| File | Build Tag | Reason for WASM Exclusion |
+|------|-----------|--------------------------|
+| `pipeline.go` | `!js` | Imports `go-i18n/reversal` |
+| `cmd/wasm/register.go` | `!js` | Imports `encoding/json` and `text/template` |
+
+The WASM binary includes only: node types, layout, responsive, context, render, path, and `go-i18n` core translation. No codegen, no pipeline, no JSON, no templates, no `fmt`.
 
 ## Codegen CLI
 
-`cmd/codegen/main.go` is a build-time tool for generating Web Component JavaScript bundles from HLCRF slot assignments. It reads a JSON slot map from stdin and writes the generated JS to stdout.
+`cmd/codegen/main.go` generates Web Component JavaScript bundles from HLCRF slot assignments at build time:
 
 ```bash
-echo '{"H":"nav-bar","C":"main-content"}' | go run ./cmd/codegen/ > components.js
+echo '{"H":"nav-bar","C":"main-content","F":"page-footer"}' | go run ./cmd/codegen/ > components.js
 ```
 
-The `codegen` package generates ES2022 class definitions with closed Shadow DOM. The generated pattern per component:
+The `codegen` package (`codegen/codegen.go`) generates ES2022 class definitions with closed Shadow DOM. For each custom element tag, it produces:
 
-- A class extending `HTMLElement` with a private `#shadow` field.
-- `constructor()` attaches a closed shadow root (`mode: "closed"`).
-- `connectedCallback()` dispatches a `wc-ready` custom event with the tag name and slot.
-- `render(html)` sets shadow content from a `<template>` clone.
-- `customElements.define()` registration.
+1. A class extending `HTMLElement` with a private `#shadow` field.
+2. `constructor()` attaching a closed shadow root (`mode: "closed"`).
+3. `connectedCallback()` dispatching a `wc-ready` custom event with the tag name and slot.
+4. `render(html)` method that sets shadow content from a `<template>` clone.
+5. A `customElements.define()` registration call.
 
-Closed Shadow DOM provides style isolation. Content is set via the DOM API, never via `innerHTML` directly on the element.
+Tag names must contain a hyphen (Web Components specification requirement). `TagToClassName()` converts kebab-case to PascalCase: `nav-bar` becomes `NavBar`, `my-super-widget` becomes `MySuperWidget`.
 
-Tag names must contain a hyphen (Web Components specification requirement). `TagToClassName()` converts kebab-case tags to PascalCase class names: `nav-bar` becomes `NavBar`.
+`GenerateBundle()` deduplicates tags -- if the same tag is assigned to multiple slots, only one class definition is emitted.
 
-The codegen CLI uses `encoding/json` and `text/template`, which are excluded from the WASM build. Consumers generate the JS bundle at build time, not at runtime.
+The codegen CLI uses `encoding/json` and `text/template`, which are excluded from the WASM build. Consumers generate the JS bundle at build time and serve it as a static asset.
 
-## Block ID Path Scheme
-
-`path.go` exports `ParseBlockID(id string) []byte`, which extracts the slot letter sequence from a `data-block` attribute value.
-
-Format: slots are separated by `-0-`. The sequence `L-0-C-0` decodes to `['L', 'C']`, meaning the content slot of a layout nested inside the left slot.
-
-This scheme is deterministic and human-readable. It enables server-side or client-side code to locate a specific block in the rendered tree by path.
-
-## Dependency Graph
+## Data Flow Summary
 
 ```
-go-html
-├── forge.lthn.ai/core/go-i18n          (direct, all builds)
-│   └── forge.lthn.ai/core/go-inference (indirect)
-├── forge.lthn.ai/core/go-i18n/reversal (server builds only, !js)
-└── github.com/stretchr/testify         (test only)
-```
+                         Server-Side
+                    +-------------------+
+                    |                   |
+  Node tree ------->  Render(ctx)      |-----> HTML string
+                    |                   |
+                    |  StripTags()      |-----> plain text
+                    |                   |
+                    |  Imprint()        |-----> GrammarImprint
+                    |                   |         .TokenCount
+                    |  CompareVariants()|         .UniqueVerbs
+                    |                   |         .Similar()
+                    +-------------------+
 
-Both `go-i18n` and `go-html` are developed in parallel. The `go.mod` uses a `replace` directive pointing to `../go-i18n`. Both repositories must be present on the local filesystem for builds and tests.
+                         WASM Client
+                    +-------------------+
+                    |                   |
+  JS call --------->  renderToString() |-----> HTML string
+  (variant, locale, |                   |
+   slots object)    +-------------------+
+
+                         Build Time
+                    +-------------------+
+                    |                   |
+  JSON slot map --->  cmd/codegen/     |-----> Web Component JS
+  (stdin)           |                   |       (stdout)
+                    +-------------------+
+```
