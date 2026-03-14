@@ -1,3 +1,4 @@
+<!-- STATUS: Not yet implemented -->
 # Phase 4: CoreDeno + Web Components
 
 **Date:** 2026-02-17

@@ -1,3 +1,4 @@
+<!-- STATUS: Not yet implemented -->
 # Phase 4: CoreDeno + Web Components Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
