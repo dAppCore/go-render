@@ -15,6 +15,18 @@ type Node interface {
 	Render(ctx *Context) string
 }
 
+// Compile-time interface checks.
+var (
+	_ Node = (*rawNode)(nil)
+	_ Node = (*elNode)(nil)
+	_ Node = (*textNode)(nil)
+	_ Node = (*ifNode)(nil)
+	_ Node = (*unlessNode)(nil)
+	_ Node = (*entitledNode)(nil)
+	_ Node = (*switchNode)(nil)
+	_ Node = (*eachNode[any])(nil)
+)
+
 // voidElements is the set of HTML elements that must not have a closing tag.
 var voidElements = map[string]bool{
 	"area":   true,

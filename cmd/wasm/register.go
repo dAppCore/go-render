@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"forge.lthn.ai/core/go-html/codegen"
+	log "forge.lthn.ai/core/go-log"
 )
 
 // buildComponentJS takes a JSON slot map and returns the WC bundle JS string.
@@ -22,5 +23,5 @@ func buildComponentJS(slotsJSON string) (string, error) {
 }
 
 func main() {
-	fmt.Println("go-html WASM module — build with GOOS=js GOARCH=wasm")
+	log.Info("go-html WASM module — build with GOOS=js GOARCH=wasm")
 }

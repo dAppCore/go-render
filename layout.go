@@ -2,6 +2,9 @@ package html
 
 import "strings"
 
+// Compile-time interface check.
+var _ Node = (*Layout)(nil)
+
 // slotMeta holds the semantic HTML mapping for each HLCRF slot.
 type slotMeta struct {
 	tag  string

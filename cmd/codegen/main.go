@@ -9,14 +9,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
+	goio "io"
 	"os"
 
 	"forge.lthn.ai/core/go-html/codegen"
+	log "forge.lthn.ai/core/go-log"
 )
 
-func run(r io.Reader, w io.Writer) error {
-	data, err := io.ReadAll(r)
+func run(r goio.Reader, w goio.Writer) error {
+	data, err := goio.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("codegen: reading stdin: %w", err)
 	}
@@ -31,13 +32,13 @@ func run(r io.Reader, w io.Writer) error {
 		return err
 	}
 
-	_, err = io.WriteString(w, js)
+	_, err = goio.WriteString(w, js)
 	return err
 }
 
 func main() {
 	if err := run(os.Stdin, os.Stdout); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		log.Error("codegen failed", "err", err)
 		os.Exit(1)
 	}
 }
