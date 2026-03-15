@@ -1,7 +1,7 @@
-forge.lthn.ai/core/go-i18n v0.1.0 h1:F7JVSoVkZtzx9JfhpntM9z3iQm1vnuMUi/Zklhz8PCI=
-forge.lthn.ai/core/go-i18n v0.1.0/go.mod h1:Q4xsrxuNCl/6NfMv1daria7t1RSiyy8ml+6jiPtUcBs=
-forge.lthn.ai/core/go-inference v0.1.0 h1:pO7etYgqV8LMKFdpW8/2RWncuECZJCIcf8nnezeZ5R4=
-forge.lthn.ai/core/go-inference v0.1.0/go.mod h1:jfWz+IJX55wAH98+ic6FEqqGB6/P31CHlg7VY7pxREw=
+forge.lthn.ai/core/go-i18n v0.1.4 h1:zOHUUJDgRo88/3tj++kN+VELg/buyZ4T2OSdG3HBbLQ=
+forge.lthn.ai/core/go-i18n v0.1.4/go.mod h1:aDyAfz7MMgWYgLkZCptfFmZ7jJg3ocwjEJ1WkJSvv4U=
+forge.lthn.ai/core/go-inference v0.1.4 h1:fuAgWbqsEDajHniqAKyvHYbRcBrkGEiGSqR2pfTMRY0=
+forge.lthn.ai/core/go-inference v0.1.4/go.mod h1:jfWz+IJX55wAH98+ic6FEqqGB6/P31CHlg7VY7pxREw=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
@@ -14,8 +14,8 @@ github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0t
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-golang.org/x/text v0.34.0 h1:oL/Qq0Kdaqxa1KbNeMKwQq0reLCCaFtqu2eNuSeNHbk=
-golang.org/x/text v0.34.0/go.mod h1:homfLqTYRFyVYemLBFl5GgL/DWEiH5wcsQ5gSh1yziA=
+golang.org/x/text v0.35.0 h1:JOVx6vVDFokkpaq1AEptVzLTpDe9KGpj5tR4/X+ybL8=
+golang.org/x/text v0.35.0/go.mod h1:khi/HExzZJ2pGnjenulevKNX1W67CUy0AsXcNubPGCA=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
