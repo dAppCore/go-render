@@ -4,7 +4,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"forge.lthn.ai/core/go-html/codegen"
 	log "forge.lthn.ai/core/go-log"
@@ -17,7 +16,7 @@ import (
 func buildComponentJS(slotsJSON string) (string, error) {
 	var slots map[string]string
 	if err := json.Unmarshal([]byte(slotsJSON), &slots); err != nil {
-		return "", fmt.Errorf("registerComponents: %w", err)
+		return "", log.E("buildComponentJS", "unmarshal JSON", err)
 	}
 	return codegen.GenerateBundle(slots)
 }

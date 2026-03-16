@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"text/template"
+
+	log "forge.lthn.ai/core/go-log"
 )
 
 // wcTemplate is the Web Component class template.
@@ -31,7 +33,7 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
 // GenerateClass produces a JS class definition for a custom element.
 func GenerateClass(tag, slot string) (string, error) {
 	if !strings.Contains(tag, "-") {
-		return "", fmt.Errorf("codegen: custom element tag %q must contain a hyphen", tag)
+		return "", log.E("codegen.GenerateClass", "custom element tag must contain a hyphen: "+tag, nil)
 	}
 	var b strings.Builder
 	err := wcTemplate.Execute(&b, struct {
@@ -42,7 +44,7 @@ func GenerateClass(tag, slot string) (string, error) {
 		Slot:      slot,
 	})
 	if err != nil {
-		return "", fmt.Errorf("codegen: template exec: %w", err)
+		return "", log.E("codegen.GenerateClass", "template exec", err)
 	}
 	return b.String(), nil
 }

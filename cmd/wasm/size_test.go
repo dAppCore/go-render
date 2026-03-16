@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	coreio "forge.lthn.ai/core/go-io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,8 +34,9 @@ func TestWASMBinarySize_Good(t *testing.T) {
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "WASM build failed: %s", output)
 
-	raw, err := os.ReadFile(out)
+	rawStr, err := coreio.Local.Read(out)
 	require.NoError(t, err)
+	raw := []byte(rawStr)
 
 	var buf bytes.Buffer
 	gz, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)

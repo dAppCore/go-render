@@ -8,7 +8,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	goio "io"
 	"os"
 
@@ -19,12 +18,12 @@ import (
 func run(r goio.Reader, w goio.Writer) error {
 	data, err := goio.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("codegen: reading stdin: %w", err)
+		return log.E("codegen", "reading stdin", err)
 	}
 
 	var slots map[string]string
 	if err := json.Unmarshal(data, &slots); err != nil {
-		return fmt.Errorf("codegen: invalid JSON: %w", err)
+		return log.E("codegen", "invalid JSON", err)
 	}
 
 	js, err := codegen.GenerateBundle(slots)
