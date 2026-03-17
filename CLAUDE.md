@@ -27,7 +27,7 @@ See `docs/architecture.md` for full detail. Summary:
 - **Responsive**: Multi-variant breakpoint wrapper (`data-variant` attributes), renders all variants in insertion order
 - **Pipeline**: Render → StripTags → go-i18n/reversal Tokenise → GrammarImprint (server-side only)
 - **Codegen**: Web Component classes with closed Shadow DOM, generated at build time by `cmd/codegen/`
-- **WASM**: `cmd/wasm/` exports `renderToString()` only — size gate: < 3 MB raw, < 1 MB gzip
+- **WASM**: `cmd/wasm/` exports `renderToString()` only — size gate: < 3.5 MB raw, < 1 MB gzip
 
 ## Server/Client Split
 
@@ -53,6 +53,8 @@ Files guarded with `//go:build !js` are excluded from WASM:
 - Licence: EUPL-1.2 — add `// SPDX-Licence-Identifier: EUPL-1.2` to new files
 - Safe-by-default: HTML escaping via `html.EscapeString()` on Text nodes and attribute values, void element handling, entitlement deny-by-default
 - Deterministic output: sorted attributes on El nodes, reproducible block ID paths
+- Errors: use `log.E("scope", "message", err)` from `go-log`, never `fmt.Errorf`
+- File I/O: use `coreio.Local` from `go-io`, never `os.ReadFile`/`os.WriteFile`
 - Commits: conventional commits + `Co-Authored-By: Virgil <virgil@lethean.io>`
 
 ## Test Conventions

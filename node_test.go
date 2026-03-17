@@ -3,6 +3,8 @@ package html
 import (
 	"strings"
 	"testing"
+
+	i18n "forge.lthn.ai/core/go-i18n"
 )
 
 func TestRawNode_Render(t *testing.T) {
@@ -188,6 +190,62 @@ func TestAttr_NonElement(t *testing.T) {
 	got := node.Render(NewContext())
 	if got != "text" {
 		t.Errorf("Attr on non-element should return unchanged, got %q", got)
+	}
+}
+
+func TestUnlessNode_True(t *testing.T) {
+	ctx := NewContext()
+	node := Unless(func(*Context) bool { return true }, Raw("hidden"))
+	got := node.Render(ctx)
+	if got != "" {
+		t.Errorf("Unless(true) = %q, want %q", got, "")
+	}
+}
+
+func TestAttr_ThroughIfNode(t *testing.T) {
+	ctx := NewContext()
+	inner := El("div", Raw("content"))
+	node := If(func(*Context) bool { return true }, inner)
+	Attr(node, "class", "wrapped")
+	got := node.Render(ctx)
+	want := `<div class="wrapped">content</div>`
+	if got != want {
+		t.Errorf("Attr through If = %q, want %q", got, want)
+	}
+}
+
+func TestAttr_ThroughUnlessNode(t *testing.T) {
+	ctx := NewContext()
+	inner := El("div", Raw("content"))
+	node := Unless(func(*Context) bool { return false }, inner)
+	Attr(node, "id", "test")
+	got := node.Render(ctx)
+	want := `<div id="test">content</div>`
+	if got != want {
+		t.Errorf("Attr through Unless = %q, want %q", got, want)
+	}
+}
+
+func TestAttr_ThroughEntitledNode(t *testing.T) {
+	ctx := NewContext()
+	ctx.Entitlements = func(string) bool { return true }
+	inner := El("div", Raw("content"))
+	node := Entitled("feature", inner)
+	Attr(node, "data-feat", "on")
+	got := node.Render(ctx)
+	want := `<div data-feat="on">content</div>`
+	if got != want {
+		t.Errorf("Attr through Entitled = %q, want %q", got, want)
+	}
+}
+
+func TestTextNode_WithService(t *testing.T) {
+	svc, _ := i18n.New()
+	ctx := NewContextWithService(svc)
+	node := Text("hello")
+	got := node.Render(ctx)
+	if got != "hello" {
+		t.Errorf("Text with service context = %q, want %q", got, "hello")
 	}
 }
 
