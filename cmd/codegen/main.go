@@ -11,8 +11,8 @@ import (
 	goio "io"
 	"os"
 
-	"forge.lthn.ai/core/go-html/codegen"
-	log "forge.lthn.ai/core/go-log"
+	"dappco.re/go/core/html/codegen"
+	log "dappco.re/go/core/log"
 )
 
 func run(r goio.Reader, w goio.Writer) error {

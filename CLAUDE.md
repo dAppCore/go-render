@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Agent instructions for `go-html`. Module path: `forge.lthn.ai/core/go-html`
+Agent instructions for `go-html`. Module path: `dappco.re/go/core/html`
 
 ## Commands
 
@@ -40,8 +40,9 @@ Files guarded with `//go:build !js` are excluded from WASM:
 
 ## Dependencies
 
-- `forge.lthn.ai/core/go-i18n` (replace directive → `../go-i18n`)
-- `forge.lthn.ai/core/go-inference` (indirect, via go-i18n)
+- `dappco.re/go/core/i18n` (replace directive → local go-i18n)
+- `forge.lthn.ai/core/go-inference` (indirect, via go-i18n; not yet migrated)
+- `forge.lthn.ai/core/go-log` (indirect, via go-i18n; not yet migrated)
 - Both `go-i18n` and `go-inference` must be cloned alongside this repo for builds
 - Go 1.26+ required (uses `range` over integers, `iter.Seq`, `maps.Keys`, `slices.Collect`)
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"text/template"
 
-	log "forge.lthn.ai/core/go-log"
+	log "dappco.re/go/core/log"
 )
 
 // wcTemplate is the Web Component class template.
