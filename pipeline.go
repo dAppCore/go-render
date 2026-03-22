@@ -5,7 +5,7 @@ package html
 import (
 	"strings"
 
-	"forge.lthn.ai/core/go-i18n/reversal"
+	"dappco.re/go/core/i18n/reversal"
 )
 
 // StripTags removes HTML tags from rendered output, returning plain text.

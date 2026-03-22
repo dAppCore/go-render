@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	i18n "forge.lthn.ai/core/go-i18n"
+	i18n "dappco.re/go/core/i18n"
 )
 
 func init() {
