@@ -1,8 +1,8 @@
 .PHONY: wasm test clean
 
 WASM_OUT := dist/go-html.wasm
-# Raw size limit: 3MB (Go WASM has ~2MB runtime floor)
-WASM_RAW_LIMIT := 3145728
+# Raw size limit: 3.5MB (Go 1.26 WASM runtime growth)
+WASM_RAW_LIMIT := 3670016
 # Gzip transfer size limit: 1MB (what users actually download)
 WASM_GZ_LIMIT := 1048576
 
@@ -21,9 +21,9 @@ $(WASM_OUT): $(shell find . -name '*.go' -not -path './dist/*')
 		echo "FAIL: gzip transfer size exceeds 1MB limit ($${GZ} bytes)"; \
 		exit 1; \
 	elif [ "$$RAW" -gt $(WASM_RAW_LIMIT) ]; then \
-		echo "WARNING: raw binary exceeds 3MB ($${RAW} bytes) — check imports"; \
+		echo "WARNING: raw binary exceeds 3.5MB ($${RAW} bytes) — check imports"; \
 	else \
-		echo "OK: gzip $${GZ} bytes (limit 1MB), raw $${RAW} bytes (limit 3MB)"; \
+		echo "OK: gzip $${GZ} bytes (limit 1MB), raw $${RAW} bytes (limit 3.5MB)"; \
 	fi
 
 clean:
