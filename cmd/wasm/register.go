@@ -5,8 +5,8 @@ package main
 import (
 	"encoding/json"
 
-	"forge.lthn.ai/core/go-html/codegen"
-	log "forge.lthn.ai/core/go-log"
+	"dappco.re/go/core/html/codegen"
+	log "dappco.re/go/core/log"
 )
 
 // buildComponentJS takes a JSON slot map and returns the WC bundle JS string.

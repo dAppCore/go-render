@@ -1,6 +1,6 @@
 package html
 
-import i18n "forge.lthn.ai/core/go-i18n"
+import i18n "dappco.re/go/core/i18n"
 
 // Context carries rendering state through the node tree.
 type Context struct {

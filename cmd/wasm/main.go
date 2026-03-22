@@ -5,7 +5,7 @@ package main
 import (
 	"syscall/js"
 
-	html "forge.lthn.ai/core/go-html"
+	html "dappco.re/go/core/html"
 )
 
 // renderToString builds an HLCRF layout from JS arguments and returns HTML.
