@@ -1,3 +1,5 @@
+//go:build !js
+
 package main
 
 import (
@@ -9,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRun_Good(t *testing.T) {
+func TestRun_WritesBundle(t *testing.T) {
 	input := strings.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	var output bytes.Buffer
 
@@ -23,7 +25,7 @@ func TestRun_Good(t *testing.T) {
 	assert.Equal(t, 2, strings.Count(js, "extends HTMLElement"))
 }
 
-func TestRun_Bad_InvalidJSON(t *testing.T) {
+func TestRun_InvalidJSON(t *testing.T) {
 	input := strings.NewReader(`not json`)
 	var output bytes.Buffer
 
@@ -32,7 +34,7 @@ func TestRun_Bad_InvalidJSON(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid JSON")
 }
 
-func TestRun_Bad_InvalidTag(t *testing.T) {
+func TestRun_InvalidTag(t *testing.T) {
 	input := strings.NewReader(`{"H":"notag"}`)
 	var output bytes.Buffer
 
@@ -41,7 +43,7 @@ func TestRun_Bad_InvalidTag(t *testing.T) {
 	assert.Contains(t, err.Error(), "hyphen")
 }
 
-func TestRun_Good_Empty(t *testing.T) {
+func TestRun_EmptySlots(t *testing.T) {
 	input := strings.NewReader(`{}`)
 	var output bytes.Buffer
 

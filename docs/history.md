@@ -78,7 +78,7 @@ The fix was applied in three distinct steps:
 
 ### Size gate test (`aae5d21`)
 
-`cmd/wasm/size_test.go` was added to prevent regression. `TestWASMBinarySize_Good` builds the WASM binary in a temp directory, gzip-compresses it, and asserts:
+`cmd/wasm/size_test.go` was added to prevent regression. `TestWASMBinarySize_WithinBudget` builds the WASM binary in a temp directory, gzip-compresses it, and asserts:
 
 - Gzip size < 1,048,576 bytes (1 MB).
 - Raw size < 3,145,728 bytes (3 MB).

@@ -66,7 +66,7 @@ go test ./cmd/codegen/
 go test ./cmd/wasm/
 ```
 
-The WASM size gate test (`TestWASMBinarySize_Good`) builds the WASM binary as a subprocess. It is slow and is skipped under `-short`. It is also guarded with `//go:build !js` so it cannot run within the WASM environment itself.
+The WASM size gate test (`TestWASMBinarySize_WithinBudget`) builds the WASM binary as a subprocess. It is slow and is skipped under `-short`. It is also guarded with `//go:build !js` so it cannot run within the WASM environment itself.
 
 ### Test Dependencies
 
@@ -278,7 +278,7 @@ func TestIntegration_RenderThenReverse(t *testing.T) {
 ### Codegen Tests with Testify
 
 ```go
-func TestGenerateClass_Good(t *testing.T) {
+func TestGenerateClass_ValidTag(t *testing.T) {
     js, err := GenerateClass("photo-grid", "C")
     require.NoError(t, err)
     assert.Contains(t, js, "class PhotoGrid extends HTMLElement")

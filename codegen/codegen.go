@@ -1,7 +1,8 @@
+//go:build !js
+
 package codegen
 
 import (
-	"fmt"
 	"strings"
 	"text/template"
 
@@ -51,7 +52,7 @@ func GenerateClass(tag, slot string) (string, error) {
 
 // GenerateRegistration produces the customElements.define() call.
 func GenerateRegistration(tag, className string) string {
-	return fmt.Sprintf(`customElements.define("%s", %s);`, tag, className)
+	return `customElements.define("` + tag + `", ` + className + `);`
 }
 
 // TagToClassName converts a kebab-case tag to PascalCase class name.

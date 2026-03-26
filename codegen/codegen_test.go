@@ -1,3 +1,5 @@
+//go:build !js
+
 package codegen
 
 import (
@@ -8,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenerateClass_Good(t *testing.T) {
+func TestGenerateClass_ValidTag(t *testing.T) {
 	js, err := GenerateClass("photo-grid", "C")
 	require.NoError(t, err)
 	assert.Contains(t, js, "class PhotoGrid extends HTMLElement")
@@ -17,19 +19,19 @@ func TestGenerateClass_Good(t *testing.T) {
 	assert.Contains(t, js, "photo-grid")
 }
 
-func TestGenerateClass_Bad_InvalidTag(t *testing.T) {
+func TestGenerateClass_InvalidTag(t *testing.T) {
 	_, err := GenerateClass("invalid", "C")
 	assert.Error(t, err, "custom element names must contain a hyphen")
 }
 
-func TestGenerateRegistration_Good(t *testing.T) {
+func TestGenerateRegistration_DefinesCustomElement(t *testing.T) {
 	js := GenerateRegistration("photo-grid", "PhotoGrid")
 	assert.Contains(t, js, "customElements.define")
 	assert.Contains(t, js, `"photo-grid"`)
 	assert.Contains(t, js, "PhotoGrid")
 }
 
-func TestTagToClassName_Good(t *testing.T) {
+func TestTagToClassName_KebabCase(t *testing.T) {
 	tests := []struct{ tag, want string }{
 		{"photo-grid", "PhotoGrid"},
 		{"nav-breadcrumb", "NavBreadcrumb"},
@@ -41,14 +43,16 @@ func TestTagToClassName_Good(t *testing.T) {
 	}
 }
 
-func TestGenerateBundle_Good(t *testing.T) {
+func TestGenerateBundle_DeduplicatesRegistrations(t *testing.T) {
 	slots := map[string]string{
 		"H": "nav-bar",
 		"C": "main-content",
+		"F": "nav-bar",
 	}
 	js, err := GenerateBundle(slots)
 	require.NoError(t, err)
 	assert.Contains(t, js, "NavBar")
 	assert.Contains(t, js, "MainContent")
 	assert.Equal(t, 2, strings.Count(js, "extends HTMLElement"))
+	assert.Equal(t, 2, strings.Count(js, "customElements.define"))
 }

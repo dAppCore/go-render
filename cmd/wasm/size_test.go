@@ -21,7 +21,7 @@ const (
 	wasmRawLimit = 3_670_016 // 3.5 MB raw size limit
 )
 
-func TestWASMBinarySize_Good(t *testing.T) {
+func TestWASMBinarySize_WithinBudget(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping WASM build test in short mode")
 	}

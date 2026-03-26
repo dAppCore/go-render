@@ -1,7 +1,7 @@
 package html
 
 import (
-	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -196,7 +196,7 @@ func TestLayout_DeepNesting_10Levels(t *testing.T) {
 	for i := 1; i < 10; i++ {
 		expectedBlock += "-C-0"
 	}
-	if !strings.Contains(got, fmt.Sprintf(`data-block="%s"`, expectedBlock)) {
+	if !strings.Contains(got, `data-block="`+expectedBlock+`"`) {
 		t.Errorf("10 levels deep: missing expected block ID %q in:\n%s", expectedBlock, got)
 	}
 
@@ -251,7 +251,7 @@ func TestEach_LargeIteration_1000(t *testing.T) {
 	}
 
 	node := Each(items, func(i int) Node {
-		return El("li", Raw(fmt.Sprintf("%d", i)))
+		return El("li", Raw(strconv.Itoa(i)))
 	})
 
 	got := node.Render(ctx)
@@ -275,7 +275,7 @@ func TestEach_LargeIteration_5000(t *testing.T) {
 	}
 
 	node := Each(items, func(i int) Node {
-		return El("span", Raw(fmt.Sprintf("%d", i)))
+		return El("span", Raw(strconv.Itoa(i)))
 	})
 
 	got := node.Render(ctx)
@@ -292,7 +292,7 @@ func TestEach_NestedEach(t *testing.T) {
 
 	node := Each(rows, func(row int) Node {
 		return El("tr", Each(cols, func(col string) Node {
-			return El("td", Raw(fmt.Sprintf("%d-%s", row, col)))
+			return El("td", Raw(strconv.Itoa(row)+"-"+col))
 		}))
 	})
 

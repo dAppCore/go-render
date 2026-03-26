@@ -1,3 +1,5 @@
+//go:build !js
+
 // Package main provides a build-time CLI for generating Web Component JS bundles.
 // Reads a JSON slot map from stdin, writes the generated JS to stdout.
 //
