@@ -8,6 +8,7 @@ import (
 )
 
 // Node is anything renderable.
+// Usage example: var n Node = El("div", Text("welcome"))
 type Node interface {
 	Render(ctx *Context) string
 }
@@ -53,6 +54,7 @@ type rawNode struct {
 }
 
 // Raw creates a node that renders without escaping (escape hatch for trusted content).
+// Usage example: Raw("<strong>trusted</strong>")
 func Raw(content string) Node {
 	return &rawNode{content: content}
 }
@@ -70,6 +72,7 @@ type elNode struct {
 }
 
 // El creates an HTML element node with children.
+// Usage example: El("section", Text("welcome"))
 func El(tag string, children ...Node) Node {
 	return &elNode{
 		tag:      tag,
@@ -79,6 +82,7 @@ func El(tag string, children ...Node) Node {
 }
 
 // Attr sets an attribute on an El node. Returns the node for chaining.
+// Usage example: Attr(El("a", Text("docs")), "href", "/docs")
 // It recursively traverses through wrappers like If, Unless, and Entitled.
 func Attr(n Node, key, value string) Node {
 	switch t := n.(type) {
@@ -143,6 +147,7 @@ type textNode struct {
 }
 
 // Text creates a node that renders through the go-i18n grammar pipeline.
+// Usage example: Text("welcome", "Ada")
 // Output is HTML-escaped by default. Safe-by-default path.
 func Text(key string, args ...any) Node {
 	return &textNode{key: key, args: args}
@@ -160,6 +165,7 @@ type ifNode struct {
 }
 
 // If renders child only when condition is true.
+// Usage example: If(func(ctx *Context) bool { return ctx.Identity != "" }, Text("hi"))
 func If(cond func(*Context) bool, node Node) Node {
 	return &ifNode{cond: cond, node: node}
 }
@@ -179,6 +185,7 @@ type unlessNode struct {
 }
 
 // Unless renders child only when condition is false.
+// Usage example: Unless(func(ctx *Context) bool { return ctx.Identity == "" }, Text("welcome"))
 func Unless(cond func(*Context) bool, node Node) Node {
 	return &unlessNode{cond: cond, node: node}
 }
@@ -198,6 +205,7 @@ type entitledNode struct {
 }
 
 // Entitled renders child only when entitlement is granted. Absent, not hidden.
+// Usage example: Entitled("beta", Text("preview"))
 // If no entitlement function is set on the context, access is denied by default.
 func Entitled(feature string, node Node) Node {
 	return &entitledNode{feature: feature, node: node}
@@ -218,6 +226,7 @@ type switchNode struct {
 }
 
 // Switch renders based on runtime selector value.
+// Usage example: Switch(func(ctx *Context) string { return ctx.Locale }, map[string]Node{"en": Text("hello")})
 func Switch(selector func(*Context) string, cases map[string]Node) Node {
 	return &switchNode{selector: selector, cases: cases}
 }
@@ -238,11 +247,13 @@ type eachNode[T any] struct {
 }
 
 // Each iterates items and renders each via fn.
+// Usage example: Each([]string{"a", "b"}, func(v string) Node { return Text(v) })
 func Each[T any](items []T, fn func(T) Node) Node {
 	return EachSeq(slices.Values(items), fn)
 }
 
 // EachSeq iterates an iter.Seq and renders each via fn.
+// Usage example: EachSeq(slices.Values([]string{"a", "b"}), func(v string) Node { return Text(v) })
 func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 	return &eachNode[T]{items: items, fn: fn}
 }

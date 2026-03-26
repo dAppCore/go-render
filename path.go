@@ -1,6 +1,7 @@
 package html
 
 // ParseBlockID extracts the slot sequence from a data-block ID.
+// Usage example: slots := ParseBlockID("L-0-C-0")
 // "L-0-C-0" → ['L', 'C']
 func ParseBlockID(id string) []byte {
 	if id == "" {

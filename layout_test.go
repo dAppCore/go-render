@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestLayout_HLCRF(t *testing.T) {
+func TestLayout_HLCRF_Good(t *testing.T) {
 	ctx := NewContext()
 	layout := NewLayout("HLCRF").
 		H(Raw("header")).L(Raw("left")).C(Raw("main")).R(Raw("right")).F(Raw("footer"))
@@ -39,7 +39,7 @@ func TestLayout_HLCRF(t *testing.T) {
 	}
 }
 
-func TestLayout_HCF(t *testing.T) {
+func TestLayout_HCF_Good(t *testing.T) {
 	ctx := NewContext()
 	layout := NewLayout("HCF").
 		H(Raw("header")).L(Raw("left")).C(Raw("main")).R(Raw("right")).F(Raw("footer"))
@@ -60,7 +60,7 @@ func TestLayout_HCF(t *testing.T) {
 	}
 }
 
-func TestLayout_ContentOnly(t *testing.T) {
+func TestLayout_ContentOnly_Good(t *testing.T) {
 	ctx := NewContext()
 	layout := NewLayout("C").
 		H(Raw("header")).L(Raw("left")).C(Raw("main")).R(Raw("right")).F(Raw("footer"))
@@ -82,7 +82,7 @@ func TestLayout_ContentOnly(t *testing.T) {
 	}
 }
 
-func TestLayout_FluentAPI(t *testing.T) {
+func TestLayout_FluentAPI_Good(t *testing.T) {
 	layout := NewLayout("HLCRF")
 
 	// Fluent methods should return the same layout for chaining
@@ -97,7 +97,7 @@ func TestLayout_FluentAPI(t *testing.T) {
 	}
 }
 
-func TestLayout_IgnoresInvalidSlots(t *testing.T) {
+func TestLayout_IgnoresInvalidSlots_Good(t *testing.T) {
 	ctx := NewContext()
 	// "C" variant: populating L and R should have no effect
 	layout := NewLayout("C").L(Raw("left")).C(Raw("main")).R(Raw("right"))

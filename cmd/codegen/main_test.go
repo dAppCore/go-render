@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRun_WritesBundle(t *testing.T) {
+func TestRun_WritesBundle_Good(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
@@ -24,7 +24,7 @@ func TestRun_WritesBundle(t *testing.T) {
 	assert.Equal(t, 2, countSubstr(js, "extends HTMLElement"))
 }
 
-func TestRun_InvalidJSON(t *testing.T) {
+func TestRun_InvalidJSON_Bad(t *testing.T) {
 	input := core.NewReader(`not json`)
 	output := core.NewBuilder()
 
@@ -33,7 +33,7 @@ func TestRun_InvalidJSON(t *testing.T) {
 	assert.Contains(t, err.Error(), "invalid JSON")
 }
 
-func TestRun_InvalidTag(t *testing.T) {
+func TestRun_InvalidTag_Bad(t *testing.T) {
 	input := core.NewReader(`{"H":"notag"}`)
 	output := core.NewBuilder()
 
@@ -42,7 +42,7 @@ func TestRun_InvalidTag(t *testing.T) {
 	assert.Contains(t, err.Error(), "hyphen")
 }
 
-func TestRun_EmptySlots(t *testing.T) {
+func TestRun_EmptySlots_Good(t *testing.T) {
 	input := core.NewReader(`{}`)
 	output := core.NewBuilder()
 

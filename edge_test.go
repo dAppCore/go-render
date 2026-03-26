@@ -8,7 +8,7 @@ import (
 
 // --- Unicode / RTL edge cases ---
 
-func TestText_Emoji(t *testing.T) {
+func TestText_Emoji_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -39,7 +39,7 @@ func TestText_Emoji(t *testing.T) {
 	}
 }
 
-func TestEl_Emoji(t *testing.T) {
+func TestEl_Emoji_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := El("span", Raw("\U0001F680 Launch"))
 	got := node.Render(ctx)
@@ -49,7 +49,7 @@ func TestEl_Emoji(t *testing.T) {
 	}
 }
 
-func TestText_RTL(t *testing.T) {
+func TestText_RTL_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -74,7 +74,7 @@ func TestText_RTL(t *testing.T) {
 	}
 }
 
-func TestEl_RTL(t *testing.T) {
+func TestEl_RTL_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("div", Raw("\u0645\u0631\u062D\u0628\u0627")), "dir", "rtl")
 	got := node.Render(ctx)
@@ -86,7 +86,7 @@ func TestEl_RTL(t *testing.T) {
 	}
 }
 
-func TestText_ZeroWidth(t *testing.T) {
+func TestText_ZeroWidth_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -112,7 +112,7 @@ func TestText_ZeroWidth(t *testing.T) {
 	}
 }
 
-func TestText_MixedScripts(t *testing.T) {
+func TestText_MixedScripts_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -139,7 +139,7 @@ func TestText_MixedScripts(t *testing.T) {
 	}
 }
 
-func TestStripTags_Unicode(t *testing.T) {
+func TestStripTags_Unicode_Ugly(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -161,7 +161,7 @@ func TestStripTags_Unicode(t *testing.T) {
 	}
 }
 
-func TestAttr_UnicodeValue(t *testing.T) {
+func TestAttr_UnicodeValue_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("div"), "title", "\U0001F680 Rocket Launch")
 	got := node.Render(ctx)
@@ -173,7 +173,7 @@ func TestAttr_UnicodeValue(t *testing.T) {
 
 // --- Deep nesting stress tests ---
 
-func TestLayout_DeepNesting_10Levels(t *testing.T) {
+func TestLayout_DeepNesting_10Levels_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Build 10 levels of nested layouts
@@ -204,7 +204,7 @@ func TestLayout_DeepNesting_10Levels(t *testing.T) {
 	}
 }
 
-func TestLayout_DeepNesting_20Levels(t *testing.T) {
+func TestLayout_DeepNesting_20Levels_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	current := NewLayout("C").C(Raw("bottom"))
@@ -222,7 +222,7 @@ func TestLayout_DeepNesting_20Levels(t *testing.T) {
 	}
 }
 
-func TestLayout_DeepNesting_MixedSlots(t *testing.T) {
+func TestLayout_DeepNesting_MixedSlots_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Alternate slot types at each level: C -> L -> C -> L -> ...
@@ -241,7 +241,7 @@ func TestLayout_DeepNesting_MixedSlots(t *testing.T) {
 	}
 }
 
-func TestEach_LargeIteration_1000(t *testing.T) {
+func TestEach_LargeIteration_1000_Ugly(t *testing.T) {
 	ctx := NewContext()
 	items := make([]int, 1000)
 	for i := range items {
@@ -265,7 +265,7 @@ func TestEach_LargeIteration_1000(t *testing.T) {
 	}
 }
 
-func TestEach_LargeIteration_5000(t *testing.T) {
+func TestEach_LargeIteration_5000_Ugly(t *testing.T) {
 	ctx := NewContext()
 	items := make([]int, 5000)
 	for i := range items {
@@ -283,7 +283,7 @@ func TestEach_LargeIteration_5000(t *testing.T) {
 	}
 }
 
-func TestEach_NestedEach(t *testing.T) {
+func TestEach_NestedEach_Ugly(t *testing.T) {
 	ctx := NewContext()
 	rows := []int{0, 1, 2}
 	cols := []string{"a", "b", "c"}
@@ -309,7 +309,7 @@ func TestEach_NestedEach(t *testing.T) {
 
 // --- Layout variant validation ---
 
-func TestLayout_InvalidVariant_Chars(t *testing.T) {
+func TestLayout_InvalidVariant_Chars_Bad(t *testing.T) {
 	ctx := NewContext()
 
 	tests := []struct {
@@ -341,7 +341,7 @@ func TestLayout_InvalidVariant_Chars(t *testing.T) {
 	}
 }
 
-func TestLayout_InvalidVariant_MixedValidInvalid(t *testing.T) {
+func TestLayout_InvalidVariant_MixedValidInvalid_Bad(t *testing.T) {
 	ctx := NewContext()
 
 	// "HXC" — H and C are valid, X is not. Only H and C should render.
@@ -361,7 +361,7 @@ func TestLayout_InvalidVariant_MixedValidInvalid(t *testing.T) {
 	}
 }
 
-func TestLayout_DuplicateVariantChars(t *testing.T) {
+func TestLayout_DuplicateVariantChars_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// "CCC" — C appears three times. Should render C slot content three times.
@@ -374,7 +374,7 @@ func TestLayout_DuplicateVariantChars(t *testing.T) {
 	}
 }
 
-func TestLayout_EmptySlots(t *testing.T) {
+func TestLayout_EmptySlots_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Variant includes all slots but none are populated — should produce empty output.
@@ -388,7 +388,7 @@ func TestLayout_EmptySlots(t *testing.T) {
 
 // --- Render convenience function edge cases ---
 
-func TestRender_NilContext(t *testing.T) {
+func TestRender_NilContext_Ugly(t *testing.T) {
 	node := Raw("test")
 	got := Render(node, nil)
 	if got != "test" {
@@ -396,7 +396,7 @@ func TestRender_NilContext(t *testing.T) {
 	}
 }
 
-func TestImprint_NilContext(t *testing.T) {
+func TestImprint_NilContext_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -408,7 +408,7 @@ func TestImprint_NilContext(t *testing.T) {
 	}
 }
 
-func TestCompareVariants_NilContext(t *testing.T) {
+func TestCompareVariants_NilContext_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -422,7 +422,7 @@ func TestCompareVariants_NilContext(t *testing.T) {
 	}
 }
 
-func TestCompareVariants_SingleVariant(t *testing.T) {
+func TestCompareVariants_SingleVariant_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -437,7 +437,7 @@ func TestCompareVariants_SingleVariant(t *testing.T) {
 
 // --- escapeHTML / escapeAttr edge cases ---
 
-func TestEscapeAttr_AllSpecialChars(t *testing.T) {
+func TestEscapeAttr_AllSpecialChars_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("div"), "data-val", `&<>"'`)
 	got := node.Render(ctx)
@@ -450,7 +450,7 @@ func TestEscapeAttr_AllSpecialChars(t *testing.T) {
 	}
 }
 
-func TestElNode_EmptyTag(t *testing.T) {
+func TestElNode_EmptyTag_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := El("", Raw("content"))
 	got := node.Render(ctx)
@@ -461,7 +461,7 @@ func TestElNode_EmptyTag(t *testing.T) {
 	}
 }
 
-func TestSwitchNode_NoMatch(t *testing.T) {
+func TestSwitchNode_NoMatch_Ugly(t *testing.T) {
 	ctx := NewContext()
 	cases := map[string]Node{
 		"a": Raw("alpha"),
@@ -474,7 +474,7 @@ func TestSwitchNode_NoMatch(t *testing.T) {
 	}
 }
 
-func TestEntitled_NilContext(t *testing.T) {
+func TestEntitled_NilContext_Ugly(t *testing.T) {
 	node := Entitled("premium", Raw("content"))
 	got := node.Render(nil)
 	if got != "" {
