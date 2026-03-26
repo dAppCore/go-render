@@ -1,7 +1,6 @@
 package html
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -13,14 +12,14 @@ func TestNestedLayout_PathChain(t *testing.T) {
 
 	// Inner layout paths must be prefixed with parent block ID
 	for _, want := range []string{`data-block="L-0-H-0"`, `data-block="L-0-C-0"`, `data-block="L-0-F-0"`} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("nested layout missing %q in:\n%s", want, got)
 		}
 	}
 
 	// Outer layout must still have root-level paths
 	for _, want := range []string{`data-block="H-0"`, `data-block="C-0"`, `data-block="F-0"`} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("outer layout missing %q in:\n%s", want, got)
 		}
 	}
@@ -33,7 +32,7 @@ func TestNestedLayout_DeepNesting(t *testing.T) {
 	got := outer.Render(NewContext())
 
 	for _, want := range []string{`data-block="C-0"`, `data-block="C-0-C-0"`, `data-block="C-0-C-0-C-0"`} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("deep nesting missing %q in:\n%s", want, got)
 		}
 	}

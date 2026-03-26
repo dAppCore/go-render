@@ -4,13 +4,13 @@
 package main
 
 import (
-	"bytes"
 	"compress/gzip"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
+	core "dappco.re/go/core"
 	coreio "dappco.re/go/core/io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ const (
 	wasmRawLimit = 3_670_016 // 3.5 MB raw size limit
 )
 
-func TestWASMBinarySize_Good(t *testing.T) {
+func TestWASMBinarySize_WithinBudget(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping WASM build test in short mode")
 	}
@@ -38,8 +38,8 @@ func TestWASMBinarySize_Good(t *testing.T) {
 	require.NoError(t, err)
 	raw := []byte(rawStr)
 
-	var buf bytes.Buffer
-	gz, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	buf := core.NewBuilder()
+	gz, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
 	require.NoError(t, err)
 	_, err = gz.Write(raw)
 	require.NoError(t, err)

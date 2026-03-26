@@ -1,7 +1,6 @@
 package html
 
 import (
-	"fmt"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
@@ -100,7 +99,7 @@ func BenchmarkImprint_Small(b *testing.B) {
 func BenchmarkImprint_Large(b *testing.B) {
 	items := make([]string, 20)
 	for i := range items {
-		items[i] = fmt.Sprintf("Item %d was created successfully", i)
+		items[i] = "Item " + itoaText(i) + " was created successfully"
 	}
 	page := NewLayout("HLCRF").
 		H(El("h1", Text("Building project"))).
@@ -207,7 +206,7 @@ func BenchmarkLayout_Nested(b *testing.B) {
 func BenchmarkLayout_ManySlotChildren(b *testing.B) {
 	nodes := make([]Node, 50)
 	for i := range nodes {
-		nodes[i] = El("p", Raw(fmt.Sprintf("paragraph %d", i)))
+		nodes[i] = El("p", Raw("paragraph "+itoaText(i)))
 	}
 	layout := NewLayout("HLCRF").
 		H(Raw("header")).
@@ -242,7 +241,7 @@ func benchEach(b *testing.B, n int) {
 		items[i] = i
 	}
 	node := Each(items, func(i int) Node {
-		return El("li", Raw(fmt.Sprintf("item-%d", i)))
+		return El("li", Raw("item-"+itoaText(i)))
 	})
 	ctx := NewContext()
 

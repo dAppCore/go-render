@@ -1,7 +1,6 @@
 package html
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -12,10 +11,10 @@ func TestResponsive_SingleVariant(t *testing.T) {
 			H(Raw("header")).L(Raw("nav")).C(Raw("main")).R(Raw("aside")).F(Raw("footer")))
 	got := r.Render(ctx)
 
-	if !strings.Contains(got, `data-variant="desktop"`) {
+	if !containsText(got, `data-variant="desktop"`) {
 		t.Errorf("responsive should contain data-variant, got:\n%s", got)
 	}
-	if !strings.Contains(got, `data-block="H-0"`) {
+	if !containsText(got, `data-block="H-0"`) {
 		t.Errorf("responsive should contain layout content, got:\n%s", got)
 	}
 }
@@ -30,7 +29,7 @@ func TestResponsive_MultiVariant(t *testing.T) {
 	got := r.Render(ctx)
 
 	for _, v := range []string{"desktop", "tablet", "mobile"} {
-		if !strings.Contains(got, `data-variant="`+v+`"`) {
+		if !containsText(got, `data-variant="`+v+`"`) {
 			t.Errorf("responsive missing variant %q in:\n%s", v, got)
 		}
 	}
@@ -44,8 +43,8 @@ func TestResponsive_VariantOrder(t *testing.T) {
 
 	got := r.Render(ctx)
 
-	di := strings.Index(got, `data-variant="desktop"`)
-	mi := strings.Index(got, `data-variant="mobile"`)
+	di := indexText(got, `data-variant="desktop"`)
+	mi := indexText(got, `data-variant="mobile"`)
 	if di < 0 || mi < 0 {
 		t.Fatalf("missing variants in:\n%s", got)
 	}
@@ -62,10 +61,10 @@ func TestResponsive_NestedPaths(t *testing.T) {
 
 	got := r.Render(ctx)
 
-	if !strings.Contains(got, `data-block="C-0-H-0"`) {
+	if !containsText(got, `data-block="C-0-H-0"`) {
 		t.Errorf("nested layout in responsive variant missing C-0-H-0 in:\n%s", got)
 	}
-	if !strings.Contains(got, `data-block="C-0-C-0"`) {
+	if !containsText(got, `data-block="C-0-C-0"`) {
 		t.Errorf("nested layout in responsive variant missing C-0-C-0 in:\n%s", got)
 	}
 }
@@ -78,7 +77,7 @@ func TestResponsive_VariantsIndependent(t *testing.T) {
 
 	got := r.Render(ctx)
 
-	count := strings.Count(got, `data-block="C-0"`)
+	count := countText(got, `data-block="C-0"`)
 	if count != 2 {
 		t.Errorf("expected 2 independent C-0 blocks, got %d in:\n%s", count, got)
 	}

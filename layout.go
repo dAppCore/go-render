@@ -1,7 +1,5 @@
 package html
 
-import "strings"
-
 // Compile-time interface check.
 var _ Node = (*Layout)(nil)
 
@@ -75,7 +73,7 @@ func (l *Layout) blockID(slot byte) string {
 // Render produces the semantic HTML for this layout.
 // Only slots present in the variant string are rendered.
 func (l *Layout) Render(ctx *Context) string {
-	var b strings.Builder
+	b := newTextBuilder()
 
 	for i := range len(l.variant) {
 		slot := l.variant[i]

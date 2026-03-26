@@ -5,9 +5,6 @@ import (
 	"iter"
 	"maps"
 	"slices"
-	"strings"
-
-	i18n "dappco.re/go/core/i18n"
 )
 
 // Node is anything renderable.
@@ -98,7 +95,7 @@ func Attr(n Node, key, value string) Node {
 }
 
 func (n *elNode) Render(ctx *Context) string {
-	var b strings.Builder
+	b := newTextBuilder()
 
 	b.WriteByte('<')
 	b.WriteString(escapeHTML(n.tag))
@@ -152,13 +149,7 @@ func Text(key string, args ...any) Node {
 }
 
 func (n *textNode) Render(ctx *Context) string {
-	var text string
-	if ctx != nil && ctx.service != nil {
-		text = ctx.service.T(n.key, n.args...)
-	} else {
-		text = i18n.T(n.key, n.args...)
-	}
-	return escapeHTML(text)
+	return escapeHTML(translateText(ctx, n.key, n.args...))
 }
 
 // --- ifNode ---
@@ -257,7 +248,7 @@ func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
-	var b strings.Builder
+	b := newTextBuilder()
 	for item := range n.items {
 		b.WriteString(n.fn(item).Render(ctx))
 	}

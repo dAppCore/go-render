@@ -1,6 +1,12 @@
 package html
 
-import i18n "dappco.re/go/core/i18n"
+// Translator provides Text() lookups for a rendering context.
+//
+// The default server build uses go-i18n. Alternate builds, including WASM,
+// can provide any implementation with the same T() method.
+type Translator interface {
+	T(key string, args ...any) string
+}
 
 // Context carries rendering state through the node tree.
 type Context struct {
@@ -8,7 +14,7 @@ type Context struct {
 	Locale       string
 	Entitlements func(feature string) bool
 	Data         map[string]any
-	service      *i18n.Service
+	service      Translator
 }
 
 // NewContext creates a new rendering context with sensible defaults.
@@ -18,8 +24,8 @@ func NewContext() *Context {
 	}
 }
 
-// NewContextWithService creates a rendering context backed by a specific i18n service.
-func NewContextWithService(svc *i18n.Service) *Context {
+// NewContextWithService creates a rendering context backed by a specific translator.
+func NewContextWithService(svc Translator) *Context {
 	return &Context{
 		Data:    make(map[string]any),
 		service: svc,

@@ -1,7 +1,6 @@
 package html
 
 import (
-	"strings"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
@@ -69,10 +68,10 @@ func TestTextNode_Escapes(t *testing.T) {
 	ctx := NewContext()
 	node := Text("<script>alert('xss')</script>")
 	got := node.Render(ctx)
-	if strings.Contains(got, "<script>") {
+	if containsText(got, "<script>") {
 		t.Errorf("Text node must HTML-escape output, got %q", got)
 	}
-	if !strings.Contains(got, "&lt;script&gt;") {
+	if !containsText(got, "&lt;script&gt;") {
 		t.Errorf("Text node should contain escaped script tag, got %q", got)
 	}
 }
@@ -171,7 +170,7 @@ func TestElNode_AttrEscaping(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("img"), "alt", `he said "hello"`)
 	got := node.Render(ctx)
-	if !strings.Contains(got, `alt="he said &#34;hello&#34;"`) {
+	if !containsText(got, `alt="he said &#34;hello&#34;"`) {
 		t.Errorf("Attr should escape attribute values, got %q", got)
 	}
 }
@@ -180,7 +179,7 @@ func TestElNode_MultipleAttrs(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(Attr(El("a", Raw("link")), "href", "/home"), "class", "nav")
 	got := node.Render(ctx)
-	if !strings.Contains(got, `class="nav"`) || !strings.Contains(got, `href="/home"`) {
+	if !containsText(got, `class="nav"`) || !containsText(got, `href="/home"`) {
 		t.Errorf("multiple Attr() calls should stack, got %q", got)
 	}
 }
