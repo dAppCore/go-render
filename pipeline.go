@@ -9,6 +9,7 @@ import (
 )
 
 // StripTags removes HTML tags from rendered output, returning plain text.
+// Usage example: text := StripTags("<main>Hello <strong>world</strong></main>")
 // Tag boundaries are collapsed into single spaces; result is trimmed.
 // Does not handle script/style element content (go-html does not generate these).
 func StripTags(html string) string {
@@ -45,6 +46,7 @@ func StripTags(html string) string {
 
 // Imprint renders a node tree to HTML, strips tags, tokenises the text,
 // and returns a GrammarImprint — the full render-reverse pipeline.
+// Usage example: imp := Imprint(Text("welcome"), NewContext())
 func Imprint(node Node, ctx *Context) reversal.GrammarImprint {
 	if ctx == nil {
 		ctx = NewContext()
@@ -58,6 +60,7 @@ func Imprint(node Node, ctx *Context) reversal.GrammarImprint {
 
 // CompareVariants runs the imprint pipeline on each responsive variant independently
 // and returns pairwise similarity scores. Key format: "name1:name2".
+// Usage example: scores := CompareVariants(NewResponsive(), NewContext())
 func CompareVariants(r *Responsive, ctx *Context) map[string]float64 {
 	if ctx == nil {
 		ctx = NewContext()

@@ -3,7 +3,7 @@
 package main
 
 import (
-	"encoding/json"
+	core "dappco.re/go/core"
 
 	"dappco.re/go/core/html/codegen"
 	log "dappco.re/go/core/log"
@@ -15,7 +15,8 @@ import (
 // Use cmd/codegen/ CLI instead for build-time generation.
 func buildComponentJS(slotsJSON string) (string, error) {
 	var slots map[string]string
-	if err := json.Unmarshal([]byte(slotsJSON), &slots); err != nil {
+	if result := core.JSONUnmarshalString(slotsJSON, &slots); !result.OK {
+		err, _ := result.Value.(error)
 		return "", log.E("buildComponentJS", "unmarshal JSON", err)
 	}
 	return codegen.GenerateBundle(slots)

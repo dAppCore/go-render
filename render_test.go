@@ -6,7 +6,7 @@ import (
 	i18n "dappco.re/go/core/i18n"
 )
 
-func TestRender_FullPage(t *testing.T) {
+func TestRender_FullPage_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -49,7 +49,7 @@ func TestRender_FullPage(t *testing.T) {
 	}
 }
 
-func TestRender_EntitlementGating(t *testing.T) {
+func TestRender_EntitlementGating_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -77,7 +77,7 @@ func TestRender_EntitlementGating(t *testing.T) {
 	}
 }
 
-func TestRender_XSSPrevention(t *testing.T) {
+func TestRender_XSSPrevention_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()

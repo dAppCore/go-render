@@ -9,11 +9,11 @@
 package main
 
 import (
-	"encoding/json"
 	goio "io"
-	"os"
 
+	core "dappco.re/go/core"
 	"dappco.re/go/core/html/codegen"
+	coreio "dappco.re/go/core/io"
 	log "dappco.re/go/core/log"
 )
 
@@ -24,22 +24,40 @@ func run(r goio.Reader, w goio.Writer) error {
 	}
 
 	var slots map[string]string
-	if err := json.Unmarshal(data, &slots); err != nil {
+	if result := core.JSONUnmarshal(data, &slots); !result.OK {
+		err, _ := result.Value.(error)
 		return log.E("codegen", "invalid JSON", err)
 	}
 
 	js, err := codegen.GenerateBundle(slots)
 	if err != nil {
-		return err
+		return log.E("codegen", "generate bundle", err)
 	}
 
 	_, err = goio.WriteString(w, js)
-	return err
+	if err != nil {
+		return log.E("codegen", "writing bundle", err)
+	}
+	return nil
 }
 
 func main() {
-	if err := run(os.Stdin, os.Stdout); err != nil {
+	stdin, err := coreio.Local.Open("/dev/stdin")
+	if err != nil {
+		panic(log.E("codegen.main", "open stdin", err))
+	}
+
+	stdout, err := coreio.Local.Create("/dev/stdout")
+	if err != nil {
+		panic(log.E("codegen.main", "open stdout", err))
+	}
+	defer func() {
+		_ = stdin.Close()
+		_ = stdout.Close()
+	}()
+
+	if err := run(stdin, stdout); err != nil {
 		log.Error("codegen failed", "err", err)
-		os.Exit(1)
+		panic(err)
 	}
 }

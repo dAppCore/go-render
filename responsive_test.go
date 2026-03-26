@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestResponsive_SingleVariant(t *testing.T) {
+func TestResponsive_SingleVariant_Good(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("desktop", NewLayout("HLCRF").
@@ -19,7 +19,7 @@ func TestResponsive_SingleVariant(t *testing.T) {
 	}
 }
 
-func TestResponsive_MultiVariant(t *testing.T) {
+func TestResponsive_MultiVariant_Good(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("desktop", NewLayout("HLCRF").H(Raw("h")).L(Raw("l")).C(Raw("c")).R(Raw("r")).F(Raw("f"))).
@@ -35,7 +35,7 @@ func TestResponsive_MultiVariant(t *testing.T) {
 	}
 }
 
-func TestResponsive_VariantOrder(t *testing.T) {
+func TestResponsive_VariantOrder_Good(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("desktop", NewLayout("HLCRF").C(Raw("d"))).
@@ -53,7 +53,7 @@ func TestResponsive_VariantOrder(t *testing.T) {
 	}
 }
 
-func TestResponsive_NestedPaths(t *testing.T) {
+func TestResponsive_NestedPaths_Good(t *testing.T) {
 	ctx := NewContext()
 	inner := NewLayout("HCF").H(Raw("ih")).C(Raw("ic")).F(Raw("if"))
 	r := NewResponsive().
@@ -69,7 +69,7 @@ func TestResponsive_NestedPaths(t *testing.T) {
 	}
 }
 
-func TestResponsive_VariantsIndependent(t *testing.T) {
+func TestResponsive_VariantsIndependent_Good(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("a", NewLayout("HLCRF").C(Raw("content-a"))).
@@ -83,6 +83,6 @@ func TestResponsive_VariantsIndependent(t *testing.T) {
 	}
 }
 
-func TestResponsive_ImplementsNode(t *testing.T) {
+func TestResponsive_ImplementsNode_Ugly(t *testing.T) {
 	var _ Node = NewResponsive()
 }

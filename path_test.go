@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestNestedLayout_PathChain(t *testing.T) {
+func TestNestedLayout_PathChain_Good(t *testing.T) {
 	inner := NewLayout("HCF").H(Raw("inner h")).C(Raw("inner c")).F(Raw("inner f"))
 	outer := NewLayout("HLCRF").
 		H(Raw("header")).L(inner).C(Raw("main")).R(Raw("right")).F(Raw("footer"))
@@ -25,7 +25,7 @@ func TestNestedLayout_PathChain(t *testing.T) {
 	}
 }
 
-func TestNestedLayout_DeepNesting(t *testing.T) {
+func TestNestedLayout_DeepNesting_Ugly(t *testing.T) {
 	deepest := NewLayout("C").C(Raw("deep"))
 	middle := NewLayout("C").C(deepest)
 	outer := NewLayout("C").C(middle)
@@ -38,7 +38,7 @@ func TestNestedLayout_DeepNesting(t *testing.T) {
 	}
 }
 
-func TestBlockID(t *testing.T) {
+func TestBlockID_Good(t *testing.T) {
 	tests := []struct {
 		path string
 		slot byte
@@ -59,7 +59,7 @@ func TestBlockID(t *testing.T) {
 	}
 }
 
-func TestParseBlockID(t *testing.T) {
+func TestParseBlockID_Good(t *testing.T) {
 	tests := []struct {
 		id   string
 		want []byte

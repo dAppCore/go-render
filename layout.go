@@ -20,6 +20,7 @@ var slotRegistry = map[byte]slotMeta{
 
 // Layout is an HLCRF compositor. Arranges nodes into semantic HTML regions
 // with deterministic path-based IDs.
+// Usage example: page := NewLayout("HCF").H(Text("title")).C(Text("body"))
 type Layout struct {
 	variant string          // "HLCRF", "HCF", "C", etc.
 	path    string          // "" for root, "L-0-" for nested
@@ -27,6 +28,7 @@ type Layout struct {
 }
 
 // NewLayout creates a new Layout with the given variant string.
+// Usage example: page := NewLayout("HLCRF")
 // The variant determines which slots are rendered (e.g., "HLCRF", "HCF", "C").
 func NewLayout(variant string) *Layout {
 	return &Layout{
@@ -36,30 +38,35 @@ func NewLayout(variant string) *Layout {
 }
 
 // H appends nodes to the Header slot.
+// Usage example: NewLayout("HCF").H(Text("title"))
 func (l *Layout) H(nodes ...Node) *Layout {
 	l.slots['H'] = append(l.slots['H'], nodes...)
 	return l
 }
 
 // L appends nodes to the Left aside slot.
+// Usage example: NewLayout("LC").L(Text("nav"))
 func (l *Layout) L(nodes ...Node) *Layout {
 	l.slots['L'] = append(l.slots['L'], nodes...)
 	return l
 }
 
 // C appends nodes to the Content (main) slot.
+// Usage example: NewLayout("C").C(Text("body"))
 func (l *Layout) C(nodes ...Node) *Layout {
 	l.slots['C'] = append(l.slots['C'], nodes...)
 	return l
 }
 
 // R appends nodes to the Right aside slot.
+// Usage example: NewLayout("CR").R(Text("ads"))
 func (l *Layout) R(nodes ...Node) *Layout {
 	l.slots['R'] = append(l.slots['R'], nodes...)
 	return l
 }
 
 // F appends nodes to the Footer slot.
+// Usage example: NewLayout("CF").F(Text("footer"))
 func (l *Layout) F(nodes ...Node) *Layout {
 	l.slots['F'] = append(l.slots['F'], nodes...)
 	return l
@@ -71,6 +78,7 @@ func (l *Layout) blockID(slot byte) string {
 }
 
 // Render produces the semantic HTML for this layout.
+// Usage example: html := NewLayout("C").C(Text("body")).Render(NewContext())
 // Only slots present in the variant string are rendered.
 func (l *Layout) Render(ctx *Context) string {
 	b := newTextBuilder()
