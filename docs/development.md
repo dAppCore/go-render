@@ -291,6 +291,6 @@ func TestGenerateClass_ValidTag(t *testing.T) {
 
 - `NewLayout("XYZ")` silently produces empty output for unrecognised slot letters. Valid letters are `H`, `L`, `C`, `R`, `F`. There is no error or warning.
 - `Responsive.Variant()` accepts only `*Layout`, not arbitrary `Node` values. Arbitrary subtrees must be wrapped in a single-slot layout first.
-- `Context.service` is unexported. Custom i18n service injection requires `NewContextWithService()`. There is no way to swap the service after construction.
+- `Context.service` is unexported. Custom translation injection requires `NewContextWithService()`. There is no way to swap the translator after construction.
 - The WASM module has no integration test for the JavaScript exports. `size_test.go` tests binary size only; it does not exercise `renderToString` behaviour from JavaScript.
 - `codegen.GenerateBundle()` iterates a `map`, so the order of class definitions in the output is non-deterministic. This does not affect correctness but may cause cosmetic diffs between runs.

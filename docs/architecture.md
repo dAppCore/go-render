@@ -23,7 +23,7 @@ All concrete node types are unexported structs with exported constructor functio
 |-------------|-----------|
 | `El(tag, ...Node)` | HTML element with children. Void elements (`br`, `img`, `input`, etc.) never emit a closing tag. |
 | `Attr(Node, key, value)` | Sets an attribute on an `El` node. Traverses through `If`, `Unless`, and `Entitled` wrappers. Returns the node for chaining. |
-| `Text(key, ...any)` | Translated text via `go-i18n`. Output is always HTML-escaped. |
+| `Text(key, ...any)` | Translated text via the active context translator. Server builds fall back to global `go-i18n`; JS builds fall back to the key. Output is always HTML-escaped. |
 | `Raw(content)` | Unescaped trusted content. Explicit escape hatch. |
 | `If(cond, Node)` | Renders the child only when the condition function returns true. |
 | `Unless(cond, Node)` | Renders the child only when the condition function returns false. |
@@ -50,16 +50,16 @@ type Context struct {
     Locale       string                     // BCP 47 locale string
     Entitlements func(feature string) bool  // feature gate callback
     Data         map[string]any             // arbitrary per-request data
-    service      *i18n.Service              // unexported; set via constructor
+    service      Translator                 // unexported; set via constructor
 }
 ```
 
 Two constructors are provided:
 
 - `NewContext()` creates a context with sensible defaults and an empty `Data` map.
-- `NewContextWithService(svc)` creates a context backed by a specific `i18n.Service` instance.
+- `NewContextWithService(svc)` creates a context backed by any translator implementing `T(key, ...any) string` such as `*i18n.Service`.
 
-The `service` field is intentionally unexported. When nil, `Text` nodes fall back to the global `i18n.T()` default. This prevents callers from setting the service inconsistently after construction.
+The `service` field is intentionally unexported. When nil, server builds fall back to the global `i18n.T()` default while JS builds render the key unchanged. This prevents callers from setting the service inconsistently after construction while keeping the WASM import graph lean.
 
 ## HLCRF Layout
 
