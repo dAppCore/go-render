@@ -3,9 +3,9 @@
 package codegen
 
 import (
-	"strings"
 	"text/template"
 
+	core "dappco.re/go/core"
 	log "dappco.re/go/core/log"
 )
 
@@ -33,11 +33,11 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
 
 // GenerateClass produces a JS class definition for a custom element.
 func GenerateClass(tag, slot string) (string, error) {
-	if !strings.Contains(tag, "-") {
+	if !core.Contains(tag, "-") {
 		return "", log.E("codegen.GenerateClass", "custom element tag must contain a hyphen: "+tag, nil)
 	}
-	var b strings.Builder
-	err := wcTemplate.Execute(&b, struct {
+	b := core.NewBuilder()
+	err := wcTemplate.Execute(b, struct {
 		ClassName, Tag, Slot string
 	}{
 		ClassName: TagToClassName(tag),
@@ -57,10 +57,10 @@ func GenerateRegistration(tag, className string) string {
 
 // TagToClassName converts a kebab-case tag to PascalCase class name.
 func TagToClassName(tag string) string {
-	var b strings.Builder
-	for p := range strings.SplitSeq(tag, "-") {
+	b := core.NewBuilder()
+	for _, p := range core.Split(tag, "-") {
 		if len(p) > 0 {
-			b.WriteString(strings.ToUpper(p[:1]))
+			b.WriteString(core.Upper(p[:1]))
 			b.WriteString(p[1:])
 		}
 	}
@@ -71,7 +71,7 @@ func TagToClassName(tag string) string {
 // for a set of HLCRF slot assignments.
 func GenerateBundle(slots map[string]string) (string, error) {
 	seen := make(map[string]bool)
-	var b strings.Builder
+	b := core.NewBuilder()
 
 	for slot, tag := range slots {
 		if seen[tag] {

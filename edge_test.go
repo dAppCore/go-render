@@ -1,8 +1,6 @@
 package html
 
 import (
-	"strconv"
-	"strings"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
@@ -33,7 +31,7 @@ func TestText_Emoji(t *testing.T) {
 				t.Error("Text with emoji should not produce empty output")
 			}
 			// Emoji should pass through (they are not HTML special chars)
-			if !strings.Contains(got, tt.input) {
+			if !containsText(got, tt.input) {
 				// Some chars may get escaped, but emoji bytes should survive
 				t.Logf("note: emoji text rendered as %q", got)
 			}
@@ -80,10 +78,10 @@ func TestEl_RTL(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("div", Raw("\u0645\u0631\u062D\u0628\u0627")), "dir", "rtl")
 	got := node.Render(ctx)
-	if !strings.Contains(got, `dir="rtl"`) {
+	if !containsText(got, `dir="rtl"`) {
 		t.Errorf("RTL element missing dir attribute in: %s", got)
 	}
-	if !strings.Contains(got, "\u0645\u0631\u062D\u0628\u0627") {
+	if !containsText(got, "\u0645\u0631\u062D\u0628\u0627") {
 		t.Errorf("RTL element missing Arabic text in: %s", got)
 	}
 }
@@ -168,7 +166,7 @@ func TestAttr_UnicodeValue(t *testing.T) {
 	node := Attr(El("div"), "title", "\U0001F680 Rocket Launch")
 	got := node.Render(ctx)
 	want := "title=\"\U0001F680 Rocket Launch\""
-	if !strings.Contains(got, want) {
+	if !containsText(got, want) {
 		t.Errorf("attribute with emoji should be preserved, got: %s", got)
 	}
 }
@@ -187,7 +185,7 @@ func TestLayout_DeepNesting_10Levels(t *testing.T) {
 	got := current.Render(ctx)
 
 	// Should contain the deepest content
-	if !strings.Contains(got, "deepest") {
+	if !containsText(got, "deepest") {
 		t.Error("10 levels deep: missing leaf content")
 	}
 
@@ -196,12 +194,12 @@ func TestLayout_DeepNesting_10Levels(t *testing.T) {
 	for i := 1; i < 10; i++ {
 		expectedBlock += "-C-0"
 	}
-	if !strings.Contains(got, `data-block="`+expectedBlock+`"`) {
+	if !containsText(got, `data-block="`+expectedBlock+`"`) {
 		t.Errorf("10 levels deep: missing expected block ID %q in:\n%s", expectedBlock, got)
 	}
 
 	// Must have exactly 10 <main> tags
-	if count := strings.Count(got, "<main"); count != 10 {
+	if count := countText(got, "<main"); count != 10 {
 		t.Errorf("10 levels deep: expected 10 <main> tags, got %d", count)
 	}
 }
@@ -216,10 +214,10 @@ func TestLayout_DeepNesting_20Levels(t *testing.T) {
 
 	got := current.Render(ctx)
 
-	if !strings.Contains(got, "bottom") {
+	if !containsText(got, "bottom") {
 		t.Error("20 levels deep: missing leaf content")
 	}
-	if count := strings.Count(got, "<main"); count != 20 {
+	if count := countText(got, "<main"); count != 20 {
 		t.Errorf("20 levels deep: expected 20 <main> tags, got %d", count)
 	}
 }
@@ -238,7 +236,7 @@ func TestLayout_DeepNesting_MixedSlots(t *testing.T) {
 	}
 
 	got := current.Render(ctx)
-	if !strings.Contains(got, "leaf") {
+	if !containsText(got, "leaf") {
 		t.Error("mixed deep nesting: missing leaf content")
 	}
 }
@@ -251,18 +249,18 @@ func TestEach_LargeIteration_1000(t *testing.T) {
 	}
 
 	node := Each(items, func(i int) Node {
-		return El("li", Raw(strconv.Itoa(i)))
+		return El("li", Raw(itoaText(i)))
 	})
 
 	got := node.Render(ctx)
 
-	if count := strings.Count(got, "<li>"); count != 1000 {
+	if count := countText(got, "<li>"); count != 1000 {
 		t.Errorf("Each with 1000 items: expected 1000 <li>, got %d", count)
 	}
-	if !strings.Contains(got, "<li>0</li>") {
+	if !containsText(got, "<li>0</li>") {
 		t.Error("Each with 1000 items: missing first item")
 	}
-	if !strings.Contains(got, "<li>999</li>") {
+	if !containsText(got, "<li>999</li>") {
 		t.Error("Each with 1000 items: missing last item")
 	}
 }
@@ -275,12 +273,12 @@ func TestEach_LargeIteration_5000(t *testing.T) {
 	}
 
 	node := Each(items, func(i int) Node {
-		return El("span", Raw(strconv.Itoa(i)))
+		return El("span", Raw(itoaText(i)))
 	})
 
 	got := node.Render(ctx)
 
-	if count := strings.Count(got, "<span>"); count != 5000 {
+	if count := countText(got, "<span>"); count != 5000 {
 		t.Errorf("Each with 5000 items: expected 5000 <span>, got %d", count)
 	}
 }
@@ -292,19 +290,19 @@ func TestEach_NestedEach(t *testing.T) {
 
 	node := Each(rows, func(row int) Node {
 		return El("tr", Each(cols, func(col string) Node {
-			return El("td", Raw(strconv.Itoa(row)+"-"+col))
+			return El("td", Raw(itoaText(row)+"-"+col))
 		}))
 	})
 
 	got := node.Render(ctx)
 
-	if count := strings.Count(got, "<tr>"); count != 3 {
+	if count := countText(got, "<tr>"); count != 3 {
 		t.Errorf("nested Each: expected 3 <tr>, got %d", count)
 	}
-	if count := strings.Count(got, "<td>"); count != 9 {
+	if count := countText(got, "<td>"); count != 9 {
 		t.Errorf("nested Each: expected 9 <td>, got %d", count)
 	}
-	if !strings.Contains(got, "1-b") {
+	if !containsText(got, "1-b") {
 		t.Error("nested Each: missing cell content '1-b'")
 	}
 }
@@ -351,14 +349,14 @@ func TestLayout_InvalidVariant_MixedValidInvalid(t *testing.T) {
 		H(Raw("header")).C(Raw("main"))
 	got := layout.Render(ctx)
 
-	if !strings.Contains(got, "header") {
+	if !containsText(got, "header") {
 		t.Errorf("HXC variant should render H slot, got:\n%s", got)
 	}
-	if !strings.Contains(got, "main") {
+	if !containsText(got, "main") {
 		t.Errorf("HXC variant should render C slot, got:\n%s", got)
 	}
 	// Should only have 2 semantic elements
-	if count := strings.Count(got, "data-block="); count != 2 {
+	if count := countText(got, "data-block="); count != 2 {
 		t.Errorf("HXC variant should produce 2 blocks, got %d in:\n%s", count, got)
 	}
 }
@@ -370,7 +368,7 @@ func TestLayout_DuplicateVariantChars(t *testing.T) {
 	layout := NewLayout("CCC").C(Raw("content"))
 	got := layout.Render(ctx)
 
-	count := strings.Count(got, "content")
+	count := countText(got, "content")
 	if count != 3 {
 		t.Errorf("CCC variant should render C slot 3 times, got %d occurrences in:\n%s", count, got)
 	}
@@ -444,10 +442,10 @@ func TestEscapeAttr_AllSpecialChars(t *testing.T) {
 	node := Attr(El("div"), "data-val", `&<>"'`)
 	got := node.Render(ctx)
 
-	if strings.Contains(got, `"&<>"'"`) {
+	if containsText(got, `"&<>"'"`) {
 		t.Error("attribute value with special chars must be fully escaped")
 	}
-	if !strings.Contains(got, "&amp;&lt;&gt;&#34;&#39;") {
+	if !containsText(got, "&amp;&lt;&gt;&#34;&#39;") {
 		t.Errorf("expected all special chars escaped in attribute, got: %s", got)
 	}
 }
@@ -458,7 +456,7 @@ func TestElNode_EmptyTag(t *testing.T) {
 	got := node.Render(ctx)
 
 	// Empty tag is weird but should not panic
-	if !strings.Contains(got, "content") {
+	if !containsText(got, "content") {
 		t.Errorf("El with empty tag should still render children, got %q", got)
 	}
 }

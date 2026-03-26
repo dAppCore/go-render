@@ -3,7 +3,7 @@
 package html
 
 import (
-	"strings"
+	core "dappco.re/go/core"
 
 	"dappco.re/go/core/i18n/reversal"
 )
@@ -12,7 +12,7 @@ import (
 // Tag boundaries are collapsed into single spaces; result is trimmed.
 // Does not handle script/style element content (go-html does not generate these).
 func StripTags(html string) string {
-	var b strings.Builder
+	b := core.NewBuilder()
 	inTag := false
 	prevSpace := true // starts true to trim leading space
 	for _, r := range html {
@@ -40,7 +40,7 @@ func StripTags(html string) string {
 			}
 		}
 	}
-	return strings.TrimSpace(b.String())
+	return core.Trim(b.String())
 }
 
 // Imprint renders a node tree to HTML, strips tags, tokenises the text,

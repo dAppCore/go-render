@@ -5,7 +5,6 @@ import (
 	"iter"
 	"maps"
 	"slices"
-	"strings"
 )
 
 // Node is anything renderable.
@@ -96,7 +95,7 @@ func Attr(n Node, key, value string) Node {
 }
 
 func (n *elNode) Render(ctx *Context) string {
-	var b strings.Builder
+	b := newTextBuilder()
 
 	b.WriteByte('<')
 	b.WriteString(escapeHTML(n.tag))
@@ -249,7 +248,7 @@ func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
-	var b strings.Builder
+	b := newTextBuilder()
 	for item := range n.items {
 		b.WriteString(n.fn(item).Render(ctx))
 	}

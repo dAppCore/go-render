@@ -1,7 +1,5 @@
 package html
 
-import "strings"
-
 // Responsive wraps multiple Layout variants for breakpoint-aware rendering.
 // Each variant is rendered inside a container with data-variant for CSS targeting.
 type Responsive struct {
@@ -27,7 +25,7 @@ func (r *Responsive) Variant(name string, layout *Layout) *Responsive {
 
 // Render produces HTML with each variant in a data-variant container.
 func (r *Responsive) Render(ctx *Context) string {
-	var b strings.Builder
+	b := newTextBuilder()
 	for _, v := range r.variants {
 		b.WriteString(`<div data-variant="`)
 		b.WriteString(escapeAttr(v.name))

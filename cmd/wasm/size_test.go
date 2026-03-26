@@ -4,13 +4,13 @@
 package main
 
 import (
-	"bytes"
 	"compress/gzip"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 
+	core "dappco.re/go/core"
 	coreio "dappco.re/go/core/io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,8 +38,8 @@ func TestWASMBinarySize_WithinBudget(t *testing.T) {
 	require.NoError(t, err)
 	raw := []byte(rawStr)
 
-	var buf bytes.Buffer
-	gz, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	buf := core.NewBuilder()
+	gz, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
 	require.NoError(t, err)
 	_, err = gz.Write(raw)
 	require.NoError(t, err)

@@ -3,7 +3,6 @@
 package codegen
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,6 +52,41 @@ func TestGenerateBundle_DeduplicatesRegistrations(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, js, "NavBar")
 	assert.Contains(t, js, "MainContent")
-	assert.Equal(t, 2, strings.Count(js, "extends HTMLElement"))
-	assert.Equal(t, 2, strings.Count(js, "customElements.define"))
+	assert.Equal(t, 2, countSubstr(js, "extends HTMLElement"))
+	assert.Equal(t, 2, countSubstr(js, "customElements.define"))
+}
+
+func countSubstr(s, substr string) int {
+	if substr == "" {
+		return len(s) + 1
+	}
+
+	count := 0
+	for i := 0; i <= len(s)-len(substr); {
+		j := indexSubstr(s[i:], substr)
+		if j < 0 {
+			return count
+		}
+		count++
+		i += j + len(substr)
+	}
+
+	return count
+}
+
+func indexSubstr(s, substr string) int {
+	if substr == "" {
+		return 0
+	}
+	if len(substr) > len(s) {
+		return -1
+	}
+
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+
+	return -1
 }
