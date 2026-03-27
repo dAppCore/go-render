@@ -173,7 +173,7 @@ func TestAttr_UnicodeValue_Ugly(t *testing.T) {
 
 // --- Deep nesting stress tests ---
 
-func TestLayout_DeepNesting_10Levels_Ugly(t *testing.T) {
+func TestLayout_DeepNesting10Levels_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Build 10 levels of nested layouts
@@ -204,7 +204,7 @@ func TestLayout_DeepNesting_10Levels_Ugly(t *testing.T) {
 	}
 }
 
-func TestLayout_DeepNesting_20Levels_Ugly(t *testing.T) {
+func TestLayout_DeepNesting20Levels_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	current := NewLayout("C").C(Raw("bottom"))
@@ -222,7 +222,7 @@ func TestLayout_DeepNesting_20Levels_Ugly(t *testing.T) {
 	}
 }
 
-func TestLayout_DeepNesting_MixedSlots_Ugly(t *testing.T) {
+func TestLayout_DeepNestingMixedSlots_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Alternate slot types at each level: C -> L -> C -> L -> ...
@@ -241,7 +241,7 @@ func TestLayout_DeepNesting_MixedSlots_Ugly(t *testing.T) {
 	}
 }
 
-func TestEach_LargeIteration_1000_Ugly(t *testing.T) {
+func TestEach_LargeIteration1000_Ugly(t *testing.T) {
 	ctx := NewContext()
 	items := make([]int, 1000)
 	for i := range items {
@@ -265,7 +265,7 @@ func TestEach_LargeIteration_1000_Ugly(t *testing.T) {
 	}
 }
 
-func TestEach_LargeIteration_5000_Ugly(t *testing.T) {
+func TestEach_LargeIteration5000_Ugly(t *testing.T) {
 	ctx := NewContext()
 	items := make([]int, 5000)
 	for i := range items {
@@ -309,7 +309,7 @@ func TestEach_NestedEach_Ugly(t *testing.T) {
 
 // --- Layout variant validation ---
 
-func TestLayout_InvalidVariant_Chars_Bad(t *testing.T) {
+func TestLayout_InvalidVariantChars_Bad(t *testing.T) {
 	ctx := NewContext()
 
 	tests := []struct {
@@ -341,7 +341,7 @@ func TestLayout_InvalidVariant_Chars_Bad(t *testing.T) {
 	}
 }
 
-func TestLayout_InvalidVariant_MixedValidInvalid_Bad(t *testing.T) {
+func TestLayout_InvalidVariantMixedValidInvalid_Bad(t *testing.T) {
 	ctx := NewContext()
 
 	// "HXC" — H and C are valid, X is not. Only H and C should render.

@@ -38,7 +38,7 @@ func TestNestedLayout_DeepNesting_Ugly(t *testing.T) {
 	}
 }
 
-func TestBlockID_Good(t *testing.T) {
+func TestBlockID_BuildsPath_Good(t *testing.T) {
 	tests := []struct {
 		path string
 		slot byte
@@ -59,7 +59,7 @@ func TestBlockID_Good(t *testing.T) {
 	}
 }
 
-func TestParseBlockID_Good(t *testing.T) {
+func TestParseBlockID_ExtractsSlots_Good(t *testing.T) {
 	tests := []struct {
 		id   string
 		want []byte

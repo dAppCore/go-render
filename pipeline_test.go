@@ -102,7 +102,7 @@ func TestImprint_SimilarPages_Good(t *testing.T) {
 	}
 }
 
-func TestCompareVariants_Good(t *testing.T) {
+func TestCompareVariants_SameContent_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
