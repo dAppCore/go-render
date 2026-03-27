@@ -94,7 +94,7 @@ func TestIfNode_False_Good(t *testing.T) {
 	}
 }
 
-func TestUnlessNode_Good(t *testing.T) {
+func TestUnlessNode_False_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Unless(func(*Context) bool { return false }, Raw("visible"))
 	got := node.Render(ctx)
@@ -132,7 +132,7 @@ func TestEntitledNode_NoFunc_Bad(t *testing.T) {
 	}
 }
 
-func TestEachNode_Good(t *testing.T) {
+func TestEachNode_Render_Good(t *testing.T) {
 	ctx := NewContext()
 	items := []string{"a", "b", "c"}
 	node := Each(items, func(item string) Node {
@@ -248,7 +248,7 @@ func TestTextNode_WithService_Good(t *testing.T) {
 	}
 }
 
-func TestSwitchNode_Good(t *testing.T) {
+func TestSwitchNode_SelectsMatch_Good(t *testing.T) {
 	ctx := NewContext()
 	cases := map[string]Node{
 		"dark":  Raw("dark theme"),
