@@ -81,6 +81,10 @@ func (l *Layout) blockID(slot byte) string {
 // Usage example: html := NewLayout("C").C(Text("body")).Render(NewContext())
 // Only slots present in the variant string are rendered.
 func (l *Layout) Render(ctx *Context) string {
+	if l == nil {
+		return ""
+	}
+
 	b := newTextBuilder()
 
 	for i := range len(l.variant) {
@@ -106,8 +110,12 @@ func (l *Layout) Render(ctx *Context) string {
 		b.WriteString(`">`)
 
 		for _, child := range children {
+			if child == nil {
+				continue
+			}
+
 			// Clone nested layouts before setting path (thread-safe).
-			if inner, ok := child.(*Layout); ok {
+			if inner, ok := child.(*Layout); ok && inner != nil {
 				clone := *inner
 				clone.path = bid + "-"
 				b.WriteString(clone.Render(ctx))

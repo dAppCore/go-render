@@ -85,6 +85,10 @@ func El(tag string, children ...Node) Node {
 // Usage example: Attr(El("a", Text("docs")), "href", "/docs")
 // It recursively traverses through wrappers like If, Unless, and Entitled.
 func Attr(n Node, key, value string) Node {
+	if n == nil {
+		return n
+	}
+
 	switch t := n.(type) {
 	case *elNode:
 		t.attrs[key] = value
@@ -171,6 +175,9 @@ func If(cond func(*Context) bool, node Node) Node {
 }
 
 func (n *ifNode) Render(ctx *Context) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
 	if n.cond(ctx) {
 		return n.node.Render(ctx)
 	}
@@ -191,6 +198,9 @@ func Unless(cond func(*Context) bool, node Node) Node {
 }
 
 func (n *unlessNode) Render(ctx *Context) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
 	if !n.cond(ctx) {
 		return n.node.Render(ctx)
 	}
@@ -212,6 +222,9 @@ func Entitled(feature string, node Node) Node {
 }
 
 func (n *entitledNode) Render(ctx *Context) string {
+	if n == nil || n.node == nil {
+		return ""
+	}
 	if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(n.feature) {
 		return ""
 	}
@@ -232,8 +245,17 @@ func Switch(selector func(*Context) string, cases map[string]Node) Node {
 }
 
 func (n *switchNode) Render(ctx *Context) string {
+	if n == nil || n.selector == nil {
+		return ""
+	}
 	key := n.selector(ctx)
+	if n.cases == nil {
+		return ""
+	}
 	if node, ok := n.cases[key]; ok {
+		if node == nil {
+			return ""
+		}
 		return node.Render(ctx)
 	}
 	return ""
@@ -259,9 +281,17 @@ func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
+	if n == nil || n.fn == nil || n.items == nil {
+		return ""
+	}
+
 	b := newTextBuilder()
 	for item := range n.items {
-		b.WriteString(n.fn(item).Render(ctx))
+		child := n.fn(item)
+		if child == nil {
+			continue
+		}
+		b.WriteString(child.Render(ctx))
 	}
 	return b.String()
 }

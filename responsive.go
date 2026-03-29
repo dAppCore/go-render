@@ -1,5 +1,8 @@
 package html
 
+// Compile-time interface check.
+var _ Node = (*Responsive)(nil)
+
 // Responsive wraps multiple Layout variants for breakpoint-aware rendering.
 // Usage example: r := NewResponsive().Variant("mobile", NewLayout("C"))
 // Each variant is rendered inside a container with data-variant for CSS targeting.
@@ -29,8 +32,16 @@ func (r *Responsive) Variant(name string, layout *Layout) *Responsive {
 // Render produces HTML with each variant in a data-variant container.
 // Usage example: html := NewResponsive().Variant("mobile", NewLayout("C")).Render(NewContext())
 func (r *Responsive) Render(ctx *Context) string {
+	if r == nil {
+		return ""
+	}
+
 	b := newTextBuilder()
 	for _, v := range r.variants {
+		if v.layout == nil {
+			continue
+		}
+
 		b.WriteString(`<div data-variant="`)
 		b.WriteString(escapeAttr(v.name))
 		b.WriteString(`">`)
