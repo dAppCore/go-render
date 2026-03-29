@@ -10,6 +10,7 @@ package main
 
 import (
 	goio "io"
+	"os"
 
 	core "dappco.re/go/core"
 	"dappco.re/go/core/html/codegen"
@@ -44,12 +45,15 @@ func run(r goio.Reader, w goio.Writer) error {
 func main() {
 	stdin, err := coreio.Local.Open("/dev/stdin")
 	if err != nil {
-		panic(log.E("codegen.main", "open stdin", err))
+		log.Error("failed to open stdin", "scope", "codegen.main", "err", log.E("codegen.main", "open stdin", err))
+		os.Exit(1)
 	}
 
 	stdout, err := coreio.Local.Create("/dev/stdout")
 	if err != nil {
-		panic(log.E("codegen.main", "open stdout", err))
+		_ = stdin.Close()
+		log.Error("failed to open stdout", "scope", "codegen.main", "err", log.E("codegen.main", "open stdout", err))
+		os.Exit(1)
 	}
 	defer func() {
 		_ = stdin.Close()
@@ -57,7 +61,7 @@ func main() {
 	}()
 
 	if err := run(stdin, stdout); err != nil {
-		log.Error("codegen failed", "err", err)
-		panic(err)
+		log.Error("codegen failed", "scope", "codegen.main", "err", err)
+		os.Exit(1)
 	}
 }
