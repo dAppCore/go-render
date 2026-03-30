@@ -3,6 +3,7 @@
 package codegen
 
 import (
+	"sort"
 	"text/template"
 
 	core "dappco.re/go/core"
@@ -76,8 +77,14 @@ func TagToClassName(tag string) string {
 func GenerateBundle(slots map[string]string) (string, error) {
 	seen := make(map[string]bool)
 	b := core.NewBuilder()
+	keys := make([]string, 0, len(slots))
+	for slot := range slots {
+		keys = append(keys, slot)
+	}
+	sort.Strings(keys)
 
-	for slot, tag := range slots {
+	for _, slot := range keys {
+		tag := slots[slot]
 		if seen[tag] {
 			continue
 		}

@@ -3,6 +3,7 @@
 package codegen
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -54,6 +55,29 @@ func TestGenerateBundle_DeduplicatesRegistrations_Good(t *testing.T) {
 	assert.Contains(t, js, "MainContent")
 	assert.Equal(t, 2, countSubstr(js, "extends HTMLElement"))
 	assert.Equal(t, 2, countSubstr(js, "customElements.define"))
+}
+
+func TestGenerateBundle_DeterministicOrdering_Good(t *testing.T) {
+	slots := map[string]string{
+		"Z": "zed-panel",
+		"A": "alpha-panel",
+		"M": "main-content",
+	}
+
+	js, err := GenerateBundle(slots)
+	require.NoError(t, err)
+
+	alpha := strings.Index(js, "class AlphaPanel")
+	main := strings.Index(js, "class MainContent")
+	zed := strings.Index(js, "class ZedPanel")
+
+	assert.NotEqual(t, -1, alpha)
+	assert.NotEqual(t, -1, main)
+	assert.NotEqual(t, -1, zed)
+	assert.Less(t, alpha, main)
+	assert.Less(t, main, zed)
+	assert.Equal(t, 3, countSubstr(js, "extends HTMLElement"))
+	assert.Equal(t, 3, countSubstr(js, "customElements.define"))
 }
 
 func countSubstr(s, substr string) int {
