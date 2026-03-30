@@ -60,6 +60,9 @@ func Raw(content string) Node {
 }
 
 func (n *rawNode) Render(_ *Context) string {
+	if n == nil {
+		return ""
+	}
 	return n.content
 }
 
@@ -103,6 +106,10 @@ func Attr(n Node, key, value string) Node {
 }
 
 func (n *elNode) Render(ctx *Context) string {
+	if n == nil {
+		return ""
+	}
+
 	b := newTextBuilder()
 
 	b.WriteByte('<')
@@ -126,6 +133,9 @@ func (n *elNode) Render(ctx *Context) string {
 	}
 
 	for i := range len(n.children) {
+		if n.children[i] == nil {
+			continue
+		}
 		b.WriteString(n.children[i].Render(ctx))
 	}
 
@@ -158,6 +168,9 @@ func Text(key string, args ...any) Node {
 }
 
 func (n *textNode) Render(ctx *Context) string {
+	if n == nil {
+		return ""
+	}
 	return escapeHTML(translateText(ctx, n.key, n.args...))
 }
 

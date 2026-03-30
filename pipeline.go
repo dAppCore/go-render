@@ -51,7 +51,10 @@ func Imprint(node Node, ctx *Context) reversal.GrammarImprint {
 	if ctx == nil {
 		ctx = NewContext()
 	}
-	rendered := node.Render(ctx)
+	rendered := ""
+	if node != nil {
+		rendered = node.Render(ctx)
+	}
 	text := StripTags(rendered)
 	tok := reversal.NewTokeniser()
 	tokens := tok.Tokenise(text)
@@ -65,6 +68,9 @@ func CompareVariants(r *Responsive, ctx *Context) map[string]float64 {
 	if ctx == nil {
 		ctx = NewContext()
 	}
+	if r == nil {
+		return make(map[string]float64)
+	}
 
 	type named struct {
 		name string
@@ -73,6 +79,9 @@ func CompareVariants(r *Responsive, ctx *Context) map[string]float64 {
 
 	var imprints []named
 	for _, v := range r.variants {
+		if v.layout == nil {
+			continue
+		}
 		imp := Imprint(v.layout, ctx)
 		imprints = append(imprints, named{name: v.name, imp: imp})
 	}
