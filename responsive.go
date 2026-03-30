@@ -25,6 +25,9 @@ func NewResponsive() *Responsive {
 // Usage example: NewResponsive().Variant("desktop", NewLayout("HLCRF"))
 // Variants render in insertion order.
 func (r *Responsive) Variant(name string, layout *Layout) *Responsive {
+	if r == nil {
+		r = NewResponsive()
+	}
 	r.variants = append(r.variants, responsiveVariant{name: name, layout: layout})
 	return r
 }

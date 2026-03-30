@@ -113,3 +113,27 @@ func TestLayout_IgnoresInvalidSlots_Good(t *testing.T) {
 		t.Errorf("C variant should ignore R slot content, got:\n%s", got)
 	}
 }
+
+func TestLayout_Methods_NilLayout_Ugly(t *testing.T) {
+	var layout *Layout
+
+	if layout.H(Raw("h")) != nil {
+		t.Fatal("expected nil layout from H on nil receiver")
+	}
+	if layout.L(Raw("l")) != nil {
+		t.Fatal("expected nil layout from L on nil receiver")
+	}
+	if layout.C(Raw("c")) != nil {
+		t.Fatal("expected nil layout from C on nil receiver")
+	}
+	if layout.R(Raw("r")) != nil {
+		t.Fatal("expected nil layout from R on nil receiver")
+	}
+	if layout.F(Raw("f")) != nil {
+		t.Fatal("expected nil layout from F on nil receiver")
+	}
+
+	if got := layout.Render(NewContext()); got != "" {
+		t.Fatalf("nil layout render should be empty, got %q", got)
+	}
+}

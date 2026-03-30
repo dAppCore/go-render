@@ -86,3 +86,16 @@ func TestResponsive_VariantsIndependent_Good(t *testing.T) {
 func TestResponsive_ImplementsNode_Ugly(t *testing.T) {
 	var _ Node = NewResponsive()
 }
+
+func TestResponsive_Variant_NilResponsive_Ugly(t *testing.T) {
+	var r *Responsive
+
+	got := r.Variant("mobile", NewLayout("C").C(Raw("content")))
+	if got == nil {
+		t.Fatal("expected non-nil responsive from Variant on nil receiver")
+	}
+
+	if output := got.Render(NewContext()); output != `<div data-variant="mobile"><main data-block="C-0">content</main></div>` {
+		t.Fatalf("unexpected output from nil receiver Variant path: %q", output)
+	}
+}

@@ -37,38 +37,63 @@ func NewLayout(variant string) *Layout {
 	}
 }
 
+func (l *Layout) slotsForSlot(slot byte) []Node {
+	if l == nil {
+		return nil
+	}
+	if l.slots == nil {
+		l.slots = make(map[byte][]Node)
+	}
+	return l.slots[slot]
+}
+
 // H appends nodes to the Header slot.
 // Usage example: NewLayout("HCF").H(Text("title"))
 func (l *Layout) H(nodes ...Node) *Layout {
-	l.slots['H'] = append(l.slots['H'], nodes...)
+	if l == nil {
+		return nil
+	}
+	l.slots['H'] = append(l.slotsForSlot('H'), nodes...)
 	return l
 }
 
 // L appends nodes to the Left aside slot.
 // Usage example: NewLayout("LC").L(Text("nav"))
 func (l *Layout) L(nodes ...Node) *Layout {
-	l.slots['L'] = append(l.slots['L'], nodes...)
+	if l == nil {
+		return nil
+	}
+	l.slots['L'] = append(l.slotsForSlot('L'), nodes...)
 	return l
 }
 
 // C appends nodes to the Content (main) slot.
 // Usage example: NewLayout("C").C(Text("body"))
 func (l *Layout) C(nodes ...Node) *Layout {
-	l.slots['C'] = append(l.slots['C'], nodes...)
+	if l == nil {
+		return nil
+	}
+	l.slots['C'] = append(l.slotsForSlot('C'), nodes...)
 	return l
 }
 
 // R appends nodes to the Right aside slot.
 // Usage example: NewLayout("CR").R(Text("ads"))
 func (l *Layout) R(nodes ...Node) *Layout {
-	l.slots['R'] = append(l.slots['R'], nodes...)
+	if l == nil {
+		return nil
+	}
+	l.slots['R'] = append(l.slotsForSlot('R'), nodes...)
 	return l
 }
 
 // F appends nodes to the Footer slot.
 // Usage example: NewLayout("CF").F(Text("footer"))
 func (l *Layout) F(nodes ...Node) *Layout {
-	l.slots['F'] = append(l.slots['F'], nodes...)
+	if l == nil {
+		return nil
+	}
+	l.slots['F'] = append(l.slotsForSlot('F'), nodes...)
 	return l
 }
 
