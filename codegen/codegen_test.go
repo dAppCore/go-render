@@ -80,6 +80,24 @@ func TestGenerateBundle_DeterministicOrdering_Good(t *testing.T) {
 	assert.Equal(t, 3, countSubstr(js, "customElements.define"))
 }
 
+func TestGenerateTypeScriptDefinitions_DeduplicatesAndOrders_Good(t *testing.T) {
+	slots := map[string]string{
+		"Z": "zed-panel",
+		"A": "alpha-panel",
+		"M": "alpha-panel",
+	}
+
+	dts := GenerateTypeScriptDefinitions(slots)
+
+	assert.Contains(t, dts, `interface HTMLElementTagNameMap`)
+	assert.Contains(t, dts, `"alpha-panel": AlphaPanel;`)
+	assert.Contains(t, dts, `"zed-panel": ZedPanel;`)
+	assert.Equal(t, 1, countSubstr(dts, `"alpha-panel": AlphaPanel;`))
+	assert.Equal(t, 1, countSubstr(dts, `export declare class AlphaPanel extends HTMLElement`))
+	assert.Equal(t, 1, countSubstr(dts, `export declare class ZedPanel extends HTMLElement`))
+	assert.Less(t, strings.Index(dts, `"alpha-panel": AlphaPanel;`), strings.Index(dts, `"zed-panel": ZedPanel;`))
+}
+
 func countSubstr(s, substr string) int {
 	if substr == "" {
 		return len(s) + 1
