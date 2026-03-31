@@ -67,3 +67,15 @@ func (ctx *Context) SetService(svc Translator) *Context {
 	applyLocaleToService(svc, ctx.Locale)
 	return ctx
 }
+
+// SetLocale updates the context locale and reapplies it to the active translator.
+// Usage example: ctx.SetLocale("en-GB")
+func (ctx *Context) SetLocale(locale string) *Context {
+	if ctx == nil {
+		return nil
+	}
+
+	ctx.Locale = locale
+	applyLocaleToService(ctx.service, ctx.Locale)
+	return ctx
+}

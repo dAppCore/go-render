@@ -67,3 +67,24 @@ func TestContext_SetService_NilContext_Ugly(t *testing.T) {
 		t.Fatal("SetService on nil context should return nil")
 	}
 }
+
+func TestContext_SetLocale_AppliesLocale_Good(t *testing.T) {
+	svc, _ := i18n.New()
+	ctx := NewContextWithService(svc)
+
+	if got := ctx.SetLocale("fr-FR"); got != ctx {
+		t.Fatal("SetLocale should return the same context for chaining")
+	}
+
+	got := Text("prompt.yes").Render(ctx)
+	if got != "o" {
+		t.Fatalf("SetLocale translation = %q, want %q", got, "o")
+	}
+}
+
+func TestContext_SetLocale_NilContext_Ugly(t *testing.T) {
+	var ctx *Context
+	if got := ctx.SetLocale("en-GB"); got != nil {
+		t.Fatal("SetLocale on nil context should return nil")
+	}
+}
