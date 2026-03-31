@@ -1,6 +1,7 @@
 package html
 
 import (
+	"errors"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
@@ -336,6 +337,64 @@ func TestLayout_InvalidVariantChars_Bad(t *testing.T) {
 				if got != "" {
 					t.Errorf("NewLayout(%q) with all invalid chars should produce empty output, got %q", tt.variant, got)
 				}
+			}
+		})
+	}
+}
+
+func TestLayout_VariantError_Bad(t *testing.T) {
+	tests := []struct {
+		name          string
+		variant       string
+		wantInvalid   bool
+		wantErrString string
+		build         func(*Layout)
+		wantRender    string
+	}{
+		{
+			name:        "valid variant",
+			variant:     "HCF",
+			wantInvalid: false,
+			build: func(layout *Layout) {
+				layout.H(Raw("header")).C(Raw("main")).F(Raw("footer"))
+			},
+			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main><footer role="contentinfo" data-block="F-0">footer</footer>`,
+		},
+		{
+			name:          "mixed invalid variant",
+			variant:       "HXC",
+			wantInvalid:   true,
+			wantErrString: "html: invalid layout variant HXC",
+			build: func(layout *Layout) {
+				layout.H(Raw("header")).C(Raw("main"))
+			},
+			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			layout := NewLayout(tt.variant)
+			if tt.build != nil {
+				tt.build(layout)
+			}
+			if tt.wantInvalid {
+				if layout.VariantError() == nil {
+					t.Fatalf("VariantError() = nil, want sentinel error for %q", tt.variant)
+				}
+				if !errors.Is(layout.VariantError(), ErrInvalidLayoutVariant) {
+					t.Fatalf("VariantError() = %v, want errors.Is(..., ErrInvalidLayoutVariant)", layout.VariantError())
+				}
+				if got := layout.VariantError().Error(); got != tt.wantErrString {
+					t.Fatalf("VariantError().Error() = %q, want %q", got, tt.wantErrString)
+				}
+			} else if layout.VariantError() != nil {
+				t.Fatalf("VariantError() = %v, want nil", layout.VariantError())
+			}
+
+			got := layout.Render(NewContext())
+			if got != tt.wantRender {
+				t.Fatalf("Render() = %q, want %q", got, tt.wantRender)
 			}
 		})
 	}

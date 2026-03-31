@@ -1,7 +1,13 @@
 package html
 
+import "errors"
+
 // Compile-time interface check.
 var _ Node = (*Layout)(nil)
+
+// ErrInvalidLayoutVariant reports that a layout variant string contains at least
+// one unrecognised slot character.
+var ErrInvalidLayoutVariant = errors.New("html: invalid layout variant")
 
 // slotMeta holds the semantic HTML mapping for each HLCRF slot.
 type slotMeta struct {
@@ -22,9 +28,10 @@ var slotRegistry = map[byte]slotMeta{
 // with deterministic path-based IDs.
 // Usage example: page := NewLayout("HCF").H(Text("title")).C(Text("body"))
 type Layout struct {
-	variant string          // "HLCRF", "HCF", "C", etc.
-	path    string          // "" for root, "L-0-" for nested
-	slots   map[byte][]Node // H, L, C, R, F → children
+	variant    string          // "HLCRF", "HCF", "C", etc.
+	path       string          // "" for root, "L-0-" for nested
+	slots      map[byte][]Node // H, L, C, R, F → children
+	variantErr error
 }
 
 func renderWithLayoutPath(node Node, ctx *Context, path string) string {
@@ -73,10 +80,27 @@ func renderWithLayoutPath(node Node, ctx *Context, path string) string {
 // Usage example: page := NewLayout("HLCRF")
 // The variant determines which slots are rendered (e.g., "HLCRF", "HCF", "C").
 func NewLayout(variant string) *Layout {
-	return &Layout{
+	l := &Layout{
 		variant: variant,
 		slots:   make(map[byte][]Node),
 	}
+	l.variantErr = validateLayoutVariant(variant)
+	return l
+}
+
+func validateLayoutVariant(variant string) error {
+	var invalid bool
+	for i := range len(variant) {
+		if _, ok := slotRegistry[variant[i]]; ok {
+			continue
+		}
+		invalid = true
+		break
+	}
+	if !invalid {
+		return nil
+	}
+	return &layoutVariantError{variant: variant}
 }
 
 func (l *Layout) slotsForSlot(slot byte) []Node {
@@ -144,6 +168,15 @@ func (l *Layout) blockID(slot byte) string {
 	return l.path + string(slot) + "-0"
 }
 
+// VariantError reports whether the layout variant string contained any invalid
+// slot characters when the layout was constructed.
+func (l *Layout) VariantError() error {
+	if l == nil {
+		return nil
+	}
+	return l.variantErr
+}
+
 // Render produces the semantic HTML for this layout.
 // Usage example: html := NewLayout("C").C(Text("body")).Render(NewContext())
 // Only slots present in the variant string are rendered.
@@ -192,4 +225,16 @@ func (l *Layout) Render(ctx *Context) string {
 	}
 
 	return b.String()
+}
+
+type layoutVariantError struct {
+	variant string
+}
+
+func (e *layoutVariantError) Error() string {
+	return "html: invalid layout variant " + e.variant
+}
+
+func (e *layoutVariantError) Unwrap() error {
+	return ErrInvalidLayoutVariant
 }
