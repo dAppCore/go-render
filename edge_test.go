@@ -386,6 +386,19 @@ func TestLayout_EmptySlots_Ugly(t *testing.T) {
 	}
 }
 
+func TestLayout_NestedThroughIf_Ugly(t *testing.T) {
+	ctx := NewContext()
+
+	inner := NewLayout("C").C(Raw("wrapped"))
+	outer := NewLayout("C").C(If(func(*Context) bool { return true }, inner))
+
+	got := outer.Render(ctx)
+
+	if !containsText(got, `data-block="C-0-C-0"`) {
+		t.Fatalf("nested layout inside If should inherit block path, got:\n%s", got)
+	}
+}
+
 // --- Render convenience function edge cases ---
 
 func TestRender_NilContext_Ugly(t *testing.T) {

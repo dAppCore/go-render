@@ -27,6 +27,48 @@ type Layout struct {
 	slots   map[byte][]Node // H, L, C, R, F → children
 }
 
+func renderWithLayoutPath(node Node, ctx *Context, path string) string {
+	if node == nil {
+		return ""
+	}
+
+	switch t := node.(type) {
+	case *Layout:
+		if t == nil {
+			return ""
+		}
+		clone := *t
+		clone.path = path
+		return clone.Render(ctx)
+	case *ifNode:
+		if t == nil || t.cond == nil || t.node == nil {
+			return ""
+		}
+		if t.cond(ctx) {
+			return renderWithLayoutPath(t.node, ctx, path)
+		}
+		return ""
+	case *unlessNode:
+		if t == nil || t.cond == nil || t.node == nil {
+			return ""
+		}
+		if !t.cond(ctx) {
+			return renderWithLayoutPath(t.node, ctx, path)
+		}
+		return ""
+	case *entitledNode:
+		if t == nil || t.node == nil {
+			return ""
+		}
+		if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(t.feature) {
+			return ""
+		}
+		return renderWithLayoutPath(t.node, ctx, path)
+	default:
+		return node.Render(ctx)
+	}
+}
+
 // NewLayout creates a new Layout with the given variant string.
 // Usage example: page := NewLayout("HLCRF")
 // The variant determines which slots are rendered (e.g., "HLCRF", "HCF", "C").
@@ -141,15 +183,7 @@ func (l *Layout) Render(ctx *Context) string {
 			if child == nil {
 				continue
 			}
-
-			// Clone nested layouts before setting path (thread-safe).
-			if inner, ok := child.(*Layout); ok && inner != nil {
-				clone := *inner
-				clone.path = bid + "-"
-				b.WriteString(clone.Render(ctx))
-				continue
-			}
-			b.WriteString(child.Render(ctx))
+			b.WriteString(renderWithLayoutPath(child, ctx, bid+"-"))
 		}
 
 		b.WriteString("</")
