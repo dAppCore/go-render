@@ -83,3 +83,18 @@ func TestParseBlockID_ExtractsSlots_Good(t *testing.T) {
 		}
 	}
 }
+
+func TestParseBlockID_InvalidInput_Good(t *testing.T) {
+	tests := []string{
+		"L-1-C-0",
+		"L-0-C",
+		"L-0-",
+		"X",
+	}
+
+	for _, id := range tests {
+		if got := ParseBlockID(id); got != nil {
+			t.Errorf("ParseBlockID(%q) = %v, want nil", id, got)
+		}
+	}
+}
