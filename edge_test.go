@@ -458,6 +458,22 @@ func TestLayout_NestedThroughIf_Ugly(t *testing.T) {
 	}
 }
 
+func TestLayout_NestedThroughSwitch_Ugly(t *testing.T) {
+	ctx := NewContext()
+
+	inner := NewLayout("C").C(Raw("wrapped"))
+	outer := NewLayout("C").C(Switch(func(*Context) string { return "match" }, map[string]Node{
+		"match": inner,
+		"miss":  Raw("ignored"),
+	}))
+
+	got := outer.Render(ctx)
+
+	if !containsText(got, `data-block="C-0-C-0"`) {
+		t.Fatalf("nested layout inside Switch should inherit block path, got:\n%s", got)
+	}
+}
+
 // --- Render convenience function edge cases ---
 
 func TestRender_NilContext_Ugly(t *testing.T) {

@@ -71,6 +71,16 @@ func renderWithLayoutPath(node Node, ctx *Context, path string) string {
 			return ""
 		}
 		return renderWithLayoutPath(t.node, ctx, path)
+	case *switchNode:
+		if t == nil || t.selector == nil || t.cases == nil {
+			return ""
+		}
+		key := t.selector(ctx)
+		node, ok := t.cases[key]
+		if !ok || node == nil {
+			return ""
+		}
+		return renderWithLayoutPath(node, ctx, path)
 	default:
 		return node.Render(ctx)
 	}

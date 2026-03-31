@@ -274,6 +274,21 @@ func TestAttr_ThroughEntitledNode_Good(t *testing.T) {
 	}
 }
 
+func TestAttr_ThroughSwitchNode_Good(t *testing.T) {
+	ctx := NewContext()
+	inner := El("div", Raw("content"))
+	node := Switch(func(*Context) string { return "match" }, map[string]Node{
+		"match": inner,
+		"miss":  El("span", Raw("unused")),
+	})
+	Attr(node, "data-state", "active")
+	got := node.Render(ctx)
+	want := `<div data-state="active">content</div>`
+	if got != want {
+		t.Errorf("Attr through Switch = %q, want %q", got, want)
+	}
+}
+
 func TestTextNode_WithService_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	ctx := NewContextWithService(svc)

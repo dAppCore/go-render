@@ -102,6 +102,10 @@ func Attr(n Node, key, value string) Node {
 		Attr(t.node, key, value)
 	case *entitledNode:
 		Attr(t.node, key, value)
+	case *switchNode:
+		for _, child := range t.cases {
+			Attr(child, key, value)
+		}
 	}
 	return n
 }
