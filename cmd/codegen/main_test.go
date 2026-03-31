@@ -3,9 +3,15 @@
 package main
 
 import (
+	"context"
+	goio "io"
+	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	core "dappco.re/go/core"
+	coreio "dappco.re/go/core/io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,6 +72,39 @@ func TestRun_WritesTypeScriptDefinitions_Good(t *testing.T) {
 	assert.Contains(t, dts, "export declare class MainContent extends HTMLElement")
 }
 
+func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
+	dir := t.TempDir()
+	inputPath := filepath.Join(dir, "slots.json")
+	outputPath := filepath.Join(dir, "bundle.js")
+
+	require.NoError(t, writeTextFile(inputPath, `{"H":"nav-bar","C":"main-content"}`))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- runDaemon(ctx, inputPath, outputPath, false, 5*time.Millisecond)
+	}()
+
+	require.Eventually(t, func() bool {
+		got, err := readTextFile(outputPath)
+		if err != nil {
+			return false
+		}
+		return strings.Contains(got, "NavBar") && strings.Contains(got, "MainContent")
+	}, time.Second, 10*time.Millisecond)
+
+	cancel()
+	require.NoError(t, <-done)
+}
+
+func TestRunDaemon_MissingPaths_Bad(t *testing.T) {
+	err := runDaemon(context.Background(), "", "", false, time.Millisecond)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "watch mode requires -input")
+}
+
 func countSubstr(s, substr string) int {
 	if substr == "" {
 		return len(s) + 1
@@ -99,4 +138,33 @@ func indexSubstr(s, substr string) int {
 	}
 
 	return -1
+}
+
+func writeTextFile(path, content string) error {
+	f, err := coreio.Local.Create(path)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	_, err = goio.WriteString(f, content)
+	return err
+}
+
+func readTextFile(path string) (string, error) {
+	f, err := coreio.Local.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	data, err := goio.ReadAll(f)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }

@@ -153,6 +153,16 @@ echo '{"H":"site-header","C":"app-content"}' \
     > components.d.ts
 ```
 
+For local development, `-watch` polls an input JSON file and rewrites the
+output file whenever the slot map changes:
+
+```bash
+go run ./cmd/codegen/ \
+    -watch \
+    -input slots.json \
+    -output components.js
+```
+
 To test the CLI:
 
 ```bash
