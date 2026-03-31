@@ -36,3 +36,13 @@ func TestNewContextWithService_OptionalLocale_Good(t *testing.T) {
 		t.Fatal("NewContextWithService should set translator service")
 	}
 }
+
+func TestNewContextWithService_AppliesLocaleToService_Good(t *testing.T) {
+	svc, _ := i18n.New()
+	ctx := NewContextWithService(svc, "fr-FR")
+
+	got := Text("prompt.yes").Render(ctx)
+	if got != "o" {
+		t.Fatalf("NewContextWithService locale translation = %q, want %q", got, "o")
+	}
+}

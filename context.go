@@ -36,5 +36,17 @@ func NewContext(locale ...string) *Context {
 func NewContextWithService(svc Translator, locale ...string) *Context {
 	ctx := NewContext(locale...)
 	ctx.service = svc
+	if len(locale) > 0 {
+		if setter, ok := svc.(interface{ SetLanguage(string) error }); ok {
+			base := locale[0]
+			for i := 0; i < len(base); i++ {
+				if base[i] == '-' || base[i] == '_' {
+					base = base[:i]
+					break
+				}
+			}
+			_ = setter.SetLanguage(base)
+		}
+	}
 	return ctx
 }
