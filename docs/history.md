@@ -101,7 +101,7 @@ These are not regressions; they are design choices or deferred work recorded for
 
 3. **Responsive accepts only Layout.** `Responsive.Variant()` takes `*Layout` rather than `Node`. The rationale is that `CompareVariants` in the pipeline needs access to the slot structure. Accepting `Node` would require a different approach to variant analysis.
 
-4. **Context.service is private.** The i18n service cannot be set after construction or swapped. This is a conservative choice; relaxing it requires deciding whether mutation should be safe for concurrent use.
+4. **Context.service is private.** The i18n service is still unexported, but callers can now swap it explicitly with `Context.SetService()`. This keeps the field encapsulated while allowing controlled mutation.
 
 5. **TypeScript definitions not generated.** `codegen.GenerateBundle()` produces JS only. A `.d.ts` companion would benefit TypeScript consumers of the generated Web Components.
 

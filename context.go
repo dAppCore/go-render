@@ -19,6 +19,23 @@ type Context struct {
 	service      Translator
 }
 
+func applyLocaleToService(svc Translator, locale string) {
+	if svc == nil || locale == "" {
+		return
+	}
+
+	if setter, ok := svc.(interface{ SetLanguage(string) error }); ok {
+		base := locale
+		for i := 0; i < len(base); i++ {
+			if base[i] == '-' || base[i] == '_' {
+				base = base[:i]
+				break
+			}
+		}
+		_ = setter.SetLanguage(base)
+	}
+}
+
 // NewContext creates a new rendering context with sensible defaults.
 // Usage example: html := Render(Text("welcome"), NewContext("en-GB"))
 func NewContext(locale ...string) *Context {
@@ -35,18 +52,18 @@ func NewContext(locale ...string) *Context {
 // Usage example: ctx := NewContextWithService(myTranslator, "en-GB")
 func NewContextWithService(svc Translator, locale ...string) *Context {
 	ctx := NewContext(locale...)
-	ctx.service = svc
-	if len(locale) > 0 {
-		if setter, ok := svc.(interface{ SetLanguage(string) error }); ok {
-			base := locale[0]
-			for i := 0; i < len(base); i++ {
-				if base[i] == '-' || base[i] == '_' {
-					base = base[:i]
-					break
-				}
-			}
-			_ = setter.SetLanguage(base)
-		}
+	ctx.SetService(svc)
+	return ctx
+}
+
+// SetService swaps the translator used by the context.
+// Usage example: ctx.SetService(myTranslator)
+func (ctx *Context) SetService(svc Translator) *Context {
+	if ctx == nil {
+		return nil
 	}
+
+	ctx.service = svc
+	applyLocaleToService(svc, ctx.Locale)
 	return ctx
 }
