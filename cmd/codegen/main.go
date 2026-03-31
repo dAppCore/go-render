@@ -1,14 +1,16 @@
 //go:build !js
 
-// Package main provides a build-time CLI for generating Web Component JS bundles.
-// Reads a JSON slot map from stdin, writes the generated JS to stdout.
+// Package main provides a build-time CLI for generating Web Component bundles.
+// Reads a JSON slot map from stdin, writes the generated JS or TypeScript to stdout.
 //
 // Usage:
 //
 //	echo '{"H":"nav-bar","C":"main-content"}' | go run ./cmd/codegen/ > components.js
+//	echo '{"H":"nav-bar","C":"main-content"}' | go run ./cmd/codegen/ -types > components.d.ts
 package main
 
 import (
+	"flag"
 	goio "io"
 	"os"
 
@@ -18,7 +20,7 @@ import (
 	log "dappco.re/go/core/log"
 )
 
-func run(r goio.Reader, w goio.Writer) error {
+func run(r goio.Reader, w goio.Writer, emitTypes bool) error {
 	data, err := goio.ReadAll(r)
 	if err != nil {
 		return log.E("codegen", "reading stdin", err)
@@ -30,19 +32,27 @@ func run(r goio.Reader, w goio.Writer) error {
 		return log.E("codegen", "invalid JSON", err)
 	}
 
-	js, err := codegen.GenerateBundle(slots)
-	if err != nil {
-		return log.E("codegen", "generate bundle", err)
+	out := ""
+	if emitTypes {
+		out = codegen.GenerateTypeScriptDefinitions(slots)
+	} else {
+		out, err = codegen.GenerateBundle(slots)
+		if err != nil {
+			return log.E("codegen", "generate bundle", err)
+		}
 	}
 
-	_, err = goio.WriteString(w, js)
+	_, err = goio.WriteString(w, out)
 	if err != nil {
-		return log.E("codegen", "writing bundle", err)
+		return log.E("codegen", "writing output", err)
 	}
 	return nil
 }
 
 func main() {
+	emitTypes := flag.Bool("types", false, "emit TypeScript declarations instead of JavaScript")
+	flag.Parse()
+
 	stdin, err := coreio.Local.Open("/dev/stdin")
 	if err != nil {
 		log.Error("failed to open stdin", "scope", "codegen.main", "err", log.E("codegen.main", "open stdin", err))
@@ -60,7 +70,7 @@ func main() {
 		_ = stdout.Close()
 	}()
 
-	if err := run(stdin, stdout); err != nil {
+	if err := run(stdin, stdout, *emitTypes); err != nil {
 		log.Error("codegen failed", "scope", "codegen.main", "err", err)
 		os.Exit(1)
 	}

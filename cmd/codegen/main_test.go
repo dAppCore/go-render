@@ -14,7 +14,7 @@ func TestRun_WritesBundle_Good(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
-	err := run(input, output)
+	err := run(input, output, false)
 	require.NoError(t, err)
 
 	js := output.String()
@@ -28,7 +28,7 @@ func TestRun_InvalidJSON_Bad(t *testing.T) {
 	input := core.NewReader(`not json`)
 	output := core.NewBuilder()
 
-	err := run(input, output)
+	err := run(input, output, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid JSON")
 }
@@ -37,7 +37,7 @@ func TestRun_InvalidTag_Bad(t *testing.T) {
 	input := core.NewReader(`{"H":"notag"}`)
 	output := core.NewBuilder()
 
-	err := run(input, output)
+	err := run(input, output, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "hyphen")
 }
@@ -46,9 +46,24 @@ func TestRun_EmptySlots_Good(t *testing.T) {
 	input := core.NewReader(`{}`)
 	output := core.NewBuilder()
 
-	err := run(input, output)
+	err := run(input, output, false)
 	require.NoError(t, err)
 	assert.Empty(t, output.String())
+}
+
+func TestRun_WritesTypeScriptDefinitions_Good(t *testing.T) {
+	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
+	output := core.NewBuilder()
+
+	err := run(input, output, true)
+	require.NoError(t, err)
+
+	dts := output.String()
+	assert.Contains(t, dts, "declare global")
+	assert.Contains(t, dts, `"nav-bar": NavBar;`)
+	assert.Contains(t, dts, `"main-content": MainContent;`)
+	assert.Contains(t, dts, "export declare class NavBar extends HTMLElement")
+	assert.Contains(t, dts, "export declare class MainContent extends HTMLElement")
 }
 
 func countSubstr(s, substr string) int {

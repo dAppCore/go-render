@@ -145,6 +145,14 @@ echo '{"H":"site-header","C":"app-content","F":"site-footer"}' \
 
 JSON keys are HLCRF slot letters (`H`, `L`, `C`, `R`, `F`). Values are custom element tag names (must contain a hyphen per the Web Components specification). Duplicate tag values are deduplicated.
 
+Pass `-types` to emit ambient TypeScript declarations instead of JavaScript:
+
+```bash
+echo '{"H":"site-header","C":"app-content"}' \
+    | go run ./cmd/codegen/ -types \
+    > components.d.ts
+```
+
 To test the CLI:
 
 ```bash
