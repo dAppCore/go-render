@@ -318,6 +318,34 @@ func TestAttr_ThroughSwitchNode_Good(t *testing.T) {
 	}
 }
 
+func TestAttr_ThroughEachNode_Good(t *testing.T) {
+	ctx := NewContext()
+	node := Each([]string{"a", "b"}, func(item string) Node {
+		return El("span", Raw(item))
+	})
+	Attr(node, "class", "item")
+
+	got := node.Render(ctx)
+	want := `<span class="item">a</span><span class="item">b</span>`
+	if got != want {
+		t.Errorf("Attr through Each = %q, want %q", got, want)
+	}
+}
+
+func TestAttr_ThroughEachSeqNode_Good(t *testing.T) {
+	ctx := NewContext()
+	node := EachSeq(slices.Values([]string{"a", "b"}), func(item string) Node {
+		return El("span", Raw(item))
+	})
+	Attr(node, "data-kind", "item")
+
+	got := node.Render(ctx)
+	want := `<span data-kind="item">a</span><span data-kind="item">b</span>`
+	if got != want {
+		t.Errorf("Attr through EachSeq = %q, want %q", got, want)
+	}
+}
+
 func TestTextNode_WithService_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	ctx := NewContextWithService(svc)

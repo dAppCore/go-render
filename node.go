@@ -91,7 +91,7 @@ func El(tag string, children ...Node) Node {
 
 // Attr sets an attribute on an El node. Returns the node for chaining.
 // Usage example: Attr(El("a", Text("docs")), "href", "/docs")
-// It recursively traverses through wrappers like If, Unless, and Entitled.
+// It recursively traverses through wrappers like If, Unless, Entitled, and Each.
 func Attr(n Node, key, value string) Node {
 	if n == nil {
 		return n
@@ -110,6 +110,8 @@ func Attr(n Node, key, value string) Node {
 		for _, child := range t.cases {
 			Attr(child, key, value)
 		}
+	case attrApplier:
+		t.applyAttr(key, value)
 	}
 	return n
 }
@@ -314,6 +316,10 @@ type eachNode[T any] struct {
 	fn    func(T) Node
 }
 
+type attrApplier interface {
+	applyAttr(key, value string)
+}
+
 // Each iterates items and renders each via fn.
 // Usage example: Each([]string{"a", "b"}, func(v string) Node { return Text(v) })
 func Each[T any](items []T, fn func(T) Node) Node {
@@ -328,6 +334,17 @@ func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 
 func (n *eachNode[T]) Render(ctx *Context) string {
 	return n.renderWithLayoutPath(ctx, "")
+}
+
+func (n *eachNode[T]) applyAttr(key, value string) {
+	if n == nil || n.fn == nil {
+		return
+	}
+
+	prev := n.fn
+	n.fn = func(item T) Node {
+		return Attr(prev(item), key, value)
+	}
 }
 
 func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
