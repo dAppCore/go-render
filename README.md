@@ -4,7 +4,7 @@
 
 # go-html
 
-HLCRF DOM compositor with grammar pipeline integration for server-side HTML generation and optional WASM client rendering. Provides a type-safe node tree (El, Text, Raw, If, Each, Switch, Entitled), a five-slot Header/Left/Content/Right/Footer layout compositor with deterministic `data-block` path IDs and ARIA roles, a responsive multi-variant wrapper, a server-side grammar pipeline (StripTags, GrammarImprint via go-i18n reversal, CompareVariants), a build-time Web Component codegen CLI, and a WASM module (2.90 MB raw, 842 KB gzip) exposing `renderToString()`.
+HLCRF DOM compositor with grammar pipeline integration for server-side HTML generation and optional WASM client rendering. Provides a type-safe node tree (El, Text, Raw, If, Each, Switch, Entitled, AriaLabel, AltText), a five-slot Header/Left/Content/Right/Footer layout compositor with deterministic `data-block` path IDs and ARIA roles, a responsive multi-variant wrapper, a server-side grammar pipeline (StripTags, GrammarImprint via go-i18n reversal, CompareVariants), a build-time Web Component codegen CLI, and a WASM module (2.90 MB raw, 842 KB gzip) exposing `renderToString()`.
 
 **Module**: `forge.lthn.ai/core/go-html`
 **Licence**: EUPL-1.2

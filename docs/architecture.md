@@ -17,12 +17,14 @@ type Node interface {
 }
 ```
 
-All concrete node types are unexported structs with exported constructor functions. The public API surface consists of nine constructors plus the `Attr()` and `Render()` helpers:
+All concrete node types are unexported structs with exported constructor functions. The public API surface consists of nine node constructors, two accessibility helpers, plus the `Attr()` and `Render()` helpers:
 
 | Constructor | Behaviour |
 |-------------|-----------|
 | `El(tag, ...Node)` | HTML element with children. Void elements (`br`, `img`, `input`, etc.) never emit a closing tag. |
 | `Attr(Node, key, value)` | Sets an attribute on an `El` node. Traverses through `If`, `Unless`, and `Entitled` wrappers. Returns the node for chaining. |
+| `AriaLabel(Node, label)` | Convenience helper that sets `aria-label` on an element node. |
+| `AltText(Node, text)` | Convenience helper that sets `alt` on an element node. |
 | `Text(key, ...any)` | Translated text via the active context translator. Server builds fall back to global `go-i18n`; JS builds fall back to the key. Output is always HTML-escaped. |
 | `Raw(content)` | Unescaped trusted content. Explicit escape hatch. |
 | `If(cond, Node)` | Renders the child only when the condition function returns true. |

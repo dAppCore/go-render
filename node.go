@@ -105,6 +105,18 @@ func Attr(n Node, key, value string) Node {
 	return n
 }
 
+// AriaLabel sets an aria-label attribute on an element node.
+// Usage example: AriaLabel(El("button", Text("save")), "Save changes")
+func AriaLabel(n Node, label string) Node {
+	return Attr(n, "aria-label", label)
+}
+
+// AltText sets an alt attribute on an element node.
+// Usage example: AltText(El("img"), "Profile photo")
+func AltText(n Node, text string) Node {
+	return Attr(n, "alt", text)
+}
+
 func (n *elNode) Render(ctx *Context) string {
 	if n == nil {
 		return ""

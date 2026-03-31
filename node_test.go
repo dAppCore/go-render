@@ -175,6 +175,24 @@ func TestElNode_AttrEscaping_Good(t *testing.T) {
 	}
 }
 
+func TestAriaLabel_Good(t *testing.T) {
+	node := AriaLabel(El("button", Raw("save")), "Save changes")
+	got := node.Render(NewContext())
+	want := `<button aria-label="Save changes">save</button>`
+	if got != want {
+		t.Errorf("AriaLabel() = %q, want %q", got, want)
+	}
+}
+
+func TestAltText_Good(t *testing.T) {
+	node := AltText(El("img"), "Profile photo")
+	got := node.Render(NewContext())
+	want := `<img alt="Profile photo">`
+	if got != want {
+		t.Errorf("AltText() = %q, want %q", got, want)
+	}
+}
+
 func TestElNode_MultipleAttrs_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(Attr(El("a", Raw("link")), "href", "/home"), "class", "nav")
