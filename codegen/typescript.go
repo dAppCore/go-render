@@ -55,5 +55,7 @@ func GenerateTypeScriptDefinitions(slots map[string]string) string {
 		b.WriteString("}\n\n")
 	}
 
+	b.WriteString("export {};\n")
+
 	return b.String()
 }

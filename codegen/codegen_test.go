@@ -95,6 +95,7 @@ func TestGenerateTypeScriptDefinitions_DeduplicatesAndOrders_Good(t *testing.T) 
 	assert.Equal(t, 1, countSubstr(dts, `"alpha-panel": AlphaPanel;`))
 	assert.Equal(t, 1, countSubstr(dts, `export declare class AlphaPanel extends HTMLElement`))
 	assert.Equal(t, 1, countSubstr(dts, `export declare class ZedPanel extends HTMLElement`))
+	assert.Contains(t, dts, "export {};")
 	assert.Less(t, strings.Index(dts, `"alpha-panel": AlphaPanel;`), strings.Index(dts, `"zed-panel": ZedPanel;`))
 }
 
