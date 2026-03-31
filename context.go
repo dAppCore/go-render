@@ -20,18 +20,21 @@ type Context struct {
 }
 
 // NewContext creates a new rendering context with sensible defaults.
-// Usage example: html := Render(Text("welcome"), NewContext())
-func NewContext() *Context {
-	return &Context{
+// Usage example: html := Render(Text("welcome"), NewContext("en-GB"))
+func NewContext(locale ...string) *Context {
+	ctx := &Context{
 		Data: make(map[string]any),
 	}
+	if len(locale) > 0 {
+		ctx.Locale = locale[0]
+	}
+	return ctx
 }
 
 // NewContextWithService creates a rendering context backed by a specific translator.
-// Usage example: ctx := NewContextWithService(myTranslator)
-func NewContextWithService(svc Translator) *Context {
-	return &Context{
-		Data:    make(map[string]any),
-		service: svc,
-	}
+// Usage example: ctx := NewContextWithService(myTranslator, "en-GB")
+func NewContextWithService(svc Translator, locale ...string) *Context {
+	ctx := NewContext(locale...)
+	ctx.service = svc
+	return ctx
 }
