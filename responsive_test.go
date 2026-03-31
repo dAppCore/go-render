@@ -99,3 +99,14 @@ func TestResponsive_Variant_NilResponsive_Ugly(t *testing.T) {
 		t.Fatalf("unexpected output from nil receiver Variant path: %q", output)
 	}
 }
+
+func TestResponsive_Render_NilContext_Good(t *testing.T) {
+	r := NewResponsive().
+		Variant("mobile", NewLayout("C").C(Raw("content")))
+
+	got := r.Render(nil)
+	want := `<div data-variant="mobile"><main role="main" data-block="C-0">content</main></div>`
+	if got != want {
+		t.Fatalf("responsive.Render(nil) = %q, want %q", got, want)
+	}
+}

@@ -38,6 +38,9 @@ func (r *Responsive) Render(ctx *Context) string {
 	if r == nil {
 		return ""
 	}
+	if ctx == nil {
+		ctx = NewContext()
+	}
 
 	b := newTextBuilder()
 	for _, v := range r.variants {

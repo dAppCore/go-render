@@ -137,3 +137,13 @@ func TestLayout_Methods_NilLayout_Ugly(t *testing.T) {
 		t.Fatalf("nil layout render should be empty, got %q", got)
 	}
 }
+
+func TestLayout_Render_NilContext_Good(t *testing.T) {
+	layout := NewLayout("C").C(Raw("content"))
+
+	got := layout.Render(nil)
+	want := `<main role="main" data-block="C-0">content</main>`
+	if got != want {
+		t.Fatalf("layout.Render(nil) = %q, want %q", got, want)
+	}
+}

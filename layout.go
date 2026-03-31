@@ -109,6 +109,9 @@ func (l *Layout) Render(ctx *Context) string {
 	if l == nil {
 		return ""
 	}
+	if ctx == nil {
+		ctx = NewContext()
+	}
 
 	b := newTextBuilder()
 
