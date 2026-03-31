@@ -140,6 +140,12 @@ func AutoFocus(n Node) Node {
 	return Attr(n, "autofocus", "autofocus")
 }
 
+// Role sets a role attribute on an element node.
+// Usage example: Role(El("nav", Text("links")), "navigation")
+func Role(n Node, role string) Node {
+	return Attr(n, "role", role)
+}
+
 func (n *elNode) Render(ctx *Context) string {
 	if n == nil {
 		return ""

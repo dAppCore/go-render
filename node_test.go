@@ -240,6 +240,15 @@ func TestAutoFocus_Good(t *testing.T) {
 	}
 }
 
+func TestRole_Good(t *testing.T) {
+	node := Role(El("nav", Raw("links")), "navigation")
+	got := node.Render(NewContext())
+	want := `<nav role="navigation">links</nav>`
+	if got != want {
+		t.Errorf("Role() = %q, want %q", got, want)
+	}
+}
+
 func TestElNode_MultipleAttrs_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(Attr(El("a", Raw("link")), "href", "/home"), "class", "nav")

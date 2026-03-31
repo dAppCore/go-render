@@ -39,7 +39,7 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 
 | Path | Purpose |
 |------|---------|
-| `node.go` | `Node` interface and all node types: `El`, `Text`, `Raw`, `If`, `Unless`, `Each`, `EachSeq`, `Switch`, `Entitled`, plus `AriaLabel`, `AltText`, `TabIndex`, and `AutoFocus` helpers |
+| `node.go` | `Node` interface and all node types: `El`, `Text`, `Raw`, `If`, `Unless`, `Each`, `EachSeq`, `Switch`, `Entitled`, plus `AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`, and `Role` helpers |
 | `layout.go` | HLCRF compositor with semantic HTML elements and ARIA roles |
 | `responsive.go` | Multi-variant breakpoint wrapper (`data-variant` containers) and CSS selector helper |
 | `context.go` | Rendering context: identity, locale, entitlements, i18n service |
@@ -52,7 +52,7 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 
 ## Key Concepts
 
-**Node tree** -- All renderable units implement `Node`, a single-method interface: `Render(ctx *Context) string`. The library composes nodes into trees using `El()` for elements, `Text()` for translated text, control-flow constructors (`If`, `Unless`, `Each`, `Switch`, `Entitled`), and accessibility helpers (`AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`).
+**Node tree** -- All renderable units implement `Node`, a single-method interface: `Render(ctx *Context) string`. The library composes nodes into trees using `El()` for elements, `Text()` for translated text, control-flow constructors (`If`, `Unless`, `Each`, `Switch`, `Entitled`), and accessibility helpers (`AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`, `Role`).
 
 **HLCRF Layout** -- A five-slot compositor that maps to semantic HTML: `<header>` (H), `<aside>` (L/R), `<main>` (C), `<footer>` (F). The variant string controls which slots render: `"HLCRF"` for all five, `"HCF"` for three, `"C"` for content only. Layouts nest: placing a `Layout` inside another layout's slot produces hierarchical `data-block` paths like `L-0-C-0`.
 

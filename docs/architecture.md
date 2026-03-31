@@ -27,6 +27,7 @@ All concrete node types are unexported structs with exported constructor functio
 | `AltText(Node, text)` | Convenience helper that sets `alt` on an element node. |
 | `TabIndex(Node, index)` | Convenience helper that sets `tabindex` on an element node. |
 | `AutoFocus(Node)` | Convenience helper that sets `autofocus` on an element node. |
+| `Role(Node, role)` | Convenience helper that sets `role` on an element node. |
 | `Text(key, ...any)` | Translated text via the active context translator. Server builds fall back to global `go-i18n`; JS builds fall back to the key. Output is always HTML-escaped. |
 | `Raw(content)` | Unescaped trusted content. Explicit escape hatch. |
 | `If(cond, Node)` | Renders the child only when the condition function returns true. |
