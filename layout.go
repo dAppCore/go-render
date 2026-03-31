@@ -39,6 +39,10 @@ func renderWithLayoutPath(node Node, ctx *Context, path string) string {
 		return ""
 	}
 
+	if renderer, ok := node.(layoutPathRenderer); ok {
+		return renderer.renderWithLayoutPath(ctx, path)
+	}
+
 	switch t := node.(type) {
 	case *Layout:
 		if t == nil {

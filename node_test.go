@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
+	"slices"
 )
 
 func TestRawNode_Render_Good(t *testing.T) {
@@ -153,6 +154,34 @@ func TestEachNode_Empty_Good(t *testing.T) {
 	got := node.Render(ctx)
 	if got != "" {
 		t.Errorf("Each([]) = %q, want %q", got, "")
+	}
+}
+
+func TestEachNode_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
+	ctx := NewContext()
+	inner := NewLayout("C").C(Raw("item"))
+	node := Each([]Node{inner}, func(item Node) Node {
+		return item
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+	want := `<main role="main" data-block="C-0"><main role="main" data-block="C-0-C-0">item</main></main>`
+	if got != want {
+		t.Fatalf("Each nested layout render = %q, want %q", got, want)
+	}
+}
+
+func TestEachSeq_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
+	ctx := NewContext()
+	inner := NewLayout("C").C(Raw("item"))
+	node := EachSeq(slices.Values([]Node{inner}), func(item Node) Node {
+		return item
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+	want := `<main role="main" data-block="C-0"><main role="main" data-block="C-0-C-0">item</main></main>`
+	if got != want {
+		t.Fatalf("EachSeq nested layout render = %q, want %q", got, want)
 	}
 }
 

@@ -26,6 +26,10 @@ var (
 	_ Node = (*eachNode[any])(nil)
 )
 
+type layoutPathRenderer interface {
+	renderWithLayoutPath(ctx *Context, path string) string
+}
+
 // voidElements is the set of HTML elements that must not have a closing tag.
 var voidElements = map[string]bool{
 	"area":   true,
@@ -323,6 +327,10 @@ func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
+	return n.renderWithLayoutPath(ctx, "")
+}
+
+func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
 	if n == nil || n.fn == nil || n.items == nil {
 		return ""
 	}
@@ -333,7 +341,7 @@ func (n *eachNode[T]) Render(ctx *Context) string {
 		if child == nil {
 			continue
 		}
-		b.WriteString(child.Render(ctx))
+		b.WriteString(renderWithLayoutPath(child, ctx, path))
 	}
 	return b.String()
 }
