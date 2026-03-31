@@ -114,6 +114,6 @@ These are not regressions; they are design choices or deferred work recorded for
 These items were captured during the WASM size reduction work and expert review sessions. They are not committed work items.
 
 - **TypeScript type definitions** alongside `GenerateBundle()` for typed Web Component consumers.
-- **Accessibility helpers** — `aria-label` builder, `alt` text helpers, focus management nodes. The layout has semantic HTML and ARIA roles but no API for fine-grained accessibility attributes beyond `Attr()`.
+- **Accessibility helpers** — `aria-label` builder, `alt` text helpers, and focus management helpers (`TabIndex`, `AutoFocus`). The layout has semantic HTML and ARIA roles but no API for fine-grained accessibility attributes beyond `Attr()`.
 - **Layout variant validation** — return a warning or sentinel error from `NewLayout` when the variant string contains unrecognised slot characters.
 - **Daemon mode for codegen** — watch mode for regenerating the JS bundle when slot config changes, for development workflows.

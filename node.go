@@ -5,6 +5,7 @@ import (
 	"iter"
 	"maps"
 	"slices"
+	"strconv"
 )
 
 // Node is anything renderable.
@@ -115,6 +116,18 @@ func AriaLabel(n Node, label string) Node {
 // Usage example: AltText(El("img"), "Profile photo")
 func AltText(n Node, text string) Node {
 	return Attr(n, "alt", text)
+}
+
+// TabIndex sets a tabindex attribute on an element node.
+// Usage example: TabIndex(El("button", Text("save")), 0)
+func TabIndex(n Node, index int) Node {
+	return Attr(n, "tabindex", strconv.Itoa(index))
+}
+
+// AutoFocus sets an autofocus attribute on an element node.
+// Usage example: AutoFocus(El("input"))
+func AutoFocus(n Node) Node {
+	return Attr(n, "autofocus", "autofocus")
 }
 
 func (n *elNode) Render(ctx *Context) string {

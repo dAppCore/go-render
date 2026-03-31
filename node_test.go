@@ -193,6 +193,24 @@ func TestAltText_Good(t *testing.T) {
 	}
 }
 
+func TestTabIndex_Good(t *testing.T) {
+	node := TabIndex(El("button", Raw("save")), 0)
+	got := node.Render(NewContext())
+	want := `<button tabindex="0">save</button>`
+	if got != want {
+		t.Errorf("TabIndex() = %q, want %q", got, want)
+	}
+}
+
+func TestAutoFocus_Good(t *testing.T) {
+	node := AutoFocus(El("input"))
+	got := node.Render(NewContext())
+	want := `<input autofocus="autofocus">`
+	if got != want {
+		t.Errorf("AutoFocus() = %q, want %q", got, want)
+	}
+}
+
 func TestElNode_MultipleAttrs_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(Attr(El("a", Raw("link")), "href", "/home"), "class", "nav")
