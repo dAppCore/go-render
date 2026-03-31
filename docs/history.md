@@ -105,7 +105,7 @@ These are not regressions; they are design choices or deferred work recorded for
 
 5. **TypeScript definitions not generated.** `codegen.GenerateBundle()` produces JS only. A `.d.ts` companion would benefit TypeScript consumers of the generated Web Components.
 
-6. **No CSS scoping helper.** Responsive variants are identified by `data-variant` attributes. Targeting them from CSS requires knowledge of the attribute name. An optional utility for generating scoped CSS selectors is deferred.
+6. **CSS scoping helper added.** `VariantSelector(name)` returns a reusable `data-variant` attribute selector for stylesheet targeting. The `Responsive` rendering model remains unchanged.
 
 7. **Browser polyfill matrix not documented.** Closed Shadow DOM is well-supported but older browsers require polyfills. The support matrix is not documented.
 
@@ -115,5 +115,6 @@ These items were captured during the WASM size reduction work and expert review 
 
 - **TypeScript type definitions** alongside `GenerateBundle()` for typed Web Component consumers.
 - **Accessibility helpers** — `aria-label` builder, `alt` text helpers, and focus management helpers (`TabIndex`, `AutoFocus`). The layout has semantic HTML and ARIA roles but no API for fine-grained accessibility attributes beyond `Attr()`.
+- **Responsive CSS helpers** — `VariantSelector(name)` makes `data-variant` targeting explicit and reusable in stylesheets.
 - **Layout variant validation** — return a warning or sentinel error from `NewLayout` when the variant string contains unrecognised slot characters.
 - **Daemon mode for codegen** — watch mode for regenerating the JS bundle when slot config changes, for development workflows.

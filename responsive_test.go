@@ -110,3 +110,19 @@ func TestResponsive_Render_NilContext_Good(t *testing.T) {
 		t.Fatalf("responsive.Render(nil) = %q, want %q", got, want)
 	}
 }
+
+func TestVariantSelector_Good(t *testing.T) {
+	got := VariantSelector("desktop")
+	want := `[data-variant="desktop"]`
+	if got != want {
+		t.Fatalf("VariantSelector(%q) = %q, want %q", "desktop", got, want)
+	}
+}
+
+func TestVariantSelector_Escapes_Good(t *testing.T) {
+	got := VariantSelector("desk\"top\\wide")
+	want := `[data-variant="desk\"top\\wide"]`
+	if got != want {
+		t.Fatalf("VariantSelector escaping = %q, want %q", got, want)
+	}
+}

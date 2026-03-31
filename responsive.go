@@ -1,5 +1,10 @@
 package html
 
+import (
+	"strconv"
+	"strings"
+)
+
 // Compile-time interface check.
 var _ Node = (*Responsive)(nil)
 
@@ -53,6 +58,44 @@ func (r *Responsive) Render(ctx *Context) string {
 		b.WriteString(`">`)
 		b.WriteString(v.layout.Render(ctx))
 		b.WriteString(`</div>`)
+	}
+	return b.String()
+}
+
+// VariantSelector returns a CSS attribute selector for a responsive variant.
+// Usage example: selector := VariantSelector("desktop")
+func VariantSelector(name string) string {
+	return `[data-variant="` + escapeCSSString(name) + `"]`
+}
+
+func escapeCSSString(s string) string {
+	if s == "" {
+		return ""
+	}
+
+	var b strings.Builder
+	for _, r := range s {
+		switch r {
+		case '\\', '"':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case '\n':
+			b.WriteString(`\A `)
+		case '\r':
+			b.WriteString(`\D `)
+		case '\f':
+			b.WriteString(`\C `)
+		case '\t':
+			b.WriteString(`\9 `)
+		default:
+			if r < 0x20 || r == 0x7f {
+				b.WriteByte('\\')
+				b.WriteString(strings.ToUpper(strconv.FormatInt(int64(r), 16)))
+				b.WriteByte(' ')
+				continue
+			}
+			b.WriteRune(r)
+		}
 	}
 	return b.String()
 }

@@ -165,6 +165,8 @@ html.NewResponsive().
 
 Each variant renders inside a `<div data-variant="name">` container. Variants render in insertion order. CSS media queries or JavaScript can target these containers for show/hide logic.
 
+`VariantSelector(name)` returns a CSS attribute selector for a specific responsive variant, making stylesheet targeting less error-prone than hand-writing the attribute selector repeatedly.
+
 `Responsive` implements `Node`, so it can be passed to `Render()` or `Imprint()`. The `Variant()` method accepts `*Layout` specifically, not arbitrary `Node` values.
 
 Each variant maintains independent block ID namespaces -- nesting a layout inside a responsive variant does not conflict with the same layout structure in another variant.
