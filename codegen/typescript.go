@@ -28,7 +28,7 @@ func GenerateTypeScriptDefinitions(slots map[string]string) string {
 	b.WriteString("  interface HTMLElementTagNameMap {\n")
 	for _, slot := range keys {
 		tag := slots[slot]
-		if seen[tag] {
+		if !isValidCustomElementTag(tag) || seen[tag] {
 			continue
 		}
 		seen[tag] = true

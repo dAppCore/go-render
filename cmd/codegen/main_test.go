@@ -48,6 +48,15 @@ func TestRun_InvalidTag_Bad(t *testing.T) {
 	assert.Contains(t, err.Error(), "hyphen")
 }
 
+func TestRun_InvalidTagCharacters_Bad(t *testing.T) {
+	input := core.NewReader(`{"H":"Nav-Bar","C":"nav bar"}`)
+	output := core.NewBuilder()
+
+	err := run(input, output, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "lowercase hyphenated name")
+}
+
 func TestRun_EmptySlots_Good(t *testing.T) {
 	input := core.NewReader(`{}`)
 	output := core.NewBuilder()

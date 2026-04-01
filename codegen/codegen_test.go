@@ -22,6 +22,12 @@ func TestGenerateClass_ValidTag_Good(t *testing.T) {
 func TestGenerateClass_InvalidTag_Bad(t *testing.T) {
 	_, err := GenerateClass("invalid", "C")
 	assert.Error(t, err, "custom element names must contain a hyphen")
+
+	_, err = GenerateClass("Nav-Bar", "C")
+	assert.Error(t, err, "custom element names must be lowercase")
+
+	_, err = GenerateClass("nav bar", "C")
+	assert.Error(t, err, "custom element names must reject spaces")
 }
 
 func TestGenerateRegistration_DefinesCustomElement_Good(t *testing.T) {
@@ -97,6 +103,21 @@ func TestGenerateTypeScriptDefinitions_DeduplicatesAndOrders_Good(t *testing.T) 
 	assert.Equal(t, 1, countSubstr(dts, `export declare class ZedPanel extends HTMLElement`))
 	assert.Contains(t, dts, "export {};")
 	assert.Less(t, strings.Index(dts, `"alpha-panel": AlphaPanel;`), strings.Index(dts, `"zed-panel": ZedPanel;`))
+}
+
+func TestGenerateTypeScriptDefinitions_SkipsInvalidTags_Good(t *testing.T) {
+	slots := map[string]string{
+		"H": "nav-bar",
+		"C": "Nav-Bar",
+		"F": "nav bar",
+	}
+
+	dts := GenerateTypeScriptDefinitions(slots)
+
+	assert.Contains(t, dts, `"nav-bar": NavBar;`)
+	assert.NotContains(t, dts, "Nav-Bar")
+	assert.NotContains(t, dts, "nav bar")
+	assert.Equal(t, 1, countSubstr(dts, `export declare class NavBar extends HTMLElement`))
 }
 
 func countSubstr(s, substr string) int {

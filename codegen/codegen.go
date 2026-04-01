@@ -10,6 +10,31 @@ import (
 	log "dappco.re/go/core/log"
 )
 
+// isValidCustomElementTag reports whether tag is a safe custom element name.
+// The generator rejects values that would fail at customElements.define() time.
+func isValidCustomElementTag(tag string) bool {
+	if tag == "" || !core.Contains(tag, "-") {
+		return false
+	}
+
+	if tag[0] < 'a' || tag[0] > 'z' {
+		return false
+	}
+
+	for i := range len(tag) {
+		ch := tag[i]
+		switch {
+		case ch >= 'a' && ch <= 'z':
+		case ch >= '0' && ch <= '9':
+		case ch == '-' || ch == '.' || ch == '_':
+		default:
+			return false
+		}
+	}
+
+	return true
+}
+
 // wcTemplate is the Web Component class template.
 // Uses closed Shadow DOM for isolation. Content is set via the shadow root's
 // DOM API using trusted go-html codegen output (never user input).
@@ -35,8 +60,8 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
 // GenerateClass produces a JS class definition for a custom element.
 // Usage example: js, err := GenerateClass("nav-bar", "H")
 func GenerateClass(tag, slot string) (string, error) {
-	if !core.Contains(tag, "-") {
-		return "", log.E("codegen.GenerateClass", "custom element tag must contain a hyphen: "+tag, nil)
+	if !isValidCustomElementTag(tag) {
+		return "", log.E("codegen.GenerateClass", "custom element tag must be a lowercase hyphenated name: "+tag, nil)
 	}
 	b := core.NewBuilder()
 	err := wcTemplate.Execute(b, struct {
