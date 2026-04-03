@@ -126,3 +126,11 @@ func TestVariantSelector_Escapes_Good(t *testing.T) {
 		t.Fatalf("VariantSelector escaping = %q, want %q", got, want)
 	}
 }
+
+func TestVariantSelector_ControlChars_Escape_Good(t *testing.T) {
+	got := VariantSelector("a\tb\nc\u0007")
+	want := `[data-variant="a\\9 b\\A \\7 "]`
+	if got != want {
+		t.Fatalf("VariantSelector control escapes = %q, want %q", got, want)
+	}
+}

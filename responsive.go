@@ -79,18 +79,13 @@ func escapeCSSString(s string) string {
 		case '\\', '"':
 			b.WriteByte('\\')
 			b.WriteRune(r)
-		case '\n':
-			b.WriteString(`\A `)
-		case '\r':
-			b.WriteString(`\D `)
-		case '\f':
-			b.WriteString(`\C `)
-		case '\t':
-			b.WriteString(`\9 `)
 		default:
 			if r < 0x20 || r == 0x7f {
 				b.WriteByte('\\')
-				b.WriteString(strings.ToUpper(strconv.FormatInt(int64(r), 16)))
+				esc := strings.ToUpper(strconv.FormatInt(int64(r), 16))
+				for i := 0; i < len(esc); i++ {
+					b.WriteByte(esc[i])
+				}
 				b.WriteByte(' ')
 				continue
 			}
