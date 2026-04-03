@@ -25,7 +25,7 @@ func renderToString(_ js.Value, args []js.Value) any {
 	ctx := html.NewContext()
 
 	if len(args) >= 2 && args[1].Type() == js.TypeString {
-		ctx.Locale = args[1].String()
+		ctx.SetLocale(args[1].String())
 	}
 
 	layout := html.NewLayout(variant)

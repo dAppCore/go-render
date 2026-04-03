@@ -43,7 +43,7 @@ func NewContext(locale ...string) *Context {
 		Data: make(map[string]any),
 	}
 	if len(locale) > 0 {
-		ctx.Locale = locale[0]
+		ctx.SetLocale(locale[0])
 	}
 	return ctx
 }
