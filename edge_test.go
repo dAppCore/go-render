@@ -400,6 +400,37 @@ func TestLayout_VariantError_Bad(t *testing.T) {
 	}
 }
 
+func TestValidateLayoutVariant_Good(t *testing.T) {
+	tests := []struct {
+		name    string
+		variant string
+		wantErr bool
+	}{
+		{name: "valid", variant: "HCF", wantErr: false},
+		{name: "invalid", variant: "HXC", wantErr: true},
+		{name: "empty", variant: "", wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateLayoutVariant(tt.variant)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ValidateLayoutVariant(%q) = nil, want error", tt.variant)
+				}
+				if !errors.Is(err, ErrInvalidLayoutVariant) {
+					t.Fatalf("ValidateLayoutVariant(%q) = %v, want ErrInvalidLayoutVariant", tt.variant, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("ValidateLayoutVariant(%q) = %v, want nil", tt.variant, err)
+			}
+		})
+	}
+}
+
 func TestLayout_InvalidVariantMixedValidInvalid_Bad(t *testing.T) {
 	ctx := NewContext()
 

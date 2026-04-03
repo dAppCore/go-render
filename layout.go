@@ -98,11 +98,16 @@ func NewLayout(variant string) *Layout {
 		variant: variant,
 		slots:   make(map[byte][]Node),
 	}
-	l.variantErr = validateLayoutVariant(variant)
+	l.variantErr = ValidateLayoutVariant(variant)
 	return l
 }
 
-func validateLayoutVariant(variant string) error {
+// ValidateLayoutVariant reports whether a layout variant string contains only
+// recognised slot characters.
+//
+// It returns nil for valid variants and ErrInvalidLayoutVariant wrapped in a
+// layoutVariantError for invalid ones.
+func ValidateLayoutVariant(variant string) error {
 	var invalid bool
 	for i := range len(variant) {
 		if _, ok := slotRegistry[variant[i]]; ok {
