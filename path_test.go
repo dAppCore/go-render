@@ -1,11 +1,10 @@
 package html
 
 import (
-	"strings"
 	"testing"
 )
 
-func TestNestedLayout_PathChain(t *testing.T) {
+func TestNestedLayout_PathChain_Good(t *testing.T) {
 	inner := NewLayout("HCF").H(Raw("inner h")).C(Raw("inner c")).F(Raw("inner f"))
 	outer := NewLayout("HLCRF").
 		H(Raw("header")).L(inner).C(Raw("main")).R(Raw("right")).F(Raw("footer"))
@@ -13,33 +12,33 @@ func TestNestedLayout_PathChain(t *testing.T) {
 
 	// Inner layout paths must be prefixed with parent block ID
 	for _, want := range []string{`data-block="L-0-H-0"`, `data-block="L-0-C-0"`, `data-block="L-0-F-0"`} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("nested layout missing %q in:\n%s", want, got)
 		}
 	}
 
 	// Outer layout must still have root-level paths
 	for _, want := range []string{`data-block="H-0"`, `data-block="C-0"`, `data-block="F-0"`} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("outer layout missing %q in:\n%s", want, got)
 		}
 	}
 }
 
-func TestNestedLayout_DeepNesting(t *testing.T) {
+func TestNestedLayout_DeepNesting_Ugly(t *testing.T) {
 	deepest := NewLayout("C").C(Raw("deep"))
 	middle := NewLayout("C").C(deepest)
 	outer := NewLayout("C").C(middle)
 	got := outer.Render(NewContext())
 
 	for _, want := range []string{`data-block="C-0"`, `data-block="C-0-C-0"`, `data-block="C-0-C-0-C-0"`} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("deep nesting missing %q in:\n%s", want, got)
 		}
 	}
 }
 
-func TestBlockID(t *testing.T) {
+func TestBlockID_BuildsPath_Good(t *testing.T) {
 	tests := []struct {
 		path string
 		slot byte
@@ -60,7 +59,7 @@ func TestBlockID(t *testing.T) {
 	}
 }
 
-func TestParseBlockID(t *testing.T) {
+func TestParseBlockID_ExtractsSlots_Good(t *testing.T) {
 	tests := []struct {
 		id   string
 		want []byte
@@ -81,6 +80,21 @@ func TestParseBlockID(t *testing.T) {
 			if got[i] != tt.want[i] {
 				t.Errorf("ParseBlockID(%q)[%d] = %c, want %c", tt.id, i, got[i], tt.want[i])
 			}
+		}
+	}
+}
+
+func TestParseBlockID_InvalidInput_Good(t *testing.T) {
+	tests := []string{
+		"L-1-C-0",
+		"L-0-C",
+		"L-0-",
+		"X",
+	}
+
+	for _, id := range tests {
+		if got := ParseBlockID(id); got != nil {
+			t.Errorf("ParseBlockID(%q) = %v, want nil", id, got)
 		}
 	}
 }

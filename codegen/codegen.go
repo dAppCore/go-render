@@ -1,12 +1,39 @@
+//go:build !js
+
 package codegen
 
 import (
-	"fmt"
-	"strings"
+	"sort"
 	"text/template"
 
+	core "dappco.re/go/core"
 	log "dappco.re/go/core/log"
 )
+
+// isValidCustomElementTag reports whether tag is a safe custom element name.
+// The generator rejects values that would fail at customElements.define() time.
+func isValidCustomElementTag(tag string) bool {
+	if tag == "" || !core.Contains(tag, "-") {
+		return false
+	}
+
+	if tag[0] < 'a' || tag[0] > 'z' {
+		return false
+	}
+
+	for i := range len(tag) {
+		ch := tag[i]
+		switch {
+		case ch >= 'a' && ch <= 'z':
+		case ch >= '0' && ch <= '9':
+		case ch == '-' || ch == '.' || ch == '_':
+		default:
+			return false
+		}
+	}
+
+	return true
+}
 
 // wcTemplate is the Web Component class template.
 // Uses closed Shadow DOM for isolation. Content is set via the shadow root's
@@ -31,12 +58,13 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
 }`))
 
 // GenerateClass produces a JS class definition for a custom element.
+// Usage example: js, err := GenerateClass("nav-bar", "H")
 func GenerateClass(tag, slot string) (string, error) {
-	if !strings.Contains(tag, "-") {
-		return "", log.E("codegen.GenerateClass", "custom element tag must contain a hyphen: "+tag, nil)
+	if !isValidCustomElementTag(tag) {
+		return "", log.E("codegen.GenerateClass", "custom element tag must be a lowercase hyphenated name: "+tag, nil)
 	}
-	var b strings.Builder
-	err := wcTemplate.Execute(&b, struct {
+	b := core.NewBuilder()
+	err := wcTemplate.Execute(b, struct {
 		ClassName, Tag, Slot string
 	}{
 		ClassName: TagToClassName(tag),
@@ -50,16 +78,18 @@ func GenerateClass(tag, slot string) (string, error) {
 }
 
 // GenerateRegistration produces the customElements.define() call.
+// Usage example: js := GenerateRegistration("nav-bar", "NavBar")
 func GenerateRegistration(tag, className string) string {
-	return fmt.Sprintf(`customElements.define("%s", %s);`, tag, className)
+	return `customElements.define("` + tag + `", ` + className + `);`
 }
 
 // TagToClassName converts a kebab-case tag to PascalCase class name.
+// Usage example: className := TagToClassName("nav-bar")
 func TagToClassName(tag string) string {
-	var b strings.Builder
-	for p := range strings.SplitSeq(tag, "-") {
+	b := core.NewBuilder()
+	for _, p := range core.Split(tag, "-") {
 		if len(p) > 0 {
-			b.WriteString(strings.ToUpper(p[:1]))
+			b.WriteString(core.Upper(p[:1]))
 			b.WriteString(p[1:])
 		}
 	}
@@ -68,11 +98,18 @@ func TagToClassName(tag string) string {
 
 // GenerateBundle produces all WC class definitions and registrations
 // for a set of HLCRF slot assignments.
+// Usage example: js, err := GenerateBundle(map[string]string{"H": "nav-bar"})
 func GenerateBundle(slots map[string]string) (string, error) {
 	seen := make(map[string]bool)
-	var b strings.Builder
+	b := core.NewBuilder()
+	keys := make([]string, 0, len(slots))
+	for slot := range slots {
+		keys = append(keys, slot)
+	}
+	sort.Strings(keys)
 
-	for slot, tag := range slots {
+	for _, slot := range keys {
+		tag := slots[slot]
 		if seen[tag] {
 			continue
 		}
@@ -80,7 +117,7 @@ func GenerateBundle(slots map[string]string) (string, error) {
 
 		cls, err := GenerateClass(tag, slot)
 		if err != nil {
-			return "", err
+			return "", log.E("codegen.GenerateBundle", "generate class for tag "+tag, err)
 		}
 		b.WriteString(cls)
 		b.WriteByte('\n')

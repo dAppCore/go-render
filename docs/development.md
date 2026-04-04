@@ -66,7 +66,7 @@ go test ./cmd/codegen/
 go test ./cmd/wasm/
 ```
 
-The WASM size gate test (`TestWASMBinarySize_Good`) builds the WASM binary as a subprocess. It is slow and is skipped under `-short`. It is also guarded with `//go:build !js` so it cannot run within the WASM environment itself.
+The WASM size gate test (`TestWASMBinarySize_WithinBudget`) builds the WASM binary as a subprocess. It is slow and is skipped under `-short`. It is also guarded with `//go:build !js` so it cannot run within the WASM environment itself.
 
 ### Test Dependencies
 
@@ -144,6 +144,24 @@ echo '{"H":"site-header","C":"app-content","F":"site-footer"}' \
 ```
 
 JSON keys are HLCRF slot letters (`H`, `L`, `C`, `R`, `F`). Values are custom element tag names (must contain a hyphen per the Web Components specification). Duplicate tag values are deduplicated.
+
+Pass `-types` to emit ambient TypeScript declarations instead of JavaScript:
+
+```bash
+echo '{"H":"site-header","C":"app-content"}' \
+    | go run ./cmd/codegen/ -types \
+    > components.d.ts
+```
+
+For local development, `-watch` polls an input JSON file and rewrites the
+output file whenever the slot map changes:
+
+```bash
+go run ./cmd/codegen/ \
+    -watch \
+    -input slots.json \
+    -output components.js
+```
 
 To test the CLI:
 
@@ -278,7 +296,7 @@ func TestIntegration_RenderThenReverse(t *testing.T) {
 ### Codegen Tests with Testify
 
 ```go
-func TestGenerateClass_Good(t *testing.T) {
+func TestGenerateClass_ValidTag(t *testing.T) {
     js, err := GenerateClass("photo-grid", "C")
     require.NoError(t, err)
     assert.Contains(t, js, "class PhotoGrid extends HTMLElement")
@@ -291,6 +309,6 @@ func TestGenerateClass_Good(t *testing.T) {
 
 - `NewLayout("XYZ")` silently produces empty output for unrecognised slot letters. Valid letters are `H`, `L`, `C`, `R`, `F`. There is no error or warning.
 - `Responsive.Variant()` accepts only `*Layout`, not arbitrary `Node` values. Arbitrary subtrees must be wrapped in a single-slot layout first.
-- `Context.service` is unexported. Custom i18n service injection requires `NewContextWithService()`. There is no way to swap the service after construction.
+- `Context.service` is unexported. Custom translation injection uses `NewContextWithService()`, and `Context.SetService()` can swap the translator later while preserving locale-aware services.
 - The WASM module has no integration test for the JavaScript exports. `size_test.go` tests binary size only; it does not exercise `renderToString` behaviour from JavaScript.
-- `codegen.GenerateBundle()` iterates a `map`, so the order of class definitions in the output is non-deterministic. This does not affect correctness but may cause cosmetic diffs between runs.
+- `codegen.GenerateBundle()` now renders output classes in sorted slot-key order so generated bundles are stable between runs.

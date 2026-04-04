@@ -78,7 +78,7 @@ The fix was applied in three distinct steps:
 
 ### Size gate test (`aae5d21`)
 
-`cmd/wasm/size_test.go` was added to prevent regression. `TestWASMBinarySize_Good` builds the WASM binary in a temp directory, gzip-compresses it, and asserts:
+`cmd/wasm/size_test.go` was added to prevent regression. `TestWASMBinarySize_WithinBudget` builds the WASM binary in a temp directory, gzip-compresses it, and asserts:
 
 - Gzip size < 1,048,576 bytes (1 MB).
 - Raw size < 3,145,728 bytes (3 MB).
@@ -101,11 +101,11 @@ These are not regressions; they are design choices or deferred work recorded for
 
 3. **Responsive accepts only Layout.** `Responsive.Variant()` takes `*Layout` rather than `Node`. The rationale is that `CompareVariants` in the pipeline needs access to the slot structure. Accepting `Node` would require a different approach to variant analysis.
 
-4. **Context.service is private.** The i18n service cannot be set after construction or swapped. This is a conservative choice; relaxing it requires deciding whether mutation should be safe for concurrent use.
+4. **Context.service is private.** The i18n service is still unexported, but callers can now swap it explicitly with `Context.SetService()`. This keeps the field encapsulated while allowing controlled mutation.
 
 5. **TypeScript definitions not generated.** `codegen.GenerateBundle()` produces JS only. A `.d.ts` companion would benefit TypeScript consumers of the generated Web Components.
 
-6. **No CSS scoping helper.** Responsive variants are identified by `data-variant` attributes. Targeting them from CSS requires knowledge of the attribute name. An optional utility for generating scoped CSS selectors is deferred.
+6. **CSS scoping helper added.** `VariantSelector(name)` returns a reusable `data-variant` attribute selector for stylesheet targeting. The `Responsive` rendering model remains unchanged.
 
 7. **Browser polyfill matrix not documented.** Closed Shadow DOM is well-supported but older browsers require polyfills. The support matrix is not documented.
 
@@ -114,6 +114,7 @@ These are not regressions; they are design choices or deferred work recorded for
 These items were captured during the WASM size reduction work and expert review sessions. They are not committed work items.
 
 - **TypeScript type definitions** alongside `GenerateBundle()` for typed Web Component consumers.
-- **Accessibility helpers** — `aria-label` builder, `alt` text helpers, focus management nodes. The layout has semantic HTML and ARIA roles but no API for fine-grained accessibility attributes beyond `Attr()`.
+- **Accessibility helpers** — `aria-label` builder, `alt` text helpers, and focus management helpers (`TabIndex`, `AutoFocus`). The layout has semantic HTML and ARIA roles but no API for fine-grained accessibility attributes beyond `Attr()`.
+- **Responsive CSS helpers** — `VariantSelector(name)` makes `data-variant` targeting explicit and reusable in stylesheets.
 - **Layout variant validation** — return a warning or sentinel error from `NewLayout` when the variant string contains unrecognised slot characters.
 - **Daemon mode for codegen** — watch mode for regenerating the JS bundle when slot config changes, for development workflows.

@@ -5,12 +5,11 @@ import (
 	"iter"
 	"maps"
 	"slices"
-	"strings"
-
-	i18n "dappco.re/go/core/i18n"
+	"strconv"
 )
 
 // Node is anything renderable.
+// Usage example: var n Node = El("div", Text("welcome"))
 type Node interface {
 	Render(ctx *Context) string
 }
@@ -26,6 +25,10 @@ var (
 	_ Node = (*switchNode)(nil)
 	_ Node = (*eachNode[any])(nil)
 )
+
+type layoutPathRenderer interface {
+	renderWithLayoutPath(ctx *Context, path string) string
+}
 
 // voidElements is the set of HTML elements that must not have a closing tag.
 var voidElements = map[string]bool{
@@ -56,11 +59,15 @@ type rawNode struct {
 }
 
 // Raw creates a node that renders without escaping (escape hatch for trusted content).
+// Usage example: Raw("<strong>trusted</strong>")
 func Raw(content string) Node {
 	return &rawNode{content: content}
 }
 
 func (n *rawNode) Render(_ *Context) string {
+	if n == nil {
+		return ""
+	}
 	return n.content
 }
 
@@ -73,6 +80,7 @@ type elNode struct {
 }
 
 // El creates an HTML element node with children.
+// Usage example: El("section", Text("welcome"))
 func El(tag string, children ...Node) Node {
 	return &elNode{
 		tag:      tag,
@@ -82,8 +90,13 @@ func El(tag string, children ...Node) Node {
 }
 
 // Attr sets an attribute on an El node. Returns the node for chaining.
-// It recursively traverses through wrappers like If, Unless, and Entitled.
+// Usage example: Attr(El("a", Text("docs")), "href", "/docs")
+// It recursively traverses through wrappers like If, Unless, Entitled, and Each.
 func Attr(n Node, key, value string) Node {
+	if n == nil {
+		return n
+	}
+
 	switch t := n.(type) {
 	case *elNode:
 		t.attrs[key] = value
@@ -93,12 +106,52 @@ func Attr(n Node, key, value string) Node {
 		Attr(t.node, key, value)
 	case *entitledNode:
 		Attr(t.node, key, value)
+	case *switchNode:
+		for _, child := range t.cases {
+			Attr(child, key, value)
+		}
+	case attrApplier:
+		t.applyAttr(key, value)
 	}
 	return n
 }
 
+// AriaLabel sets an aria-label attribute on an element node.
+// Usage example: AriaLabel(El("button", Text("save")), "Save changes")
+func AriaLabel(n Node, label string) Node {
+	return Attr(n, "aria-label", label)
+}
+
+// AltText sets an alt attribute on an element node.
+// Usage example: AltText(El("img"), "Profile photo")
+func AltText(n Node, text string) Node {
+	return Attr(n, "alt", text)
+}
+
+// TabIndex sets a tabindex attribute on an element node.
+// Usage example: TabIndex(El("button", Text("save")), 0)
+func TabIndex(n Node, index int) Node {
+	return Attr(n, "tabindex", strconv.Itoa(index))
+}
+
+// AutoFocus sets an autofocus attribute on an element node.
+// Usage example: AutoFocus(El("input"))
+func AutoFocus(n Node) Node {
+	return Attr(n, "autofocus", "autofocus")
+}
+
+// Role sets a role attribute on an element node.
+// Usage example: Role(El("nav", Text("links")), "navigation")
+func Role(n Node, role string) Node {
+	return Attr(n, "role", role)
+}
+
 func (n *elNode) Render(ctx *Context) string {
-	var b strings.Builder
+	if n == nil {
+		return ""
+	}
+
+	b := newTextBuilder()
 
 	b.WriteByte('<')
 	b.WriteString(escapeHTML(n.tag))
@@ -121,6 +174,9 @@ func (n *elNode) Render(ctx *Context) string {
 	}
 
 	for i := range len(n.children) {
+		if n.children[i] == nil {
+			continue
+		}
 		b.WriteString(n.children[i].Render(ctx))
 	}
 
@@ -146,19 +202,17 @@ type textNode struct {
 }
 
 // Text creates a node that renders through the go-i18n grammar pipeline.
+// Usage example: Text("welcome", "Ada")
 // Output is HTML-escaped by default. Safe-by-default path.
 func Text(key string, args ...any) Node {
 	return &textNode{key: key, args: args}
 }
 
 func (n *textNode) Render(ctx *Context) string {
-	var text string
-	if ctx != nil && ctx.service != nil {
-		text = ctx.service.T(n.key, n.args...)
-	} else {
-		text = i18n.T(n.key, n.args...)
+	if n == nil {
+		return ""
 	}
-	return escapeHTML(text)
+	return escapeHTML(translateText(ctx, n.key, n.args...))
 }
 
 // --- ifNode ---
@@ -169,11 +223,15 @@ type ifNode struct {
 }
 
 // If renders child only when condition is true.
+// Usage example: If(func(ctx *Context) bool { return ctx.Identity != "" }, Text("hi"))
 func If(cond func(*Context) bool, node Node) Node {
 	return &ifNode{cond: cond, node: node}
 }
 
 func (n *ifNode) Render(ctx *Context) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
 	if n.cond(ctx) {
 		return n.node.Render(ctx)
 	}
@@ -188,11 +246,15 @@ type unlessNode struct {
 }
 
 // Unless renders child only when condition is false.
+// Usage example: Unless(func(ctx *Context) bool { return ctx.Identity == "" }, Text("welcome"))
 func Unless(cond func(*Context) bool, node Node) Node {
 	return &unlessNode{cond: cond, node: node}
 }
 
 func (n *unlessNode) Render(ctx *Context) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
 	if !n.cond(ctx) {
 		return n.node.Render(ctx)
 	}
@@ -207,12 +269,16 @@ type entitledNode struct {
 }
 
 // Entitled renders child only when entitlement is granted. Absent, not hidden.
+// Usage example: Entitled("beta", Text("preview"))
 // If no entitlement function is set on the context, access is denied by default.
 func Entitled(feature string, node Node) Node {
 	return &entitledNode{feature: feature, node: node}
 }
 
 func (n *entitledNode) Render(ctx *Context) string {
+	if n == nil || n.node == nil {
+		return ""
+	}
 	if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(n.feature) {
 		return ""
 	}
@@ -227,13 +293,23 @@ type switchNode struct {
 }
 
 // Switch renders based on runtime selector value.
+// Usage example: Switch(func(ctx *Context) string { return ctx.Locale }, map[string]Node{"en": Text("hello")})
 func Switch(selector func(*Context) string, cases map[string]Node) Node {
 	return &switchNode{selector: selector, cases: cases}
 }
 
 func (n *switchNode) Render(ctx *Context) string {
+	if n == nil || n.selector == nil {
+		return ""
+	}
 	key := n.selector(ctx)
+	if n.cases == nil {
+		return ""
+	}
 	if node, ok := n.cases[key]; ok {
+		if node == nil {
+			return ""
+		}
 		return node.Render(ctx)
 	}
 	return ""
@@ -246,20 +322,49 @@ type eachNode[T any] struct {
 	fn    func(T) Node
 }
 
+type attrApplier interface {
+	applyAttr(key, value string)
+}
+
 // Each iterates items and renders each via fn.
+// Usage example: Each([]string{"a", "b"}, func(v string) Node { return Text(v) })
 func Each[T any](items []T, fn func(T) Node) Node {
 	return EachSeq(slices.Values(items), fn)
 }
 
 // EachSeq iterates an iter.Seq and renders each via fn.
+// Usage example: EachSeq(slices.Values([]string{"a", "b"}), func(v string) Node { return Text(v) })
 func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
 	return &eachNode[T]{items: items, fn: fn}
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
-	var b strings.Builder
+	return n.renderWithLayoutPath(ctx, "")
+}
+
+func (n *eachNode[T]) applyAttr(key, value string) {
+	if n == nil || n.fn == nil {
+		return
+	}
+
+	prev := n.fn
+	n.fn = func(item T) Node {
+		return Attr(prev(item), key, value)
+	}
+}
+
+func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.fn == nil || n.items == nil {
+		return ""
+	}
+
+	b := newTextBuilder()
 	for item := range n.items {
-		b.WriteString(n.fn(item).Render(ctx))
+		child := n.fn(item)
+		if child == nil {
+			continue
+		}
+		b.WriteString(renderWithLayoutPath(child, ctx, path))
 	}
 	return b.String()
 }

@@ -39,9 +39,9 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 
 | Path | Purpose |
 |------|---------|
-| `node.go` | `Node` interface and all node types: `El`, `Text`, `Raw`, `If`, `Unless`, `Each`, `EachSeq`, `Switch`, `Entitled` |
+| `node.go` | `Node` interface and all node types: `El`, `Text`, `Raw`, `If`, `Unless`, `Each`, `EachSeq`, `Switch`, `Entitled`, plus `AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`, and `Role` helpers |
 | `layout.go` | HLCRF compositor with semantic HTML elements and ARIA roles |
-| `responsive.go` | Multi-variant breakpoint wrapper (`data-variant` containers) |
+| `responsive.go` | Multi-variant breakpoint wrapper (`data-variant` containers) and CSS selector helper |
 | `context.go` | Rendering context: identity, locale, entitlements, i18n service |
 | `render.go` | `Render()` convenience function |
 | `path.go` | `ParseBlockID()` for decoding `data-block` path attributes |
@@ -52,11 +52,11 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 
 ## Key Concepts
 
-**Node tree** -- All renderable units implement `Node`, a single-method interface: `Render(ctx *Context) string`. The library composes nodes into trees using `El()` for elements, `Text()` for translated text, and control-flow constructors (`If`, `Unless`, `Each`, `Switch`, `Entitled`).
+**Node tree** -- All renderable units implement `Node`, a single-method interface: `Render(ctx *Context) string`. The library composes nodes into trees using `El()` for elements, `Text()` for translated text, control-flow constructors (`If`, `Unless`, `Each`, `Switch`, `Entitled`), and accessibility helpers (`AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`, `Role`).
 
 **HLCRF Layout** -- A five-slot compositor that maps to semantic HTML: `<header>` (H), `<aside>` (L/R), `<main>` (C), `<footer>` (F). The variant string controls which slots render: `"HLCRF"` for all five, `"HCF"` for three, `"C"` for content only. Layouts nest: placing a `Layout` inside another layout's slot produces hierarchical `data-block` paths like `L-0-C-0`.
 
-**Responsive variants** -- `Responsive` wraps multiple `Layout` instances with named breakpoints (e.g. `"desktop"`, `"mobile"`). Each variant renders inside a `<div data-variant="name">` container for CSS or JavaScript targeting.
+**Responsive variants** -- `Responsive` wraps multiple `Layout` instances with named breakpoints (e.g. `"desktop"`, `"mobile"`). Each variant renders inside a `<div data-variant="name">` container for CSS or JavaScript targeting. `VariantSelector(name)` returns a ready-made attribute selector for styling these containers from CSS.
 
 **Grammar pipeline** -- Server-side only. `Imprint()` renders a node tree to HTML, strips tags, tokenises the plain text via `go-i18n/reversal`, and returns a `GrammarImprint` for semantic analysis. `CompareVariants()` computes pairwise similarity scores across responsive variants.
 

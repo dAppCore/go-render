@@ -1,8 +1,7 @@
 package html
 
 import (
-	"fmt"
-	"strings"
+	"errors"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
@@ -10,7 +9,7 @@ import (
 
 // --- Unicode / RTL edge cases ---
 
-func TestText_Emoji(t *testing.T) {
+func TestText_Emoji_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -33,7 +32,7 @@ func TestText_Emoji(t *testing.T) {
 				t.Error("Text with emoji should not produce empty output")
 			}
 			// Emoji should pass through (they are not HTML special chars)
-			if !strings.Contains(got, tt.input) {
+			if !containsText(got, tt.input) {
 				// Some chars may get escaped, but emoji bytes should survive
 				t.Logf("note: emoji text rendered as %q", got)
 			}
@@ -41,7 +40,7 @@ func TestText_Emoji(t *testing.T) {
 	}
 }
 
-func TestEl_Emoji(t *testing.T) {
+func TestEl_Emoji_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := El("span", Raw("\U0001F680 Launch"))
 	got := node.Render(ctx)
@@ -51,7 +50,7 @@ func TestEl_Emoji(t *testing.T) {
 	}
 }
 
-func TestText_RTL(t *testing.T) {
+func TestText_RTL_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -76,19 +75,19 @@ func TestText_RTL(t *testing.T) {
 	}
 }
 
-func TestEl_RTL(t *testing.T) {
+func TestEl_RTL_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("div", Raw("\u0645\u0631\u062D\u0628\u0627")), "dir", "rtl")
 	got := node.Render(ctx)
-	if !strings.Contains(got, `dir="rtl"`) {
+	if !containsText(got, `dir="rtl"`) {
 		t.Errorf("RTL element missing dir attribute in: %s", got)
 	}
-	if !strings.Contains(got, "\u0645\u0631\u062D\u0628\u0627") {
+	if !containsText(got, "\u0645\u0631\u062D\u0628\u0627") {
 		t.Errorf("RTL element missing Arabic text in: %s", got)
 	}
 }
 
-func TestText_ZeroWidth(t *testing.T) {
+func TestText_ZeroWidth_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -114,7 +113,7 @@ func TestText_ZeroWidth(t *testing.T) {
 	}
 }
 
-func TestText_MixedScripts(t *testing.T) {
+func TestText_MixedScripts_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -141,7 +140,7 @@ func TestText_MixedScripts(t *testing.T) {
 	}
 }
 
-func TestStripTags_Unicode(t *testing.T) {
+func TestStripTags_Unicode_Ugly(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -163,19 +162,19 @@ func TestStripTags_Unicode(t *testing.T) {
 	}
 }
 
-func TestAttr_UnicodeValue(t *testing.T) {
+func TestAttr_UnicodeValue_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("div"), "title", "\U0001F680 Rocket Launch")
 	got := node.Render(ctx)
 	want := "title=\"\U0001F680 Rocket Launch\""
-	if !strings.Contains(got, want) {
+	if !containsText(got, want) {
 		t.Errorf("attribute with emoji should be preserved, got: %s", got)
 	}
 }
 
 // --- Deep nesting stress tests ---
 
-func TestLayout_DeepNesting_10Levels(t *testing.T) {
+func TestLayout_DeepNesting10Levels_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Build 10 levels of nested layouts
@@ -187,7 +186,7 @@ func TestLayout_DeepNesting_10Levels(t *testing.T) {
 	got := current.Render(ctx)
 
 	// Should contain the deepest content
-	if !strings.Contains(got, "deepest") {
+	if !containsText(got, "deepest") {
 		t.Error("10 levels deep: missing leaf content")
 	}
 
@@ -196,17 +195,17 @@ func TestLayout_DeepNesting_10Levels(t *testing.T) {
 	for i := 1; i < 10; i++ {
 		expectedBlock += "-C-0"
 	}
-	if !strings.Contains(got, fmt.Sprintf(`data-block="%s"`, expectedBlock)) {
+	if !containsText(got, `data-block="`+expectedBlock+`"`) {
 		t.Errorf("10 levels deep: missing expected block ID %q in:\n%s", expectedBlock, got)
 	}
 
 	// Must have exactly 10 <main> tags
-	if count := strings.Count(got, "<main"); count != 10 {
+	if count := countText(got, "<main"); count != 10 {
 		t.Errorf("10 levels deep: expected 10 <main> tags, got %d", count)
 	}
 }
 
-func TestLayout_DeepNesting_20Levels(t *testing.T) {
+func TestLayout_DeepNesting20Levels_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	current := NewLayout("C").C(Raw("bottom"))
@@ -216,15 +215,15 @@ func TestLayout_DeepNesting_20Levels(t *testing.T) {
 
 	got := current.Render(ctx)
 
-	if !strings.Contains(got, "bottom") {
+	if !containsText(got, "bottom") {
 		t.Error("20 levels deep: missing leaf content")
 	}
-	if count := strings.Count(got, "<main"); count != 20 {
+	if count := countText(got, "<main"); count != 20 {
 		t.Errorf("20 levels deep: expected 20 <main> tags, got %d", count)
 	}
 }
 
-func TestLayout_DeepNesting_MixedSlots(t *testing.T) {
+func TestLayout_DeepNestingMixedSlots_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Alternate slot types at each level: C -> L -> C -> L -> ...
@@ -238,12 +237,12 @@ func TestLayout_DeepNesting_MixedSlots(t *testing.T) {
 	}
 
 	got := current.Render(ctx)
-	if !strings.Contains(got, "leaf") {
+	if !containsText(got, "leaf") {
 		t.Error("mixed deep nesting: missing leaf content")
 	}
 }
 
-func TestEach_LargeIteration_1000(t *testing.T) {
+func TestEach_LargeIteration1000_Ugly(t *testing.T) {
 	ctx := NewContext()
 	items := make([]int, 1000)
 	for i := range items {
@@ -251,23 +250,23 @@ func TestEach_LargeIteration_1000(t *testing.T) {
 	}
 
 	node := Each(items, func(i int) Node {
-		return El("li", Raw(fmt.Sprintf("%d", i)))
+		return El("li", Raw(itoaText(i)))
 	})
 
 	got := node.Render(ctx)
 
-	if count := strings.Count(got, "<li>"); count != 1000 {
+	if count := countText(got, "<li>"); count != 1000 {
 		t.Errorf("Each with 1000 items: expected 1000 <li>, got %d", count)
 	}
-	if !strings.Contains(got, "<li>0</li>") {
+	if !containsText(got, "<li>0</li>") {
 		t.Error("Each with 1000 items: missing first item")
 	}
-	if !strings.Contains(got, "<li>999</li>") {
+	if !containsText(got, "<li>999</li>") {
 		t.Error("Each with 1000 items: missing last item")
 	}
 }
 
-func TestEach_LargeIteration_5000(t *testing.T) {
+func TestEach_LargeIteration5000_Ugly(t *testing.T) {
 	ctx := NewContext()
 	items := make([]int, 5000)
 	for i := range items {
@@ -275,43 +274,43 @@ func TestEach_LargeIteration_5000(t *testing.T) {
 	}
 
 	node := Each(items, func(i int) Node {
-		return El("span", Raw(fmt.Sprintf("%d", i)))
+		return El("span", Raw(itoaText(i)))
 	})
 
 	got := node.Render(ctx)
 
-	if count := strings.Count(got, "<span>"); count != 5000 {
+	if count := countText(got, "<span>"); count != 5000 {
 		t.Errorf("Each with 5000 items: expected 5000 <span>, got %d", count)
 	}
 }
 
-func TestEach_NestedEach(t *testing.T) {
+func TestEach_NestedEach_Ugly(t *testing.T) {
 	ctx := NewContext()
 	rows := []int{0, 1, 2}
 	cols := []string{"a", "b", "c"}
 
 	node := Each(rows, func(row int) Node {
 		return El("tr", Each(cols, func(col string) Node {
-			return El("td", Raw(fmt.Sprintf("%d-%s", row, col)))
+			return El("td", Raw(itoaText(row)+"-"+col))
 		}))
 	})
 
 	got := node.Render(ctx)
 
-	if count := strings.Count(got, "<tr>"); count != 3 {
+	if count := countText(got, "<tr>"); count != 3 {
 		t.Errorf("nested Each: expected 3 <tr>, got %d", count)
 	}
-	if count := strings.Count(got, "<td>"); count != 9 {
+	if count := countText(got, "<td>"); count != 9 {
 		t.Errorf("nested Each: expected 9 <td>, got %d", count)
 	}
-	if !strings.Contains(got, "1-b") {
+	if !containsText(got, "1-b") {
 		t.Error("nested Each: missing cell content '1-b'")
 	}
 }
 
 // --- Layout variant validation ---
 
-func TestLayout_InvalidVariant_Chars(t *testing.T) {
+func TestLayout_InvalidVariantChars_Bad(t *testing.T) {
 	ctx := NewContext()
 
 	tests := []struct {
@@ -343,7 +342,96 @@ func TestLayout_InvalidVariant_Chars(t *testing.T) {
 	}
 }
 
-func TestLayout_InvalidVariant_MixedValidInvalid(t *testing.T) {
+func TestLayout_VariantError_Bad(t *testing.T) {
+	tests := []struct {
+		name          string
+		variant       string
+		wantInvalid   bool
+		wantErrString string
+		build         func(*Layout)
+		wantRender    string
+	}{
+		{
+			name:        "valid variant",
+			variant:     "HCF",
+			wantInvalid: false,
+			build: func(layout *Layout) {
+				layout.H(Raw("header")).C(Raw("main")).F(Raw("footer"))
+			},
+			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main><footer role="contentinfo" data-block="F-0">footer</footer>`,
+		},
+		{
+			name:          "mixed invalid variant",
+			variant:       "HXC",
+			wantInvalid:   true,
+			wantErrString: "html: invalid layout variant HXC",
+			build: func(layout *Layout) {
+				layout.H(Raw("header")).C(Raw("main"))
+			},
+			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			layout := NewLayout(tt.variant)
+			if tt.build != nil {
+				tt.build(layout)
+			}
+			if tt.wantInvalid {
+				if layout.VariantError() == nil {
+					t.Fatalf("VariantError() = nil, want sentinel error for %q", tt.variant)
+				}
+				if !errors.Is(layout.VariantError(), ErrInvalidLayoutVariant) {
+					t.Fatalf("VariantError() = %v, want errors.Is(..., ErrInvalidLayoutVariant)", layout.VariantError())
+				}
+				if got := layout.VariantError().Error(); got != tt.wantErrString {
+					t.Fatalf("VariantError().Error() = %q, want %q", got, tt.wantErrString)
+				}
+			} else if layout.VariantError() != nil {
+				t.Fatalf("VariantError() = %v, want nil", layout.VariantError())
+			}
+
+			got := layout.Render(NewContext())
+			if got != tt.wantRender {
+				t.Fatalf("Render() = %q, want %q", got, tt.wantRender)
+			}
+		})
+	}
+}
+
+func TestValidateLayoutVariant_Good(t *testing.T) {
+	tests := []struct {
+		name    string
+		variant string
+		wantErr bool
+	}{
+		{name: "valid", variant: "HCF", wantErr: false},
+		{name: "invalid", variant: "HXC", wantErr: true},
+		{name: "empty", variant: "", wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateLayoutVariant(tt.variant)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("ValidateLayoutVariant(%q) = nil, want error", tt.variant)
+				}
+				if !errors.Is(err, ErrInvalidLayoutVariant) {
+					t.Fatalf("ValidateLayoutVariant(%q) = %v, want ErrInvalidLayoutVariant", tt.variant, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("ValidateLayoutVariant(%q) = %v, want nil", tt.variant, err)
+			}
+		})
+	}
+}
+
+func TestLayout_InvalidVariantMixedValidInvalid_Bad(t *testing.T) {
 	ctx := NewContext()
 
 	// "HXC" — H and C are valid, X is not. Only H and C should render.
@@ -351,32 +439,32 @@ func TestLayout_InvalidVariant_MixedValidInvalid(t *testing.T) {
 		H(Raw("header")).C(Raw("main"))
 	got := layout.Render(ctx)
 
-	if !strings.Contains(got, "header") {
+	if !containsText(got, "header") {
 		t.Errorf("HXC variant should render H slot, got:\n%s", got)
 	}
-	if !strings.Contains(got, "main") {
+	if !containsText(got, "main") {
 		t.Errorf("HXC variant should render C slot, got:\n%s", got)
 	}
 	// Should only have 2 semantic elements
-	if count := strings.Count(got, "data-block="); count != 2 {
+	if count := countText(got, "data-block="); count != 2 {
 		t.Errorf("HXC variant should produce 2 blocks, got %d in:\n%s", count, got)
 	}
 }
 
-func TestLayout_DuplicateVariantChars(t *testing.T) {
+func TestLayout_DuplicateVariantChars_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// "CCC" — C appears three times. Should render C slot content three times.
 	layout := NewLayout("CCC").C(Raw("content"))
 	got := layout.Render(ctx)
 
-	count := strings.Count(got, "content")
+	count := countText(got, "content")
 	if count != 3 {
 		t.Errorf("CCC variant should render C slot 3 times, got %d occurrences in:\n%s", count, got)
 	}
 }
 
-func TestLayout_EmptySlots(t *testing.T) {
+func TestLayout_EmptySlots_Ugly(t *testing.T) {
 	ctx := NewContext()
 
 	// Variant includes all slots but none are populated — should produce empty output.
@@ -388,9 +476,38 @@ func TestLayout_EmptySlots(t *testing.T) {
 	}
 }
 
+func TestLayout_NestedThroughIf_Ugly(t *testing.T) {
+	ctx := NewContext()
+
+	inner := NewLayout("C").C(Raw("wrapped"))
+	outer := NewLayout("C").C(If(func(*Context) bool { return true }, inner))
+
+	got := outer.Render(ctx)
+
+	if !containsText(got, `data-block="C-0-C-0"`) {
+		t.Fatalf("nested layout inside If should inherit block path, got:\n%s", got)
+	}
+}
+
+func TestLayout_NestedThroughSwitch_Ugly(t *testing.T) {
+	ctx := NewContext()
+
+	inner := NewLayout("C").C(Raw("wrapped"))
+	outer := NewLayout("C").C(Switch(func(*Context) string { return "match" }, map[string]Node{
+		"match": inner,
+		"miss":  Raw("ignored"),
+	}))
+
+	got := outer.Render(ctx)
+
+	if !containsText(got, `data-block="C-0-C-0"`) {
+		t.Fatalf("nested layout inside Switch should inherit block path, got:\n%s", got)
+	}
+}
+
 // --- Render convenience function edge cases ---
 
-func TestRender_NilContext(t *testing.T) {
+func TestRender_NilContext_Ugly(t *testing.T) {
 	node := Raw("test")
 	got := Render(node, nil)
 	if got != "test" {
@@ -398,7 +515,7 @@ func TestRender_NilContext(t *testing.T) {
 	}
 }
 
-func TestImprint_NilContext(t *testing.T) {
+func TestImprint_NilContext_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -410,7 +527,7 @@ func TestImprint_NilContext(t *testing.T) {
 	}
 }
 
-func TestCompareVariants_NilContext(t *testing.T) {
+func TestCompareVariants_NilContext_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -424,7 +541,7 @@ func TestCompareVariants_NilContext(t *testing.T) {
 	}
 }
 
-func TestCompareVariants_SingleVariant(t *testing.T) {
+func TestCompareVariants_SingleVariant_Ugly(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -439,31 +556,31 @@ func TestCompareVariants_SingleVariant(t *testing.T) {
 
 // --- escapeHTML / escapeAttr edge cases ---
 
-func TestEscapeAttr_AllSpecialChars(t *testing.T) {
+func TestEscapeAttr_AllSpecialChars_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("div"), "data-val", `&<>"'`)
 	got := node.Render(ctx)
 
-	if strings.Contains(got, `"&<>"'"`) {
+	if containsText(got, `"&<>"'"`) {
 		t.Error("attribute value with special chars must be fully escaped")
 	}
-	if !strings.Contains(got, "&amp;&lt;&gt;&#34;&#39;") {
+	if !containsText(got, "&amp;&lt;&gt;&#34;&#39;") {
 		t.Errorf("expected all special chars escaped in attribute, got: %s", got)
 	}
 }
 
-func TestElNode_EmptyTag(t *testing.T) {
+func TestElNode_EmptyTag_Ugly(t *testing.T) {
 	ctx := NewContext()
 	node := El("", Raw("content"))
 	got := node.Render(ctx)
 
 	// Empty tag is weird but should not panic
-	if !strings.Contains(got, "content") {
+	if !containsText(got, "content") {
 		t.Errorf("El with empty tag should still render children, got %q", got)
 	}
 }
 
-func TestSwitchNode_NoMatch(t *testing.T) {
+func TestSwitchNode_NoMatch_Ugly(t *testing.T) {
 	ctx := NewContext()
 	cases := map[string]Node{
 		"a": Raw("alpha"),
@@ -476,7 +593,7 @@ func TestSwitchNode_NoMatch(t *testing.T) {
 	}
 }
 
-func TestEntitled_NilContext(t *testing.T) {
+func TestEntitled_NilContext_Ugly(t *testing.T) {
 	node := Entitled("premium", Raw("content"))
 	got := node.Render(nil)
 	if got != "" {

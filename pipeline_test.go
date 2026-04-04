@@ -8,7 +8,7 @@ import (
 	i18n "dappco.re/go/core/i18n"
 )
 
-func TestStripTags_Simple(t *testing.T) {
+func TestStripTags_Simple_Good(t *testing.T) {
 	got := StripTags(`<div>hello</div>`)
 	want := "hello"
 	if got != want {
@@ -16,7 +16,7 @@ func TestStripTags_Simple(t *testing.T) {
 	}
 }
 
-func TestStripTags_Nested(t *testing.T) {
+func TestStripTags_Nested_Good(t *testing.T) {
 	got := StripTags(`<header role="banner"><h1>Title</h1></header>`)
 	want := "Title"
 	if got != want {
@@ -24,7 +24,7 @@ func TestStripTags_Nested(t *testing.T) {
 	}
 }
 
-func TestStripTags_MultipleRegions(t *testing.T) {
+func TestStripTags_MultipleRegions_Good(t *testing.T) {
 	got := StripTags(`<header>Head</header><main>Body</main><footer>Foot</footer>`)
 	want := "Head Body Foot"
 	if got != want {
@@ -32,21 +32,21 @@ func TestStripTags_MultipleRegions(t *testing.T) {
 	}
 }
 
-func TestStripTags_Empty(t *testing.T) {
+func TestStripTags_Empty_Ugly(t *testing.T) {
 	got := StripTags("")
 	if got != "" {
 		t.Errorf("StripTags(\"\") = %q, want empty", got)
 	}
 }
 
-func TestStripTags_NoTags(t *testing.T) {
+func TestStripTags_NoTags_Good(t *testing.T) {
 	got := StripTags("plain text")
 	if got != "plain text" {
 		t.Errorf("StripTags(plain) = %q, want %q", got, "plain text")
 	}
 }
 
-func TestStripTags_Entities(t *testing.T) {
+func TestStripTags_Entities_Good(t *testing.T) {
 	got := StripTags(`&lt;script&gt;`)
 	want := "&lt;script&gt;"
 	if got != want {
@@ -54,7 +54,7 @@ func TestStripTags_Entities(t *testing.T) {
 	}
 }
 
-func TestImprint_FromNode(t *testing.T) {
+func TestImprint_FromNode_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -74,7 +74,7 @@ func TestImprint_FromNode(t *testing.T) {
 	}
 }
 
-func TestImprint_SimilarPages(t *testing.T) {
+func TestImprint_SimilarPages_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -102,7 +102,7 @@ func TestImprint_SimilarPages(t *testing.T) {
 	}
 }
 
-func TestCompareVariants(t *testing.T) {
+func TestCompareVariants_SameContent_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()

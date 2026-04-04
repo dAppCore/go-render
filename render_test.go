@@ -1,13 +1,12 @@
 package html
 
 import (
-	"strings"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
 )
 
-func TestRender_FullPage(t *testing.T) {
+func TestRender_FullPage_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -28,14 +27,14 @@ func TestRender_FullPage(t *testing.T) {
 
 	// Contains semantic elements
 	for _, want := range []string{"<header", "<main", "<footer"} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("full page missing semantic element %q in:\n%s", want, got)
 		}
 	}
 
 	// Content rendered
 	for _, want := range []string{"Dashboard", "Welcome", "Home"} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Errorf("full page missing content %q in:\n%s", want, got)
 		}
 	}
@@ -44,13 +43,13 @@ func TestRender_FullPage(t *testing.T) {
 	for _, tag := range []string{"header", "main", "footer", "h1", "div", "p", "small"} {
 		open := "<" + tag
 		close := "</" + tag + ">"
-		if strings.Count(got, open) != strings.Count(got, close) {
+		if countText(got, open) != countText(got, close) {
 			t.Errorf("unbalanced <%s> tags in:\n%s", tag, got)
 		}
 	}
 }
 
-func TestRender_EntitlementGating(t *testing.T) {
+func TestRender_EntitlementGating_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -67,18 +66,18 @@ func TestRender_EntitlementGating(t *testing.T) {
 
 	got := page.Render(ctx)
 
-	if !strings.Contains(got, "public") {
+	if !containsText(got, "public") {
 		t.Errorf("entitlement gating should render public content, got:\n%s", got)
 	}
-	if !strings.Contains(got, "admin-panel") {
+	if !containsText(got, "admin-panel") {
 		t.Errorf("entitlement gating should render admin-panel for admin, got:\n%s", got)
 	}
-	if strings.Contains(got, "premium-content") {
+	if containsText(got, "premium-content") {
 		t.Errorf("entitlement gating should NOT render premium-content, got:\n%s", got)
 	}
 }
 
-func TestRender_XSSPrevention(t *testing.T) {
+func TestRender_XSSPrevention_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -88,10 +87,10 @@ func TestRender_XSSPrevention(t *testing.T) {
 
 	got := page.Render(ctx)
 
-	if strings.Contains(got, "<script>") {
+	if containsText(got, "<script>") {
 		t.Errorf("XSS prevention failed: output contains raw <script> tag:\n%s", got)
 	}
-	if !strings.Contains(got, "&lt;script&gt;") {
+	if !containsText(got, "&lt;script&gt;") {
 		t.Errorf("XSS prevention: expected escaped script tag, got:\n%s", got)
 	}
 }

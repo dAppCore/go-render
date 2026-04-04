@@ -1,3 +1,5 @@
+//go:build !js
+
 package codegen
 
 import (
@@ -8,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenerateClass_Good(t *testing.T) {
+func TestGenerateClass_ValidTag_Good(t *testing.T) {
 	js, err := GenerateClass("photo-grid", "C")
 	require.NoError(t, err)
 	assert.Contains(t, js, "class PhotoGrid extends HTMLElement")
@@ -17,19 +19,25 @@ func TestGenerateClass_Good(t *testing.T) {
 	assert.Contains(t, js, "photo-grid")
 }
 
-func TestGenerateClass_Bad_InvalidTag(t *testing.T) {
+func TestGenerateClass_InvalidTag_Bad(t *testing.T) {
 	_, err := GenerateClass("invalid", "C")
 	assert.Error(t, err, "custom element names must contain a hyphen")
+
+	_, err = GenerateClass("Nav-Bar", "C")
+	assert.Error(t, err, "custom element names must be lowercase")
+
+	_, err = GenerateClass("nav bar", "C")
+	assert.Error(t, err, "custom element names must reject spaces")
 }
 
-func TestGenerateRegistration_Good(t *testing.T) {
+func TestGenerateRegistration_DefinesCustomElement_Good(t *testing.T) {
 	js := GenerateRegistration("photo-grid", "PhotoGrid")
 	assert.Contains(t, js, "customElements.define")
 	assert.Contains(t, js, `"photo-grid"`)
 	assert.Contains(t, js, "PhotoGrid")
 }
 
-func TestTagToClassName_Good(t *testing.T) {
+func TestTagToClassName_KebabCase_Good(t *testing.T) {
 	tests := []struct{ tag, want string }{
 		{"photo-grid", "PhotoGrid"},
 		{"nav-breadcrumb", "NavBreadcrumb"},
@@ -41,14 +49,108 @@ func TestTagToClassName_Good(t *testing.T) {
 	}
 }
 
-func TestGenerateBundle_Good(t *testing.T) {
+func TestGenerateBundle_DeduplicatesRegistrations_Good(t *testing.T) {
 	slots := map[string]string{
 		"H": "nav-bar",
 		"C": "main-content",
+		"F": "nav-bar",
 	}
 	js, err := GenerateBundle(slots)
 	require.NoError(t, err)
 	assert.Contains(t, js, "NavBar")
 	assert.Contains(t, js, "MainContent")
-	assert.Equal(t, 2, strings.Count(js, "extends HTMLElement"))
+	assert.Equal(t, 2, countSubstr(js, "extends HTMLElement"))
+	assert.Equal(t, 2, countSubstr(js, "customElements.define"))
+}
+
+func TestGenerateBundle_DeterministicOrdering_Good(t *testing.T) {
+	slots := map[string]string{
+		"Z": "zed-panel",
+		"A": "alpha-panel",
+		"M": "main-content",
+	}
+
+	js, err := GenerateBundle(slots)
+	require.NoError(t, err)
+
+	alpha := strings.Index(js, "class AlphaPanel")
+	main := strings.Index(js, "class MainContent")
+	zed := strings.Index(js, "class ZedPanel")
+
+	assert.NotEqual(t, -1, alpha)
+	assert.NotEqual(t, -1, main)
+	assert.NotEqual(t, -1, zed)
+	assert.Less(t, alpha, main)
+	assert.Less(t, main, zed)
+	assert.Equal(t, 3, countSubstr(js, "extends HTMLElement"))
+	assert.Equal(t, 3, countSubstr(js, "customElements.define"))
+}
+
+func TestGenerateTypeScriptDefinitions_DeduplicatesAndOrders_Good(t *testing.T) {
+	slots := map[string]string{
+		"Z": "zed-panel",
+		"A": "alpha-panel",
+		"M": "alpha-panel",
+	}
+
+	dts := GenerateTypeScriptDefinitions(slots)
+
+	assert.Contains(t, dts, `interface HTMLElementTagNameMap`)
+	assert.Contains(t, dts, `"alpha-panel": AlphaPanel;`)
+	assert.Contains(t, dts, `"zed-panel": ZedPanel;`)
+	assert.Equal(t, 1, countSubstr(dts, `"alpha-panel": AlphaPanel;`))
+	assert.Equal(t, 1, countSubstr(dts, `export declare class AlphaPanel extends HTMLElement`))
+	assert.Equal(t, 1, countSubstr(dts, `export declare class ZedPanel extends HTMLElement`))
+	assert.Contains(t, dts, "export {};")
+	assert.Less(t, strings.Index(dts, `"alpha-panel": AlphaPanel;`), strings.Index(dts, `"zed-panel": ZedPanel;`))
+}
+
+func TestGenerateTypeScriptDefinitions_SkipsInvalidTags_Good(t *testing.T) {
+	slots := map[string]string{
+		"H": "nav-bar",
+		"C": "Nav-Bar",
+		"F": "nav bar",
+	}
+
+	dts := GenerateTypeScriptDefinitions(slots)
+
+	assert.Contains(t, dts, `"nav-bar": NavBar;`)
+	assert.NotContains(t, dts, "Nav-Bar")
+	assert.NotContains(t, dts, "nav bar")
+	assert.Equal(t, 1, countSubstr(dts, `export declare class NavBar extends HTMLElement`))
+}
+
+func countSubstr(s, substr string) int {
+	if substr == "" {
+		return len(s) + 1
+	}
+
+	count := 0
+	for i := 0; i <= len(s)-len(substr); {
+		j := indexSubstr(s[i:], substr)
+		if j < 0 {
+			return count
+		}
+		count++
+		i += j + len(substr)
+	}
+
+	return count
+}
+
+func indexSubstr(s, substr string) int {
+	if substr == "" {
+		return 0
+	}
+	if len(substr) > len(s) {
+		return -1
+	}
+
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+
+	return -1
 }

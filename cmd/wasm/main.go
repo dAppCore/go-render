@@ -13,15 +13,19 @@ import (
 // This is intentional: the WASM module is a rendering engine for trusted content
 // produced server-side or by the application's own templates.
 func renderToString(_ js.Value, args []js.Value) any {
-	if len(args) < 1 {
+	if len(args) < 1 || args[0].Type() != js.TypeString {
 		return ""
 	}
 
 	variant := args[0].String()
+	if variant == "" {
+		return ""
+	}
+
 	ctx := html.NewContext()
 
-	if len(args) >= 2 {
-		ctx.Locale = args[1].String()
+	if len(args) >= 2 && args[1].Type() == js.TypeString {
+		ctx.SetLocale(args[1].String())
 	}
 
 	layout := html.NewLayout(variant)

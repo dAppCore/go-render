@@ -1,51 +1,179 @@
+//go:build !js
+
 package main
 
 import (
-	"bytes"
+	"context"
+	goio "io"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	core "dappco.re/go/core"
+	coreio "dappco.re/go/core/io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRun_Good(t *testing.T) {
-	input := strings.NewReader(`{"H":"nav-bar","C":"main-content"}`)
-	var output bytes.Buffer
+func TestRun_WritesBundle_Good(t *testing.T) {
+	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
+	output := core.NewBuilder()
 
-	err := run(input, &output)
+	err := run(input, output, false)
 	require.NoError(t, err)
 
 	js := output.String()
 	assert.Contains(t, js, "NavBar")
 	assert.Contains(t, js, "MainContent")
 	assert.Contains(t, js, "customElements.define")
-	assert.Equal(t, 2, strings.Count(js, "extends HTMLElement"))
+	assert.Equal(t, 2, countSubstr(js, "extends HTMLElement"))
 }
 
-func TestRun_Bad_InvalidJSON(t *testing.T) {
-	input := strings.NewReader(`not json`)
-	var output bytes.Buffer
+func TestRun_InvalidJSON_Bad(t *testing.T) {
+	input := core.NewReader(`not json`)
+	output := core.NewBuilder()
 
-	err := run(input, &output)
+	err := run(input, output, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid JSON")
 }
 
-func TestRun_Bad_InvalidTag(t *testing.T) {
-	input := strings.NewReader(`{"H":"notag"}`)
-	var output bytes.Buffer
+func TestRun_InvalidTag_Bad(t *testing.T) {
+	input := core.NewReader(`{"H":"notag"}`)
+	output := core.NewBuilder()
 
-	err := run(input, &output)
+	err := run(input, output, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "hyphen")
 }
 
-func TestRun_Good_Empty(t *testing.T) {
-	input := strings.NewReader(`{}`)
-	var output bytes.Buffer
+func TestRun_InvalidTagCharacters_Bad(t *testing.T) {
+	input := core.NewReader(`{"H":"Nav-Bar","C":"nav bar"}`)
+	output := core.NewBuilder()
 
-	err := run(input, &output)
+	err := run(input, output, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "lowercase hyphenated name")
+}
+
+func TestRun_EmptySlots_Good(t *testing.T) {
+	input := core.NewReader(`{}`)
+	output := core.NewBuilder()
+
+	err := run(input, output, false)
 	require.NoError(t, err)
 	assert.Empty(t, output.String())
+}
+
+func TestRun_WritesTypeScriptDefinitions_Good(t *testing.T) {
+	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
+	output := core.NewBuilder()
+
+	err := run(input, output, true)
+	require.NoError(t, err)
+
+	dts := output.String()
+	assert.Contains(t, dts, "declare global")
+	assert.Contains(t, dts, `"nav-bar": NavBar;`)
+	assert.Contains(t, dts, `"main-content": MainContent;`)
+	assert.Contains(t, dts, "export declare class NavBar extends HTMLElement")
+	assert.Contains(t, dts, "export declare class MainContent extends HTMLElement")
+}
+
+func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
+	dir := t.TempDir()
+	inputPath := filepath.Join(dir, "slots.json")
+	outputPath := filepath.Join(dir, "bundle.js")
+
+	require.NoError(t, writeTextFile(inputPath, `{"H":"nav-bar","C":"main-content"}`))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- runDaemon(ctx, inputPath, outputPath, false, 5*time.Millisecond)
+	}()
+
+	require.Eventually(t, func() bool {
+		got, err := readTextFile(outputPath)
+		if err != nil {
+			return false
+		}
+		return strings.Contains(got, "NavBar") && strings.Contains(got, "MainContent")
+	}, time.Second, 10*time.Millisecond)
+
+	cancel()
+	require.NoError(t, <-done)
+}
+
+func TestRunDaemon_MissingPaths_Bad(t *testing.T) {
+	err := runDaemon(context.Background(), "", "", false, time.Millisecond)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "watch mode requires -input")
+}
+
+func countSubstr(s, substr string) int {
+	if substr == "" {
+		return len(s) + 1
+	}
+
+	count := 0
+	for i := 0; i <= len(s)-len(substr); {
+		j := indexSubstr(s[i:], substr)
+		if j < 0 {
+			return count
+		}
+		count++
+		i += j + len(substr)
+	}
+
+	return count
+}
+
+func indexSubstr(s, substr string) int {
+	if substr == "" {
+		return 0
+	}
+	if len(substr) > len(s) {
+		return -1
+	}
+
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func writeTextFile(path, content string) error {
+	f, err := coreio.Local.Create(path)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	_, err = goio.WriteString(f, content)
+	return err
+}
+
+func readTextFile(path string) (string, error) {
+	f, err := coreio.Local.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	data, err := goio.ReadAll(f)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
