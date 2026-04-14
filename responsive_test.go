@@ -19,6 +19,21 @@ func TestResponsive_SingleVariant_Good(t *testing.T) {
 	}
 }
 
+func TestResponsive_Add_MediaHint_Good(t *testing.T) {
+	ctx := NewContext()
+	r := NewResponsive().
+		Add("desktop", NewLayout("C").C(Raw("content")), "(min-width: 1024px)")
+
+	got := r.Render(ctx)
+
+	if !containsText(got, `data-variant="desktop"`) {
+		t.Fatalf("responsive should still contain data-variant, got:\n%s", got)
+	}
+	if !containsText(got, `data-media="(min-width: 1024px)"`) {
+		t.Fatalf("responsive should expose media hint, got:\n%s", got)
+	}
+}
+
 func TestResponsive_MultiVariant_Good(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().

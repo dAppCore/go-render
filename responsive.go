@@ -43,6 +43,7 @@ func (r *Responsive) Variant(name string, layout *Layout) *Responsive {
 
 // Add registers a responsive variant. The optional media argument carries a
 // CSS media-query hint for downstream CSS generation (e.g. "(min-width: 768px)").
+// When supplied, Render emits it on the container as data-media.
 //
 // Usage example: NewResponsive().Add("desktop", NewLayout("HLCRF"), "(min-width: 1024px)")
 func (r *Responsive) Add(name string, layout *Layout, media ...string) *Responsive {
@@ -79,6 +80,10 @@ func (r *Responsive) renderWithLayoutPath(ctx *Context, path string) string {
 
 		b.WriteString(`<div data-variant="`)
 		b.WriteString(escapeAttr(v.name))
+		if v.media != "" {
+			b.WriteString(`" data-media="`)
+			b.WriteString(escapeAttr(v.media))
+		}
 		b.WriteString(`">`)
 		b.WriteString(renderWithLayoutPath(v.layout, ctx, path))
 		b.WriteString(`</div>`)
