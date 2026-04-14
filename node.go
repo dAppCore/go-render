@@ -400,6 +400,42 @@ type attrApplier interface {
 	applyAttr(key, value string)
 }
 
+func nodePreservesLayoutPath(node Node, ctx *Context) bool {
+	switch n := node.(type) {
+	case *Layout, *Responsive:
+		return true
+	case *ifNode:
+		if n == nil || n.cond == nil || n.node == nil || !n.cond(ctx) {
+			return false
+		}
+		return nodePreservesLayoutPath(n.node, ctx)
+	case *unlessNode:
+		if n == nil || n.cond == nil || n.node == nil || n.cond(ctx) {
+			return false
+		}
+		return nodePreservesLayoutPath(n.node, ctx)
+	case *entitledNode:
+		if n == nil || n.node == nil {
+			return false
+		}
+		if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(n.feature) {
+			return false
+		}
+		return nodePreservesLayoutPath(n.node, ctx)
+	case *switchNode:
+		if n == nil || n.selector == nil || n.cases == nil {
+			return false
+		}
+		child, ok := n.cases[n.selector(ctx)]
+		if !ok || child == nil {
+			return false
+		}
+		return nodePreservesLayoutPath(child, ctx)
+	default:
+		return false
+	}
+}
+
 // Each iterates items and renders each via fn.
 // Usage example: Each([]string{"a", "b"}, func(v string) Node { return Text(v) })
 func Each[T any](items []T, fn func(T) Node) Node {
@@ -440,17 +476,11 @@ func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
 			idx++
 			continue
 		}
-		if path != "" {
-			if _, ok := child.(*elNode); ok {
-				b.WriteString(renderWithLayoutPath(child, ctx, path+"."+strconv.Itoa(idx)))
-				idx++
-				continue
-			}
-			b.WriteString(renderWithLayoutPath(child, ctx, path))
-			idx++
-			continue
+		childPath := path
+		if path != "" && !nodePreservesLayoutPath(child, ctx) {
+			childPath = path + "." + strconv.Itoa(idx)
 		}
-		b.WriteString(renderWithLayoutPath(child, ctx, path))
+		b.WriteString(renderWithLayoutPath(child, ctx, childPath))
 		idx++
 	}
 	return b.String()

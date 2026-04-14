@@ -308,6 +308,38 @@ func TestEach_NestedEach_Ugly(t *testing.T) {
 	}
 }
 
+func TestEach_WrappedElement_PreservesItemPaths_Good(t *testing.T) {
+	ctx := NewContext()
+
+	node := Each([]string{"a", "b"}, func(item string) Node {
+		return If(func(*Context) bool { return true }, El("span", Raw(item)))
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+
+	if !containsText(got, `data-block="C-0.0.0"`) {
+		t.Fatalf("wrapped Each element should preserve first item path, got:\n%s", got)
+	}
+	if !containsText(got, `data-block="C-0.0.1"`) {
+		t.Fatalf("wrapped Each element should preserve second item path, got:\n%s", got)
+	}
+}
+
+func TestEach_WrappedLayout_PreservesBlockPath_Good(t *testing.T) {
+	ctx := NewContext()
+	inner := NewLayout("C").C(Raw("item"))
+
+	node := Each([]Node{inner}, func(item Node) Node {
+		return If(func(*Context) bool { return true }, item)
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+	want := `<main role="main" data-block="C-0"><main role="main" data-block="C-0-C-0">item</main></main>`
+	if got != want {
+		t.Fatalf("wrapped Each layout render = %q, want %q", got, want)
+	}
+}
+
 // --- Layout variant validation ---
 
 func TestLayout_InvalidVariantChars_Bad(t *testing.T) {
