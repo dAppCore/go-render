@@ -69,6 +69,21 @@ func TestResponsive_NestedPaths_Good(t *testing.T) {
 	}
 }
 
+func TestResponsive_NestedInsideLayout_PreservesBlockPath_Good(t *testing.T) {
+	ctx := NewContext()
+	r := NewResponsive().
+		Variant("mobile", NewLayout("C").C(Raw("content")))
+
+	got := NewLayout("C").C(r).Render(ctx)
+
+	if !containsText(got, `data-variant="mobile"`) {
+		t.Fatalf("responsive wrapper missing variant container in:\n%s", got)
+	}
+	if !containsText(got, `data-block="C-0-C-0"`) {
+		t.Fatalf("responsive wrapper should preserve outer layout path, got:\n%s", got)
+	}
+}
+
 func TestResponsive_VariantsIndependent_Good(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().

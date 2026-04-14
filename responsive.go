@@ -12,6 +12,7 @@ import (
 
 // Compile-time interface check.
 var _ Node = (*Responsive)(nil)
+var _ layoutPathRenderer = (*Responsive)(nil)
 
 // Responsive wraps multiple Layout variants for breakpoint-aware rendering.
 // Usage example: r := NewResponsive().Variant("mobile", NewLayout("C"))
@@ -59,6 +60,10 @@ func (r *Responsive) Add(name string, layout *Layout, media ...string) *Responsi
 // Render produces HTML with each variant in a data-variant container.
 // Usage example: html := NewResponsive().Variant("mobile", NewLayout("C")).Render(NewContext())
 func (r *Responsive) Render(ctx *Context) string {
+	return r.renderWithLayoutPath(ctx, "")
+}
+
+func (r *Responsive) renderWithLayoutPath(ctx *Context, path string) string {
 	if r == nil {
 		return ""
 	}
@@ -75,7 +80,7 @@ func (r *Responsive) Render(ctx *Context) string {
 		b.WriteString(`<div data-variant="`)
 		b.WriteString(escapeAttr(v.name))
 		b.WriteString(`">`)
-		b.WriteString(v.layout.Render(ctx))
+		b.WriteString(renderWithLayoutPath(v.layout, ctx, path))
 		b.WriteString(`</div>`)
 	}
 	return b.String()
