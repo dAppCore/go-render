@@ -73,7 +73,7 @@ The `Layout` type is a compositor for five named slots:
 | Slot Letter | Semantic Element | ARIA Role | Accessor |
 |-------------|-----------------|-----------|----------|
 | H | `<header>` | `banner` | `layout.H(...)` |
-| L | `<aside>` | `complementary` | `layout.L(...)` |
+| L | `<nav>` | `navigation` | `layout.L(...)` |
 | C | `<main>` | `main` | `layout.C(...)` |
 | R | `<aside>` | `complementary` | `layout.R(...)` |
 | F | `<footer>` | `contentinfo` | `layout.F(...)` |

@@ -11,14 +11,14 @@ func TestLayout_HLCRF_Good(t *testing.T) {
 	got := layout.Render(ctx)
 
 	// Must contain semantic elements
-	for _, want := range []string{"<header", "<aside", "<main", "<footer"} {
+	for _, want := range []string{"<header", "<nav", "<main", "<footer"} {
 		if !containsText(got, want) {
 			t.Errorf("HLCRF layout missing %q in:\n%s", want, got)
 		}
 	}
 
 	// Must contain ARIA roles
-	for _, want := range []string{`role="banner"`, `role="complementary"`, `role="main"`, `role="contentinfo"`} {
+	for _, want := range []string{`role="banner"`, `role="navigation"`, `role="main"`, `role="contentinfo"`} {
 		if !containsText(got, want) {
 			t.Errorf("HLCRF layout missing role %q in:\n%s", want, got)
 		}

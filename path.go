@@ -15,9 +15,22 @@ func ParseBlockID(id string) []byte {
 		return nil
 	}
 
+	// Accept both the current "{slot}-0" path format and the dot notation
+	// used in the RFC prose examples. A plain single-slot ID such as "H" is
+	// also valid.
+	normalized := strings.ReplaceAll(id, ".", "-")
+	if !strings.Contains(normalized, "-") {
+		if len(normalized) == 1 {
+			if _, ok := slotRegistry[normalized[0]]; ok {
+				return []byte{normalized[0]}
+			}
+		}
+		return nil
+	}
+
 	// Valid IDs are exact sequences of "{slot}-0" segments, e.g.
 	// "H-0" or "L-0-C-0". Any malformed segment invalidates the whole ID.
-	parts := strings.Split(id, "-")
+	parts := strings.Split(normalized, "-")
 	if len(parts)%2 != 0 {
 		return nil
 	}

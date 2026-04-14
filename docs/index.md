@@ -54,7 +54,7 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 
 **Node tree** -- All renderable units implement `Node`, a single-method interface: `Render(ctx *Context) string`. The library composes nodes into trees using `El()` for elements, `Text()` for translated text, control-flow constructors (`If`, `Unless`, `Each`, `Switch`, `Entitled`), and accessibility helpers (`AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`, `Role`).
 
-**HLCRF Layout** -- A five-slot compositor that maps to semantic HTML: `<header>` (H), `<aside>` (L/R), `<main>` (C), `<footer>` (F). The variant string controls which slots render: `"HLCRF"` for all five, `"HCF"` for three, `"C"` for content only. Layouts nest: placing a `Layout` inside another layout's slot produces hierarchical `data-block` paths like `L-0-C-0`.
+**HLCRF Layout** -- A five-slot compositor that maps to semantic HTML: `<header>` (H), `<nav>` (L), `<main>` (C), `<aside>` (R), `<footer>` (F). The variant string controls which slots render: `"HLCRF"` for all five, `"HCF"` for three, `"C"` for content only. Layouts nest: placing a `Layout` inside another layout's slot produces hierarchical `data-block` paths like `L-0-C-0`.
 
 **Responsive variants** -- `Responsive` wraps multiple `Layout` instances with named breakpoints (e.g. `"desktop"`, `"mobile"`). Each variant renders inside a `<div data-variant="name">` container for CSS or JavaScript targeting. `VariantSelector(name)` returns a ready-made attribute selector for styling these containers from CSS.
 

@@ -24,7 +24,7 @@ type slotMeta struct {
 // slotRegistry maps slot letters to their semantic HTML elements and ARIA roles.
 var slotRegistry = map[byte]slotMeta{
 	'H': {tag: "header", role: "banner"},
-	'L': {tag: "aside", role: "complementary"},
+	'L': {tag: "nav", role: "navigation"},
 	'C': {tag: "main", role: "main"},
 	'R': {tag: "aside", role: "complementary"},
 	'F': {tag: "footer", role: "contentinfo"},
@@ -148,7 +148,7 @@ func (l *Layout) H(nodes ...Node) *Layout {
 	return l
 }
 
-// L appends nodes to the Left aside slot.
+// L appends nodes to the Left navigation slot.
 // Usage example: NewLayout("LC").L(Text("nav"))
 func (l *Layout) L(nodes ...Node) *Layout {
 	if l == nil {
