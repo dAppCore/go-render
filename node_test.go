@@ -65,6 +65,45 @@ func TestTextNode_Render_Good(t *testing.T) {
 	}
 }
 
+func TestTextNode_UsesContextDataForCount_Good(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+
+	tests := []struct {
+		name string
+		key  string
+		data map[string]any
+		want string
+	}{
+		{
+			name: "capitalised count",
+			key:  "i18n.count.file",
+			data: map[string]any{"Count": 5},
+			want: "5 files",
+		},
+		{
+			name: "lowercase count",
+			key:  "i18n.count.file",
+			data: map[string]any{"count": 1},
+			want: "1 file",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := NewContext()
+			for k, v := range tt.data {
+				ctx.Metadata[k] = v
+			}
+
+			got := Text(tt.key).Render(ctx)
+			if got != tt.want {
+				t.Fatalf("Text(%q).Render() = %q, want %q", tt.key, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestTextNode_Escapes_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Text("<script>alert('xss')</script>")
