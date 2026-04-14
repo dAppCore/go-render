@@ -47,6 +47,20 @@ func TestNewContextWithService_AppliesLocaleToService_Good(t *testing.T) {
 	}
 }
 
+func TestTextNode_UsesMetadataAliasWhenDataNil_Good(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+
+	ctx := &Context{
+		Metadata: map[string]any{"count": 1},
+	}
+
+	got := Text("i18n.count.file").Render(ctx)
+	if got != "1 file" {
+		t.Fatalf("Text with metadata-only count = %q, want %q", got, "1 file")
+	}
+}
+
 func TestContext_SetService_AppliesLocale_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	ctx := NewContext("fr-FR")

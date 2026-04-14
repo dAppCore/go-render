@@ -12,11 +12,11 @@ import (
 )
 
 func translationArgs(ctx *Context, key string, args []any) []any {
-	if ctx == nil || len(ctx.Data) == 0 {
+	if ctx == nil {
 		return args
 	}
 
-	count, ok := contextCount(ctx.Data)
+	count, ok := contextCount(ctx)
 	if !ok {
 		return args
 	}
@@ -30,10 +30,25 @@ func translationArgs(ctx *Context, key string, args []any) []any {
 	return args
 }
 
-func contextCount(data map[string]any) (int, bool) {
+func contextCount(ctx *Context) (int, bool) {
+	if ctx == nil {
+		return 0, false
+	}
+
+	if n, ok := contextCountMap(ctx.Data); ok {
+		return n, true
+	}
+	if n, ok := contextCountMap(ctx.Metadata); ok {
+		return n, true
+	}
+	return 0, false
+}
+
+func contextCountMap(data map[string]any) (int, bool) {
 	if len(data) == 0 {
 		return 0, false
 	}
+
 	if v, ok := data["Count"]; ok {
 		if n, ok := countInt(v); ok {
 			return n, true
