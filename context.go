@@ -11,11 +11,15 @@ type Translator interface {
 
 // Context carries rendering state through the node tree.
 // Usage example: ctx := NewContext()
+//
+// Metadata is an alias for Data — both fields reference the same underlying map.
+// Treat them as interchangeable; use whichever reads best in context.
 type Context struct {
 	Identity     string
 	Locale       string
 	Entitlements func(feature string) bool
 	Data         map[string]any
+	Metadata     map[string]any
 	service      Translator
 }
 
@@ -39,8 +43,10 @@ func applyLocaleToService(svc Translator, locale string) {
 // NewContext creates a new rendering context with sensible defaults.
 // Usage example: html := Render(Text("welcome"), NewContext("en-GB"))
 func NewContext(locale ...string) *Context {
+	data := make(map[string]any)
 	ctx := &Context{
-		Data: make(map[string]any),
+		Data:     data,
+		Metadata: data, // alias — same underlying map
 	}
 	if len(locale) > 0 {
 		ctx.SetLocale(locale[0])

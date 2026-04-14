@@ -18,6 +18,7 @@ type Responsive struct {
 type responsiveVariant struct {
 	name   string
 	layout *Layout
+	media  string // optional CSS media-query hint (e.g. "(min-width: 768px)")
 }
 
 // NewResponsive creates a new multi-variant responsive compositor.
@@ -29,11 +30,24 @@ func NewResponsive() *Responsive {
 // Variant adds a named layout variant (e.g., "desktop", "tablet", "mobile").
 // Usage example: NewResponsive().Variant("desktop", NewLayout("HLCRF"))
 // Variants render in insertion order.
+// Variant is equivalent to Add(name, layout) with no media-query hint.
 func (r *Responsive) Variant(name string, layout *Layout) *Responsive {
+	return r.Add(name, layout)
+}
+
+// Add registers a responsive variant. The optional media argument carries a
+// CSS media-query hint for downstream CSS generation (e.g. "(min-width: 768px)").
+//
+// Usage example: NewResponsive().Add("desktop", NewLayout("HLCRF"), "(min-width: 1024px)")
+func (r *Responsive) Add(name string, layout *Layout, media ...string) *Responsive {
 	if r == nil {
 		r = NewResponsive()
 	}
-	r.variants = append(r.variants, responsiveVariant{name: name, layout: layout})
+	variant := responsiveVariant{name: name, layout: layout}
+	if len(media) > 0 {
+		variant.media = media[0]
+	}
+	r.variants = append(r.variants, variant)
 	return r
 }
 
