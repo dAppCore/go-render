@@ -36,6 +36,31 @@ func TestElNode_Nested_Good(t *testing.T) {
 	}
 }
 
+func TestLayout_DirectElementBlockPath_Good(t *testing.T) {
+	ctx := NewContext()
+	got := NewLayout("C").C(El("div", Raw("content"))).Render(ctx)
+
+	if !containsText(got, `data-block="C-0.0"`) {
+		t.Fatalf("direct element inside layout should receive a block path, got:\n%s", got)
+	}
+}
+
+func TestLayout_EachElementBlockPaths_Good(t *testing.T) {
+	ctx := NewContext()
+	got := NewLayout("C").C(
+		Each([]string{"a", "b"}, func(item string) Node {
+			return El("span", Raw(item))
+		}),
+	).Render(ctx)
+
+	if !containsText(got, `data-block="C-0.0.0"`) {
+		t.Fatalf("first Each item should receive a block path, got:\n%s", got)
+	}
+	if !containsText(got, `data-block="C-0.0.1"`) {
+		t.Fatalf("second Each item should receive a block path, got:\n%s", got)
+	}
+}
+
 func TestElNode_MultipleChildren_Good(t *testing.T) {
 	ctx := NewContext()
 	node := El("div", Raw("a"), Raw("b"))

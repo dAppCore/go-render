@@ -71,6 +71,10 @@ func (n *rawNode) Render(_ *Context) string {
 	return n.content
 }
 
+func (n *rawNode) renderWithLayoutPath(_ *Context, _ string) string {
+	return n.Render(nil)
+}
+
 // --- elNode ---
 
 type elNode struct {
@@ -147,23 +151,39 @@ func Role(n Node, role string) Node {
 }
 
 func (n *elNode) Render(ctx *Context) string {
+	return n.render(ctx, "")
+}
+
+func (n *elNode) renderWithLayoutPath(ctx *Context, path string) string {
+	return n.render(ctx, path)
+}
+
+func (n *elNode) render(ctx *Context, path string) string {
 	if n == nil {
 		return ""
 	}
 
 	b := newTextBuilder()
+	attrs := n.attrs
+	if path != "" {
+		attrs = make(map[string]string, len(n.attrs)+1)
+		for key, value := range n.attrs {
+			attrs[key] = value
+		}
+		attrs["data-block"] = path
+	}
 
 	b.WriteByte('<')
 	b.WriteString(escapeHTML(n.tag))
 
 	// Sort attribute keys for deterministic output.
-	keys := slices.Collect(maps.Keys(n.attrs))
+	keys := slices.Collect(maps.Keys(attrs))
 	slices.Sort(keys)
 	for _, key := range keys {
 		b.WriteByte(' ')
 		b.WriteString(escapeHTML(key))
 		b.WriteString(`="`)
-		b.WriteString(escapeAttr(n.attrs[key]))
+		b.WriteString(escapeAttr(attrs[key]))
 		b.WriteByte('"')
 	}
 
@@ -174,10 +194,15 @@ func (n *elNode) Render(ctx *Context) string {
 	}
 
 	for i := range len(n.children) {
-		if n.children[i] == nil {
+		child := n.children[i]
+		if child == nil {
 			continue
 		}
-		b.WriteString(n.children[i].Render(ctx))
+		if path == "" {
+			b.WriteString(child.Render(ctx))
+			continue
+		}
+		b.WriteString(renderWithLayoutPath(child, ctx, path+"."+strconv.Itoa(i)))
 	}
 
 	b.WriteString("</")
@@ -215,6 +240,10 @@ func (n *textNode) Render(ctx *Context) string {
 	return escapeHTML(translateText(ctx, n.key, n.args...))
 }
 
+func (n *textNode) renderWithLayoutPath(ctx *Context, _ string) string {
+	return n.Render(ctx)
+}
+
 // --- ifNode ---
 
 type ifNode struct {
@@ -234,6 +263,16 @@ func (n *ifNode) Render(ctx *Context) string {
 	}
 	if n.cond(ctx) {
 		return n.node.Render(ctx)
+	}
+	return ""
+}
+
+func (n *ifNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
+	if n.cond(ctx) {
+		return renderWithLayoutPath(n.node, ctx, path)
 	}
 	return ""
 }
@@ -261,6 +300,16 @@ func (n *unlessNode) Render(ctx *Context) string {
 	return ""
 }
 
+func (n *unlessNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
+	if !n.cond(ctx) {
+		return renderWithLayoutPath(n.node, ctx, path)
+	}
+	return ""
+}
+
 // --- entitledNode ---
 
 type entitledNode struct {
@@ -283,6 +332,16 @@ func (n *entitledNode) Render(ctx *Context) string {
 		return ""
 	}
 	return n.node.Render(ctx)
+}
+
+func (n *entitledNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.node == nil {
+		return ""
+	}
+	if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(n.feature) {
+		return ""
+	}
+	return renderWithLayoutPath(n.node, ctx, path)
 }
 
 // --- switchNode ---
@@ -313,6 +372,21 @@ func (n *switchNode) Render(ctx *Context) string {
 		return node.Render(ctx)
 	}
 	return ""
+}
+
+func (n *switchNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.selector == nil {
+		return ""
+	}
+	key := n.selector(ctx)
+	if n.cases == nil {
+		return ""
+	}
+	node, ok := n.cases[key]
+	if !ok || node == nil {
+		return ""
+	}
+	return renderWithLayoutPath(node, ctx, path)
 }
 
 // --- eachNode ---
@@ -359,12 +433,25 @@ func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
 	}
 
 	b := newTextBuilder()
+	idx := 0
 	for item := range n.items {
 		child := n.fn(item)
 		if child == nil {
+			idx++
+			continue
+		}
+		if path != "" {
+			if _, ok := child.(*elNode); ok {
+				b.WriteString(renderWithLayoutPath(child, ctx, path+"."+strconv.Itoa(idx)))
+				idx++
+				continue
+			}
+			b.WriteString(renderWithLayoutPath(child, ctx, path))
+			idx++
 			continue
 		}
 		b.WriteString(renderWithLayoutPath(child, ctx, path))
+		idx++
 	}
 	return b.String()
 }

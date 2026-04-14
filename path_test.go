@@ -66,6 +66,9 @@ func TestParseBlockID_ExtractsSlots_Good(t *testing.T) {
 	}{
 		{"L-0-C-0", []byte{'L', 'C'}},
 		{"L.0.C.0", []byte{'L', 'C'}},
+		{"C-0.0", []byte{'C'}},
+		{"C.2.1", []byte{'C'}},
+		{"C-0.1.2", []byte{'C'}},
 		{"H", []byte{'H'}},
 		{"H-0", []byte{'H'}},
 		{"C-0-C-0-C-0", []byte{'C', 'C', 'C'}},

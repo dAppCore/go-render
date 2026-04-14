@@ -9,38 +9,114 @@ import "strings"
 
 // ParseBlockID extracts the slot sequence from a data-block ID.
 // Usage example: slots := ParseBlockID("L-0-C-0")
-// "L-0-C-0" → ['L', 'C']
+// Supports both the current slot-path form ("L-0-C-0") and dotted child
+// coordinates ("C-0.1", "C.2.1").
 func ParseBlockID(id string) []byte {
 	if id == "" {
 		return nil
 	}
 
-	// Accept both the current "{slot}-0" path format and the dot notation
-	// used in the RFC prose examples. A plain single-slot ID such as "H" is
-	// also valid.
-	normalized := strings.ReplaceAll(id, ".", "-")
-	if !strings.Contains(normalized, "-") {
-		if len(normalized) == 1 {
-			if _, ok := slotRegistry[normalized[0]]; ok {
-				return []byte{normalized[0]}
-			}
+	tokens := make([]string, 0, 4)
+	seps := make([]byte, 0, 4)
+
+	for i := 0; i < len(id); {
+		start := i
+		for i < len(id) && id[i] != '.' && id[i] != '-' {
+			i++
 		}
-		return nil
-	}
 
-	// Valid IDs are exact sequences of "{slot}-0" segments, e.g.
-	// "H-0" or "L-0-C-0". Any malformed segment invalidates the whole ID.
-	parts := strings.Split(normalized, "-")
-	if len(parts)%2 != 0 {
-		return nil
-	}
-
-	slots := make([]byte, 0, len(parts)/2)
-	for i := 0; i < len(parts); i += 2 {
-		if len(parts[i]) != 1 || parts[i+1] != "0" {
+		token := id[start:i]
+		if token == "" {
 			return nil
 		}
-		slots = append(slots, parts[i][0])
+		tokens = append(tokens, token)
+
+		if i == len(id) {
+			seps = append(seps, 0)
+			break
+		}
+
+		seps = append(seps, id[i])
+		i++
+		if i == len(id) {
+			return nil
+		}
+	}
+
+	slots := make([]byte, 0, len(tokens))
+	if len(tokens) > 1 {
+		last := tokens[len(tokens)-1]
+		if len(last) == 1 {
+			if _, ok := slotRegistry[last[0]]; ok {
+				return nil
+			}
+		}
+	}
+
+	for i, token := range tokens {
+		if len(token) == 1 {
+			if _, ok := slotRegistry[token[0]]; ok {
+				slots = append(slots, token[0])
+				continue
+			}
+		}
+
+		if !allDigits(token) {
+			return nil
+		}
+		if i == 0 {
+			return nil
+		}
+		switch seps[i-1] {
+		case '-':
+			if token != "0" {
+				return nil
+			}
+		case '.':
+		default:
+			return nil
+		}
+	}
+
+	if len(slots) == 0 {
+		return nil
 	}
 	return slots
+}
+
+// trimBlockPath removes the trailing child coordinate from a block path when
+// the final segment is numeric. It keeps slot roots like "C-0" intact while
+// trimming nested coordinates such as "C-0.1" or "C-0.1.2" back to the parent
+// path.
+func trimBlockPath(path string) string {
+	if path == "" {
+		return ""
+	}
+
+	lastDot := strings.LastIndexByte(path, '.')
+	if lastDot < 0 || lastDot == len(path)-1 {
+		return path
+	}
+
+	for i := lastDot + 1; i < len(path); i++ {
+		ch := path[i]
+		if ch < '0' || ch > '9' {
+			return path
+		}
+	}
+
+	return path[:lastDot]
+}
+
+func allDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
 }

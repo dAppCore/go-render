@@ -5,7 +5,10 @@ package html
 // dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
 // The stdlib errors package is safe for WASM.
 
-import "errors"
+import (
+	"errors"
+	"strconv"
+)
 
 // Compile-time interface check.
 var _ Node = (*Layout)(nil)
@@ -49,51 +52,7 @@ func renderWithLayoutPath(node Node, ctx *Context, path string) string {
 		return renderer.renderWithLayoutPath(ctx, path)
 	}
 
-	switch t := node.(type) {
-	case *Layout:
-		if t == nil {
-			return ""
-		}
-		clone := *t
-		clone.path = path
-		return clone.Render(ctx)
-	case *ifNode:
-		if t == nil || t.cond == nil || t.node == nil {
-			return ""
-		}
-		if t.cond(ctx) {
-			return renderWithLayoutPath(t.node, ctx, path)
-		}
-		return ""
-	case *unlessNode:
-		if t == nil || t.cond == nil || t.node == nil {
-			return ""
-		}
-		if !t.cond(ctx) {
-			return renderWithLayoutPath(t.node, ctx, path)
-		}
-		return ""
-	case *entitledNode:
-		if t == nil || t.node == nil {
-			return ""
-		}
-		if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(t.feature) {
-			return ""
-		}
-		return renderWithLayoutPath(t.node, ctx, path)
-	case *switchNode:
-		if t == nil || t.selector == nil || t.cases == nil {
-			return ""
-		}
-		key := t.selector(ctx)
-		node, ok := t.cases[key]
-		if !ok || node == nil {
-			return ""
-		}
-		return renderWithLayoutPath(node, ctx, path)
-	default:
-		return node.Render(ctx)
-	}
+	return node.Render(ctx)
 }
 
 // NewLayout creates a new Layout with the given variant string.
@@ -237,11 +196,11 @@ func (l *Layout) Render(ctx *Context) string {
 		b.WriteString(escapeAttr(bid))
 		b.WriteString(`">`)
 
-		for _, child := range children {
+		for i, child := range children {
 			if child == nil {
 				continue
 			}
-			b.WriteString(renderWithLayoutPath(child, ctx, bid+"-"))
+			b.WriteString(renderWithLayoutPath(child, ctx, bid+"."+strconv.Itoa(i)))
 		}
 
 		b.WriteString("</")
@@ -262,4 +221,19 @@ func (e *layoutVariantError) Error() string {
 
 func (e *layoutVariantError) Unwrap() error {
 	return ErrInvalidLayoutVariant
+}
+
+func (l *Layout) renderWithLayoutPath(ctx *Context, path string) string {
+	if l == nil {
+		return ""
+	}
+
+	clone := *l
+	base := trimBlockPath(path)
+	if base != "" {
+		clone.path = base + "-"
+	} else {
+		clone.path = ""
+	}
+	return clone.Render(ctx)
 }
