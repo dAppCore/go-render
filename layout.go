@@ -1,5 +1,10 @@
 package html
 
+// Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
+// 3.5 MB raw / 1 MB gzip size budget, so we deliberately avoid importing
+// dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
+// The stdlib errors package is safe for WASM.
+
 import "errors"
 
 // Compile-time interface check.
@@ -7,6 +12,7 @@ var _ Node = (*Layout)(nil)
 
 // ErrInvalidLayoutVariant reports that a layout variant string contains at least
 // one unrecognised slot character.
+// Usage example: if errors.Is(err, html.ErrInvalidLayoutVariant) { ... }
 var ErrInvalidLayoutVariant = errors.New("html: invalid layout variant")
 
 // slotMeta holds the semantic HTML mapping for each HLCRF slot.

@@ -1,5 +1,10 @@
 package html
 
+// Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
+// 3.5 MB raw / 1 MB gzip size budget, so we deliberately avoid importing
+// dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
+// stdlib strings is safe for WASM.
+
 import "strings"
 
 // ParseBlockID extracts the slot sequence from a data-block ID.

@@ -12,7 +12,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	goio "io"
 	"os"
@@ -92,7 +91,7 @@ func runDaemon(ctx context.Context, inputPath, outputPath string, emitTypes bool
 
 		select {
 		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.Canceled) {
+			if core.Is(ctx.Err(), context.Canceled) {
 				return nil
 			}
 			return ctx.Err()

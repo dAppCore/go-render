@@ -7,7 +7,7 @@ description: HLCRF DOM compositor with grammar pipeline integration for type-saf
 
 `go-html` is a pure-Go library for building HTML documents as type-safe node trees and rendering them to string output. It provides a five-slot layout compositor (Header, Left, Content, Right, Footer -- abbreviated HLCRF), a responsive multi-variant wrapper, a server-side grammar analysis pipeline, a Web Component code generator, and an optional WASM module for client-side rendering.
 
-**Module path:** `forge.lthn.ai/core/go-html`
+**Module path:** `dappco.re/go/core/html`
 **Go version:** 1.26
 **Licence:** EUPL-1.2
 
@@ -16,7 +16,7 @@ description: HLCRF DOM compositor with grammar pipeline integration for type-saf
 ```go
 package main
 
-import html "forge.lthn.ai/core/go-html"
+import html "dappco.re/go/core/html"
 
 func main() {
     page := html.NewLayout("HCF").
@@ -65,14 +65,17 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 ## Dependencies
 
 ```
-forge.lthn.ai/core/go-html
-  forge.lthn.ai/core/go-i18n          (direct, all builds)
-    forge.lthn.ai/core/go-inference    (indirect, via go-i18n)
-  forge.lthn.ai/core/go-i18n/reversal (server builds only, !js)
+dappco.re/go/core/html
+  dappco.re/go/core                    (direct, server builds only, !js)
+  dappco.re/go/core/i18n               (direct, all builds)
+    forge.lthn.ai/core/go-inference    (indirect, via core/i18n)
+  dappco.re/go/core/i18n/reversal      (server builds only, !js)
+  dappco.re/go/core/io                 (direct, server builds only, !js)
+  dappco.re/go/core/log                (direct, server builds only, !js)
   github.com/stretchr/testify          (test only)
 ```
 
-Both `go-i18n` and `go-inference` must be present on the local filesystem. The `go.mod` uses `replace` directives pointing to sibling directories (`../go-i18n`, `../go-inference`).
+WASM-linked files (layout.go, node.go, path.go, responsive.go, render.go, context.go, text_builder_js.go, text_translate_js.go) deliberately avoid `dappco.re/go/core` to respect the RFC §7 WASM size budget — core transitively pulls in fmt/os/log.
 
 ## Further Reading
 
