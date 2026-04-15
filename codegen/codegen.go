@@ -5,34 +5,114 @@ package codegen
 import (
 	"sort"
 	"text/template"
+	"unicode"
+	"unicode/utf8"
 
 	core "dappco.re/go/core"
 	log "dappco.re/go/core/log"
 )
 
-// isValidCustomElementTag reports whether tag is a safe custom element name.
+var reservedCustomElementNames = map[string]struct{}{
+	"annotation-xml":   {},
+	"color-profile":    {},
+	"font-face":        {},
+	"font-face-src":    {},
+	"font-face-uri":    {},
+	"font-face-format": {},
+	"font-face-name":   {},
+	"missing-glyph":    {},
+}
+
+// isValidCustomElementTag reports whether tag is a valid custom element name.
 // The generator rejects values that would fail at customElements.define() time.
 func isValidCustomElementTag(tag string) bool {
 	if tag == "" || !core.Contains(tag, "-") {
 		return false
 	}
-
-	if tag[0] < 'a' || tag[0] > 'z' {
+	if !utf8.ValidString(tag) {
 		return false
 	}
 
-	for i := range len(tag) {
-		ch := tag[i]
-		switch {
-		case ch >= 'a' && ch <= 'z':
-		case ch >= '0' && ch <= '9':
-		case ch == '-' || ch == '.' || ch == '_':
-		default:
+	if _, reserved := reservedCustomElementNames[tag]; reserved {
+		return false
+	}
+
+	first, _ := utf8.DecodeRuneInString(tag)
+	if first < 'a' || first > 'z' {
+		return false
+	}
+
+	for _, r := range tag {
+		if r >= 'A' && r <= 'Z' {
+			return false
+		}
+		switch r {
+		case 0, '/', '>', '\t', '\n', '\f', '\r', ' ':
 			return false
 		}
 	}
 
 	return true
+}
+
+type jsStringBuilder interface {
+	WriteByte(byte) error
+	WriteRune(rune) (int, error)
+	WriteString(string) (int, error)
+	String() string
+}
+
+// escapeJSStringLiteral escapes content for inclusion inside a double-quoted JS string.
+func escapeJSStringLiteral(s string) string {
+	b := core.NewBuilder()
+	appendJSStringLiteral(b, s)
+	return b.String()
+}
+
+func appendJSStringLiteral(b jsStringBuilder, s string) {
+	for _, r := range s {
+		switch r {
+		case '\\':
+			b.WriteString(`\\`)
+		case '"':
+			b.WriteString(`\"`)
+		case '\b':
+			b.WriteString(`\b`)
+		case '\f':
+			b.WriteString(`\f`)
+		case '\n':
+			b.WriteString(`\n`)
+		case '\r':
+			b.WriteString(`\r`)
+		case '\t':
+			b.WriteString(`\t`)
+		case 0x2028:
+			b.WriteString(`\u2028`)
+		case 0x2029:
+			b.WriteString(`\u2029`)
+		default:
+			if r < 0x20 {
+				appendUnicodeEscape(b, r)
+				continue
+			}
+			if r > 0xFFFF {
+				rr := r - 0x10000
+				appendUnicodeEscape(b, rune(0xD800+(rr>>10)))
+				appendUnicodeEscape(b, rune(0xDC00+(rr&0x3FF)))
+				continue
+			}
+			_, _ = b.WriteRune(r)
+		}
+	}
+}
+
+func appendUnicodeEscape(b jsStringBuilder, r rune) {
+	const hex = "0123456789ABCDEF"
+	b.WriteString(`\u`)
+	b.WriteByte(hex[(r>>12)&0xF])
+	b.WriteByte(hex[(r>>8)&0xF])
+	b.WriteByte(hex[(r>>4)&0xF])
+	b.WriteByte(hex[r&0xF])
 }
 
 // wcTemplate is the Web Component class template.
@@ -46,8 +126,8 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
   }
   connectedCallback() {
     this.#shadow.textContent = "";
-    const slot = this.getAttribute("data-slot") || "{{.Slot}}";
-    this.dispatchEvent(new CustomEvent("wc-ready", { detail: { tag: "{{.Tag}}", slot } }));
+    const slot = this.getAttribute("data-slot") || "{{.SlotLiteral}}";
+    this.dispatchEvent(new CustomEvent("wc-ready", { detail: { tag: "{{.TagLiteral}}", slot } }));
   }
   render(html) {
     const tpl = document.createElement("template");
@@ -64,12 +144,14 @@ func GenerateClass(tag, slot string) (string, error) {
 		return "", log.E("codegen.GenerateClass", "custom element tag must be a lowercase hyphenated name: "+tag, nil)
 	}
 	b := core.NewBuilder()
+	tagLiteral := escapeJSStringLiteral(tag)
+	slotLiteral := escapeJSStringLiteral(slot)
 	err := wcTemplate.Execute(b, struct {
-		ClassName, Tag, Slot string
+		ClassName, TagLiteral, SlotLiteral string
 	}{
-		ClassName: TagToClassName(tag),
-		Tag:       tag,
-		Slot:      slot,
+		ClassName:   TagToClassName(tag),
+		TagLiteral:  tagLiteral,
+		SlotLiteral: slotLiteral,
 	})
 	if err != nil {
 		return "", log.E("codegen.GenerateClass", "template exec", err)
@@ -80,7 +162,7 @@ func GenerateClass(tag, slot string) (string, error) {
 // GenerateRegistration produces the customElements.define() call.
 // Usage example: js := GenerateRegistration("nav-bar", "NavBar")
 func GenerateRegistration(tag, className string) string {
-	return `customElements.define("` + tag + `", ` + className + `);`
+	return `customElements.define("` + escapeJSStringLiteral(tag) + `", ` + className + `);`
 }
 
 // TagToClassName converts a custom element tag to PascalCase class name.
@@ -88,21 +170,17 @@ func GenerateRegistration(tag, className string) string {
 func TagToClassName(tag string) string {
 	b := core.NewBuilder()
 	upperNext := true
-	for i := 0; i < len(tag); i++ {
-		ch := tag[i]
+	for _, r := range tag {
 		switch {
-		case ch >= 'a' && ch <= 'z':
+		case unicode.IsLetter(r):
 			if upperNext {
-				b.WriteByte(ch - ('a' - 'A'))
+				_, _ = b.WriteRune(unicode.ToUpper(r))
 			} else {
-				b.WriteByte(ch)
+				_, _ = b.WriteRune(r)
 			}
 			upperNext = false
-		case ch >= 'A' && ch <= 'Z':
-			b.WriteByte(ch)
-			upperNext = false
-		case ch >= '0' && ch <= '9':
-			b.WriteByte(ch)
+		case unicode.IsDigit(r):
+			_, _ = b.WriteRune(r)
 			upperNext = false
 		default:
 			upperNext = true

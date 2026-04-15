@@ -28,6 +28,9 @@ func TestGenerateClass_InvalidTag_Bad(t *testing.T) {
 
 	_, err = GenerateClass("nav bar", "C")
 	assert.Error(t, err, "custom element names must reject spaces")
+
+	_, err = GenerateClass("annotation-xml", "C")
+	assert.Error(t, err, "reserved custom element names must be rejected")
 }
 
 func TestGenerateRegistration_DefinesCustomElement_Good(t *testing.T) {
@@ -35,6 +38,26 @@ func TestGenerateRegistration_DefinesCustomElement_Good(t *testing.T) {
 	assert.Contains(t, js, "customElements.define")
 	assert.Contains(t, js, `"photo-grid"`)
 	assert.Contains(t, js, "PhotoGrid")
+}
+
+func TestGenerateClass_ValidExtendedTag_Good(t *testing.T) {
+	tests := []struct {
+		tag       string
+		wantClass string
+	}{
+		{tag: "foo.bar-baz", wantClass: "FooBarBaz"},
+		{tag: "math-α", wantClass: "MathΑ"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.tag, func(t *testing.T) {
+			js, err := GenerateClass(tt.tag, "C")
+			require.NoError(t, err)
+			assert.Contains(t, js, "class "+tt.wantClass+" extends HTMLElement")
+			assert.Contains(t, js, `tag: "`+tt.tag+`"`)
+			assert.Contains(t, js, `slot = this.getAttribute("data-slot") || "C";`)
+		})
+	}
 }
 
 func TestTagToClassName_KebabCase_Good(t *testing.T) {
@@ -45,6 +68,7 @@ func TestTagToClassName_KebabCase_Good(t *testing.T) {
 		{"nav_bar", "NavBar"},
 		{"nav.bar", "NavBar"},
 		{"nav--bar", "NavBar"},
+		{"math-α", "MathΑ"},
 	}
 	for _, tt := range tests {
 		got := TagToClassName(tt.tag)
@@ -121,6 +145,17 @@ func TestGenerateTypeScriptDefinitions_SkipsInvalidTags_Good(t *testing.T) {
 	assert.NotContains(t, dts, "Nav-Bar")
 	assert.NotContains(t, dts, "nav bar")
 	assert.Equal(t, 1, countSubstr(dts, `export declare class NavBar extends HTMLElement`))
+}
+
+func TestGenerateTypeScriptDefinitions_ValidExtendedTag_Good(t *testing.T) {
+	slots := map[string]string{
+		"H": "foo.bar-baz",
+	}
+
+	dts := GenerateTypeScriptDefinitions(slots)
+
+	assert.Contains(t, dts, `"foo.bar-baz": FooBarBaz;`)
+	assert.Contains(t, dts, `export declare class FooBarBaz extends HTMLElement`)
 }
 
 func countSubstr(s, substr string) int {

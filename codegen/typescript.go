@@ -33,7 +33,7 @@ func GenerateTypeScriptDefinitions(slots map[string]string) string {
 		}
 		seen[tag] = true
 		b.WriteString("    \"")
-		b.WriteString(tag)
+		b.WriteString(escapeJSStringLiteral(tag))
 		b.WriteString("\": ")
 		b.WriteString(TagToClassName(tag))
 		b.WriteString(";\n")
