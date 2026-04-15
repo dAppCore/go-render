@@ -8,14 +8,15 @@ package html
 // ParseBlockID extracts the slot sequence from a data-block ID.
 // Usage example: slots := ParseBlockID("C.0.1")
 // It accepts the current dotted coordinate form and the older hyphenated
-// form for compatibility.
+// form for compatibility. Mixed separators and malformed coordinates are
+// rejected.
 func ParseBlockID(id string) []byte {
 	if id == "" {
 		return nil
 	}
 
 	tokens := make([]string, 0, 4)
-	seps := make([]byte, 0, 4)
+	sepKind := byte(0)
 
 	for i := 0; i < len(id); {
 		start := i
@@ -30,56 +31,93 @@ func ParseBlockID(id string) []byte {
 		tokens = append(tokens, token)
 
 		if i == len(id) {
-			seps = append(seps, 0)
 			break
 		}
 
-		seps = append(seps, id[i])
+		sep := id[i]
+		if sepKind == 0 {
+			sepKind = sep
+		} else if sepKind != sep {
+			return nil
+		}
 		i++
 		if i == len(id) {
 			return nil
 		}
 	}
 
-	slots := make([]byte, 0, len(tokens))
-	if len(tokens) > 1 {
-		last := tokens[len(tokens)-1]
-		if len(last) == 1 {
-			if _, ok := slotRegistry[last[0]]; ok {
-				return nil
-			}
-		}
+	switch sepKind {
+	case 0, '.':
+		return parseDottedBlockID(tokens)
+	case '-':
+		return parseHyphenatedBlockID(tokens)
+	default:
+		return nil
+	}
+}
+
+func parseDottedBlockID(tokens []string) []byte {
+	if len(tokens) == 0 || !isSlotToken(tokens[0]) {
+		return nil
+	}
+	if len(tokens) > 1 && isSlotToken(tokens[len(tokens)-1]) {
+		return nil
 	}
 
-	for i, token := range tokens {
-		if len(token) == 1 {
-			if _, ok := slotRegistry[token[0]]; ok {
-				slots = append(slots, token[0])
-				continue
+	slots := make([]byte, 0, len(tokens))
+	slots = append(slots, tokens[0][0])
+
+	prevWasSlot := true
+	for i := 1; i < len(tokens); i++ {
+		token := tokens[i]
+		if isSlotToken(token) {
+			if prevWasSlot {
+				return nil
 			}
+			slots = append(slots, token[0])
+			prevWasSlot = true
+			continue
 		}
 
 		if !allDigits(token) {
 			return nil
 		}
-		if i == 0 {
-			return nil
-		}
-		switch seps[i-1] {
-		case '-':
-			if token != "0" {
+		prevWasSlot = false
+	}
+
+	return slots
+}
+
+func parseHyphenatedBlockID(tokens []string) []byte {
+	if len(tokens) < 2 || len(tokens)%2 != 0 {
+		return nil
+	}
+	if !isSlotToken(tokens[0]) {
+		return nil
+	}
+
+	slots := make([]byte, 0, len(tokens)/2)
+	for i, token := range tokens {
+		switch {
+		case i%2 == 0:
+			if !isSlotToken(token) {
 				return nil
 			}
-		case '.':
-		default:
+			slots = append(slots, token[0])
+		case token != "0":
 			return nil
 		}
 	}
 
-	if len(slots) == 0 {
-		return nil
-	}
 	return slots
+}
+
+func isSlotToken(token string) bool {
+	if len(token) != 1 {
+		return false
+	}
+	_, ok := slotRegistry[token[0]]
+	return ok
 }
 
 func allDigits(s string) bool {

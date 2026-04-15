@@ -98,6 +98,9 @@ func TestParseBlockID_InvalidInput_Good(t *testing.T) {
 		"L-1-C-0",
 		"L-0-C",
 		"L.0.",
+		"L.0-C.0",
+		"C.C.0",
+		"C-0-0",
 		"X",
 	}
 
