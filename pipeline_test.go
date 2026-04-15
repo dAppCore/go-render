@@ -54,6 +54,14 @@ func TestStripTags_PreservesComparisonOperators_Good(t *testing.T) {
 	}
 }
 
+func TestStripTags_LiteralAngleBracket_Good(t *testing.T) {
+	got := StripTags(`a<b`)
+	want := `a<b`
+	if got != want {
+		t.Errorf("StripTags(literal angle) = %q, want %q", got, want)
+	}
+}
+
 func TestStripTags_Entities_Good(t *testing.T) {
 	got := StripTags(`&lt;script&gt;`)
 	want := "&lt;script&gt;"

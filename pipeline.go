@@ -32,7 +32,7 @@ func StripTags(html string) string {
 
 		switch r {
 		case '<':
-			if i+1 < len(runes) && isTagStartRune(runes[i+1]) {
+			if i+1 < len(runes) && isTagStartRune(runes[i+1]) && hasTagCloser(runes, i+2) {
 				inTag = true
 				continue
 			}
@@ -65,6 +65,15 @@ func isTagStartRune(r rune) bool {
 	default:
 		return false
 	}
+}
+
+func hasTagCloser(runes []rune, start int) bool {
+	for i := start; i < len(runes); i++ {
+		if runes[i] == '>' {
+			return true
+		}
+	}
+	return false
 }
 
 // Imprint renders a node tree to HTML, strips tags, tokenises the text,
