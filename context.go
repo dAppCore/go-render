@@ -1,5 +1,7 @@
 package html
 
+import "reflect"
+
 // Translator provides Text() lookups for a rendering context.
 // Usage example: ctx := NewContextWithService(myTranslator)
 //
@@ -92,13 +94,22 @@ func cloneContext(ctx *Context) *Context {
 	}
 
 	clone := *ctx
+	// Preserve the shared Data/Metadata alias when callers pointed both fields
+	// at the same map.
+	if sameMetadataMap(ctx.Data, ctx.Metadata) {
+		shared := cloneMetadataMap(ctx.Data)
+		clone.Data = shared
+		clone.Metadata = shared
+		return &clone
+	}
+
 	clone.Data = cloneMetadataMap(ctx.Data)
 	clone.Metadata = cloneMetadataMap(ctx.Metadata)
 	return &clone
 }
 
 func cloneMetadataMap(src map[string]any) map[string]any {
-	if len(src) == 0 {
+	if src == nil {
 		return nil
 	}
 
@@ -107,4 +118,12 @@ func cloneMetadataMap(src map[string]any) map[string]any {
 		dst[key] = value
 	}
 	return dst
+}
+
+func sameMetadataMap(a, b map[string]any) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+
+	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
 }

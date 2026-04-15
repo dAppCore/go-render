@@ -134,3 +134,25 @@ func TestContext_SetLocale_NilContext_Ugly(t *testing.T) {
 		t.Fatal("SetLocale on nil context should return nil")
 	}
 }
+
+func TestCloneContext_PreservesMetadataAlias_Good(t *testing.T) {
+	ctx := NewContext()
+	ctx.Data["count"] = 3
+
+	clone := cloneContext(ctx)
+	if clone == nil {
+		t.Fatal("cloneContext returned nil")
+	}
+	if clone.Data == nil || clone.Metadata == nil {
+		t.Fatal("cloneContext should preserve non-nil metadata maps")
+	}
+
+	dataPtr := reflect.ValueOf(clone.Data).Pointer()
+	metadataPtr := reflect.ValueOf(clone.Metadata).Pointer()
+	if dataPtr != metadataPtr {
+		t.Fatalf("cloneContext should keep Data and Metadata aliased, got %x and %x", dataPtr, metadataPtr)
+	}
+	if clone.Data["count"] != 3 || clone.Metadata["count"] != 3 {
+		t.Fatalf("cloneContext should copy map contents, got Data=%v Metadata=%v", clone.Data, clone.Metadata)
+	}
+}
