@@ -22,7 +22,7 @@ All concrete node types are unexported structs with exported constructor functio
 | Constructor | Behaviour |
 |-------------|-----------|
 | `El(tag, ...Node)` | HTML element with children. Void elements (`br`, `img`, `input`, etc.) never emit a closing tag. |
-| `Attr(Node, key, value)` | Sets an attribute on an `El` node. Traverses through `If`, `Unless`, `Entitled`, `Each`, `EachSeq`, and `Switch` wrappers. Returns the node for chaining. |
+| `Attr(Node, key, value)` | Sets an attribute on an `El` node. Traverses through `If`, `Unless`, `Entitled`, `Each`, `EachSeq`, `Switch`, `Layout`, and `Responsive` wrappers. Returns the node for chaining. |
 | `AriaLabel(Node, label)` | Convenience helper that sets `aria-label` on an element node. |
 | `AltText(Node, text)` | Convenience helper that sets `alt` on an element node. |
 | `TabIndex(Node, index)` | Convenience helper that sets `tabindex` on an element node. |

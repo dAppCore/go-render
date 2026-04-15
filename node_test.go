@@ -481,6 +481,30 @@ func TestAttr_ThroughSwitchNode_Good(t *testing.T) {
 	}
 }
 
+func TestAttr_ThroughLayout_Good(t *testing.T) {
+	ctx := NewContext()
+	layout := NewLayout("C").C(El("div", Raw("content")))
+	Attr(layout, "class", "page")
+
+	got := layout.Render(ctx)
+	want := `<main role="main" data-block="C"><div class="page" data-block="C.0">content</div></main>`
+	if got != want {
+		t.Errorf("Attr through Layout = %q, want %q", got, want)
+	}
+}
+
+func TestAttr_ThroughResponsive_Good(t *testing.T) {
+	ctx := NewContext()
+	resp := NewResponsive().Variant("mobile", NewLayout("C").C(El("div", Raw("content"))))
+	Attr(resp, "data-kind", "page")
+
+	got := resp.Render(ctx)
+	want := `<div data-variant="mobile"><main role="main" data-block="C"><div data-block="C.0" data-kind="page">content</div></main></div>`
+	if got != want {
+		t.Errorf("Attr through Responsive = %q, want %q", got, want)
+	}
+}
+
 func TestAttr_ThroughEachNode_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Each([]string{"a", "b"}, func(item string) Node {
