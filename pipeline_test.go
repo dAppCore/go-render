@@ -172,3 +172,19 @@ func TestCompareVariants_SameContent_Good(t *testing.T) {
 		t.Errorf("same content in different variants should score >= 0.8, got %f", sim)
 	}
 }
+
+func TestCompareVariants_KeyOrderDeterministic_Good(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	ctx := NewContext()
+
+	r := NewResponsive().
+		Variant("beta", NewLayout("C").C(El("p", Text("Building project")))).
+		Variant("alpha", NewLayout("C").C(El("p", Text("Building project"))))
+
+	scores := CompareVariants(r, ctx)
+
+	if _, ok := scores["alpha:beta"]; !ok {
+		t.Fatalf("CompareVariants should use deterministic key ordering, got keys: %v", scores)
+	}
+}

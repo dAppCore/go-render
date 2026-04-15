@@ -141,7 +141,12 @@ func CompareVariants(r *Responsive, ctx *Context) map[string]float64 {
 	scores := make(map[string]float64)
 	for i := range len(imprints) {
 		for j := i + 1; j < len(imprints); j++ {
-			key := imprints[i].name + ":" + imprints[j].name
+			left := imprints[i].name
+			right := imprints[j].name
+			if right < left {
+				left, right = right, left
+			}
+			key := left + ":" + right
 			scores[key] = imprints[i].imp.Similar(imprints[j].imp)
 		}
 	}
