@@ -14,34 +14,57 @@ import (
 // Does not handle script/style element content (go-html does not generate these).
 func StripTags(html string) string {
 	b := core.NewBuilder()
+	runes := []rune(html)
 	inTag := false
 	prevSpace := true // starts true to trim leading space
-	for _, r := range html {
-		if r == '<' {
-			inTag = true
-			continue
-		}
-		if r == '>' {
-			inTag = false
-			if !prevSpace {
-				b.WriteByte(' ')
-				prevSpace = true
-			}
-			continue
-		}
-		if !inTag {
-			if r == ' ' || r == '\t' || r == '\n' {
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		if inTag {
+			if r == '>' {
+				inTag = false
 				if !prevSpace {
 					b.WriteByte(' ')
 					prevSpace = true
 				}
-			} else {
-				b.WriteRune(r)
-				prevSpace = false
 			}
+			continue
+		}
+
+		switch r {
+		case '<':
+			if i+1 < len(runes) && isTagStartRune(runes[i+1]) {
+				inTag = true
+				continue
+			}
+			b.WriteRune(r)
+			prevSpace = false
+		case '>':
+			b.WriteRune(r)
+			prevSpace = false
+		case ' ', '\t', '\n', '\r':
+			if !prevSpace {
+				b.WriteByte(' ')
+				prevSpace = true
+			}
+		default:
+			b.WriteRune(r)
+			prevSpace = false
 		}
 	}
 	return core.Trim(b.String())
+}
+
+func isTagStartRune(r rune) bool {
+	switch {
+	case r >= 'a' && r <= 'z':
+		return true
+	case r >= 'A' && r <= 'Z':
+		return true
+	case r == '/', r == '!', r == '?':
+		return true
+	default:
+		return false
+	}
 }
 
 // Imprint renders a node tree to HTML, strips tags, tokenises the text,

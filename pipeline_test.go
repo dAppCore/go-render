@@ -46,6 +46,14 @@ func TestStripTags_NoTags_Good(t *testing.T) {
 	}
 }
 
+func TestStripTags_PreservesComparisonOperators_Good(t *testing.T) {
+	got := StripTags(`<p>1 < 2 and 3 > 2</p>`)
+	want := "1 < 2 and 3 > 2"
+	if got != want {
+		t.Errorf("StripTags(comparisons) = %q, want %q", got, want)
+	}
+}
+
 func TestStripTags_Entities_Good(t *testing.T) {
 	got := StripTags(`&lt;script&gt;`)
 	want := "&lt;script&gt;"
