@@ -295,6 +295,42 @@ func TestElNode_Attr_Good(t *testing.T) {
 	}
 }
 
+func TestElNode_AttrRecursiveThroughEachSeq_Good(t *testing.T) {
+	ctx := NewContext()
+	node := Attr(
+		EachSeq(slices.Values([]string{"a", "b"}), func(item string) Node {
+			return El("span", Raw(item))
+		}),
+		"data-kind",
+		"item",
+	)
+
+	got := NewLayout("C").C(node).Render(ctx)
+	if count := countText(got, `data-kind="item"`); count != 2 {
+		t.Fatalf("Attr through EachSeq should apply to every item, got %d in:\n%s", count, got)
+	}
+}
+
+func TestElNode_AttrRecursiveThroughSwitch_Good(t *testing.T) {
+	ctx := NewContext()
+	node := Attr(
+		Switch(
+			func(*Context) string { return "match" },
+			map[string]Node{
+				"match": El("span", Raw("visible")),
+				"miss":  El("span", Raw("hidden")),
+			},
+		),
+		"data-state",
+		"selected",
+	)
+
+	got := node.Render(ctx)
+	if !containsText(got, `data-state="selected"`) {
+		t.Fatalf("Attr through Switch should reach the selected case, got:\n%s", got)
+	}
+}
+
 func TestAccessibilityHelpers_Good(t *testing.T) {
 	ctx := NewContext()
 

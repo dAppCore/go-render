@@ -96,7 +96,7 @@ func El(tag string, children ...Node) Node {
 // Attr sets an attribute on an El node. Returns the node for chaining.
 // Usage example: Attr(El("a", Text("docs")), "href", "/docs")
 // It recursively traverses through wrappers like If, Unless, Entitled, Each,
-// Layout, and Responsive when present.
+// EachSeq, Switch, Layout, and Responsive when present.
 func Attr(n Node, key, value string) Node {
 	if n == nil {
 		return n
