@@ -392,7 +392,8 @@ func (n *switchNode) renderWithLayoutPath(ctx *Context, path string) string {
 // --- eachNode ---
 
 type eachNode[T any] struct {
-	items iter.Seq[T]
+	items []T
+	seq   iter.Seq[T]
 	fn    func(T) Node
 }
 
@@ -439,13 +440,13 @@ func nodePreservesLayoutPath(node Node, ctx *Context) bool {
 // Each iterates items and renders each via fn.
 // Usage example: Each([]string{"a", "b"}, func(v string) Node { return Text(v) })
 func Each[T any](items []T, fn func(T) Node) Node {
-	return EachSeq(slices.Values(items), fn)
+	return &eachNode[T]{items: items, fn: fn}
 }
 
 // EachSeq iterates an iter.Seq and renders each via fn.
 // Usage example: EachSeq(slices.Values([]string{"a", "b"}), func(v string) Node { return Text(v) })
 func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
-	return &eachNode[T]{items: items, fn: fn}
+	return &eachNode[T]{seq: items, fn: fn}
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
@@ -464,24 +465,42 @@ func (n *eachNode[T]) applyAttr(key, value string) {
 }
 
 func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
-	if n == nil || n.fn == nil || n.items == nil {
+	if n == nil || n.fn == nil {
+		return ""
+	}
+
+	items := n.materialiseItems()
+	if len(items) == 0 {
 		return ""
 	}
 
 	b := newTextBuilder()
-	idx := 0
-	for item := range n.items {
+	total := len(items)
+	for idx, item := range items {
 		child := n.fn(item)
 		if child == nil {
-			idx++
 			continue
 		}
 		childPath := path
-		if path != "" && !nodePreservesLayoutPath(child, ctx) {
+		if path != "" && (!nodePreservesLayoutPath(child, ctx) || total > 1) {
 			childPath = path + "." + strconv.Itoa(idx)
 		}
 		b.WriteString(renderWithLayoutPath(child, ctx, childPath))
-		idx++
 	}
 	return b.String()
+}
+
+func (n *eachNode[T]) materialiseItems() []T {
+	if n == nil {
+		return nil
+	}
+	if n.seq == nil {
+		return n.items
+	}
+
+	items := make([]T, 0)
+	for item := range n.seq {
+		items = append(items, item)
+	}
+	return items
 }

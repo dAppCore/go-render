@@ -235,6 +235,24 @@ func TestEachNode_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
 	}
 }
 
+func TestEachNode_MultipleLayouts_GetDistinctPaths_Good(t *testing.T) {
+	ctx := NewContext()
+	first := NewLayout("C").C(Raw("one"))
+	second := NewLayout("C").C(Raw("two"))
+
+	node := Each([]Node{first, second}, func(item Node) Node {
+		return item
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+	if !containsText(got, `data-block="C.0.0"`) {
+		t.Fatalf("first layout item should receive a distinct block path, got:\n%s", got)
+	}
+	if !containsText(got, `data-block="C.0.1"`) {
+		t.Fatalf("second layout item should receive a distinct block path, got:\n%s", got)
+	}
+}
+
 func TestEachSeq_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
 	ctx := NewContext()
 	inner := NewLayout("C").C(Raw("item"))
@@ -246,6 +264,24 @@ func TestEachSeq_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
 	want := `<main role="main" data-block="C"><main role="main" data-block="C.0">item</main></main>`
 	if got != want {
 		t.Fatalf("EachSeq nested layout render = %q, want %q", got, want)
+	}
+}
+
+func TestEachSeq_MultipleLayouts_GetDistinctPaths_Good(t *testing.T) {
+	ctx := NewContext()
+	first := NewLayout("C").C(Raw("one"))
+	second := NewLayout("C").C(Raw("two"))
+
+	node := EachSeq(slices.Values([]Node{first, second}), func(item Node) Node {
+		return item
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+	if !containsText(got, `data-block="C.0.0"`) {
+		t.Fatalf("first layout item should receive a distinct block path, got:\n%s", got)
+	}
+	if !containsText(got, `data-block="C.0.1"`) {
+		t.Fatalf("second layout item should receive a distinct block path, got:\n%s", got)
 	}
 }
 
