@@ -83,14 +83,29 @@ func GenerateRegistration(tag, className string) string {
 	return `customElements.define("` + tag + `", ` + className + `);`
 }
 
-// TagToClassName converts a kebab-case tag to PascalCase class name.
+// TagToClassName converts a custom element tag to PascalCase class name.
 // Usage example: className := TagToClassName("nav-bar")
 func TagToClassName(tag string) string {
 	b := core.NewBuilder()
-	for _, p := range core.Split(tag, "-") {
-		if len(p) > 0 {
-			b.WriteString(core.Upper(p[:1]))
-			b.WriteString(p[1:])
+	upperNext := true
+	for i := 0; i < len(tag); i++ {
+		ch := tag[i]
+		switch {
+		case ch >= 'a' && ch <= 'z':
+			if upperNext {
+				b.WriteByte(ch - ('a' - 'A'))
+			} else {
+				b.WriteByte(ch)
+			}
+			upperNext = false
+		case ch >= 'A' && ch <= 'Z':
+			b.WriteByte(ch)
+			upperNext = false
+		case ch >= '0' && ch <= '9':
+			b.WriteByte(ch)
+			upperNext = false
+		default:
+			upperNext = true
 		}
 	}
 	return b.String()

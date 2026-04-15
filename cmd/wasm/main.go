@@ -8,6 +8,9 @@ import (
 	html "dappco.re/go/core/html"
 )
 
+// Keep the callback alive for the lifetime of the WASM module.
+var renderToStringFunc js.Func
+
 // renderToString builds an HLCRF layout from JS arguments and returns HTML.
 // Slot content is injected via Raw() — the caller is responsible for sanitisation.
 // This is intentional: the WASM module is a rendering engine for trusted content
@@ -55,9 +58,11 @@ func renderToString(_ js.Value, args []js.Value) any {
 }
 
 func main() {
-	js.Global().Set("gohtml", js.ValueOf(map[string]any{
-		"renderToString": js.FuncOf(renderToString),
-	}))
+	renderToStringFunc = js.FuncOf(renderToString)
+
+	api := js.Global().Get("Object").New()
+	api.Set("renderToString", renderToStringFunc)
+	js.Global().Set("gohtml", api)
 
 	select {}
 }

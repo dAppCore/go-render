@@ -42,6 +42,9 @@ func TestTagToClassName_KebabCase_Good(t *testing.T) {
 		{"photo-grid", "PhotoGrid"},
 		{"nav-breadcrumb", "NavBreadcrumb"},
 		{"my-super-widget", "MySuperWidget"},
+		{"nav_bar", "NavBar"},
+		{"nav.bar", "NavBar"},
+		{"nav--bar", "NavBar"},
 	}
 	for _, tt := range tests {
 		got := TagToClassName(tt.tag)
