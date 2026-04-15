@@ -496,6 +496,19 @@ func TestLayout_DuplicateVariantChars_Ugly(t *testing.T) {
 	}
 }
 
+func TestLayout_DuplicateVariantChars_UniqueBlockIDs_Good(t *testing.T) {
+	ctx := NewContext()
+
+	layout := NewLayout("CCC").C(Raw("content"))
+	got := layout.Render(ctx)
+
+	for _, want := range []string{`data-block="C"`, `data-block="C.1"`, `data-block="C.2"`} {
+		if !containsText(got, want) {
+			t.Fatalf("CCC variant should assign unique block ID %q, got:\n%s", want, got)
+		}
+	}
+}
+
 func TestLayout_EmptySlots_Ugly(t *testing.T) {
 	ctx := NewContext()
 

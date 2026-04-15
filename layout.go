@@ -180,6 +180,7 @@ func (l *Layout) Render(ctx *Context) string {
 
 	b := newTextBuilder()
 	rendered := 0
+	rootCounts := make(map[byte]int)
 
 	for i := range len(l.variant) {
 		slot := l.variant[i]
@@ -194,6 +195,12 @@ func (l *Layout) Render(ctx *Context) string {
 		}
 
 		bid := l.blockID(slot, rendered)
+		if l.path == "" {
+			if seen := rootCounts[slot]; seen > 0 {
+				bid = string(slot) + "." + strconv.Itoa(seen)
+			}
+			rootCounts[slot] = rootCounts[slot] + 1
+		}
 
 		b.WriteByte('<')
 		b.WriteString(escapeHTML(meta.tag))
