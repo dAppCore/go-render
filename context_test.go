@@ -10,8 +10,14 @@ import (
 )
 
 type recordingTranslator struct {
+	lang string
 	key  string
 	args []any
+}
+
+func (r *recordingTranslator) SetLanguage(lang string) error {
+	r.lang = lang
+	return nil
 }
 
 func (r *recordingTranslator) T(key string, args ...any) string {
@@ -56,6 +62,18 @@ func TestNewContextWithService_AppliesLocaleToService_Good(t *testing.T) {
 	got := Text("prompt.yes").Render(ctx)
 	if got != "o" {
 		t.Fatalf("NewContextWithService locale translation = %q, want %q", got, "o")
+	}
+}
+
+func TestNewContextWithService_ForwardsFullLocaleToTranslator_Good(t *testing.T) {
+	svc := &recordingTranslator{}
+	ctx := NewContextWithService(svc, "en-GB")
+
+	if ctx == nil {
+		t.Fatal("NewContextWithService returned nil")
+	}
+	if svc.lang != "en-GB" {
+		t.Fatalf("NewContextWithService forwarded locale = %q, want %q", svc.lang, "en-GB")
 	}
 }
 
@@ -140,6 +158,19 @@ func TestContext_SetLocale_AppliesLocale_Good(t *testing.T) {
 	got := Text("prompt.yes").Render(ctx)
 	if got != "o" {
 		t.Fatalf("SetLocale translation = %q, want %q", got, "o")
+	}
+}
+
+func TestContext_SetLocale_ForwardsFullLocaleToTranslator_Good(t *testing.T) {
+	ctx := NewContextWithService(&recordingTranslator{})
+
+	if got := ctx.SetLocale("fr-FR"); got != ctx {
+		t.Fatal("SetLocale should return the same context for chaining")
+	}
+
+	svc := ctx.service.(*recordingTranslator)
+	if svc.lang != "fr-FR" {
+		t.Fatalf("SetLocale forwarded locale = %q, want %q", svc.lang, "fr-FR")
 	}
 }
 

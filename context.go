@@ -31,15 +31,33 @@ func applyLocaleToService(svc Translator, locale string) {
 	}
 
 	if setter, ok := svc.(interface{ SetLanguage(string) error }); ok {
-		base := locale
-		for i := 0; i < len(base); i++ {
-			if base[i] == '-' || base[i] == '_' {
-				base = base[:i]
-				break
-			}
+		// The built-in i18n service matches best on a base language tag.
+		// Custom translators should receive the full locale string.
+		if serviceUsesBaseLanguage(svc) {
+			locale = baseLanguage(locale)
 		}
-		_ = setter.SetLanguage(base)
+		_ = setter.SetLanguage(locale)
 	}
+}
+
+func serviceUsesBaseLanguage(svc Translator) bool {
+	t := reflect.TypeOf(svc)
+	for t != nil && t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t == nil {
+		return false
+	}
+	return t.PkgPath() == "dappco.re/go/core/i18n" && t.Name() == "Service"
+}
+
+func baseLanguage(locale string) string {
+	for i := 0; i < len(locale); i++ {
+		if locale[i] == '-' || locale[i] == '_' {
+			return locale[:i]
+		}
+	}
+	return locale
 }
 
 // NewContext creates a new rendering context with sensible defaults.
