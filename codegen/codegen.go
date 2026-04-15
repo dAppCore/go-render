@@ -51,7 +51,7 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
   }
   render(html) {
     const tpl = document.createElement("template");
-    tpl.insertAdjacentHTML("afterbegin", html);
+    tpl.innerHTML = html;
     this.#shadow.textContent = "";
     this.#shadow.appendChild(tpl.content.cloneNode(true));
   }
