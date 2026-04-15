@@ -38,7 +38,7 @@ var slotRegistry = map[byte]slotMeta{
 // Usage example: page := NewLayout("HCF").H(Text("title")).C(Text("body"))
 type Layout struct {
 	variant    string          // "HLCRF", "HCF", "C", etc.
-	path       string          // "" for root, "L-0-" for nested
+	path       string          // "" for root, "C.0" for nested
 	slots      map[byte][]Node // H, L, C, R, F → children
 	variantErr error
 }
@@ -147,9 +147,15 @@ func (l *Layout) F(nodes ...Node) *Layout {
 	return l
 }
 
-// blockID returns the deterministic data-block attribute value for a slot.
-func (l *Layout) blockID(slot byte) string {
-	return l.path + string(slot) + "-0"
+// blockID returns the deterministic data-block coordinate for a rendered slot.
+func (l *Layout) blockID(slot byte, rendered int) string {
+	if l.path == "" {
+		return string(slot)
+	}
+	if rendered == 0 {
+		return l.path
+	}
+	return l.path + "." + strconv.Itoa(rendered)
 }
 
 // VariantError reports whether the layout variant string contained any invalid
@@ -173,6 +179,7 @@ func (l *Layout) Render(ctx *Context) string {
 	}
 
 	b := newTextBuilder()
+	rendered := 0
 
 	for i := range len(l.variant) {
 		slot := l.variant[i]
@@ -186,7 +193,7 @@ func (l *Layout) Render(ctx *Context) string {
 			continue
 		}
 
-		bid := l.blockID(slot)
+		bid := l.blockID(slot, rendered)
 
 		b.WriteByte('<')
 		b.WriteString(escapeHTML(meta.tag))
@@ -206,6 +213,7 @@ func (l *Layout) Render(ctx *Context) string {
 		b.WriteString("</")
 		b.WriteString(meta.tag)
 		b.WriteByte('>')
+		rendered++
 	}
 
 	return b.String()
@@ -229,11 +237,6 @@ func (l *Layout) renderWithLayoutPath(ctx *Context, path string) string {
 	}
 
 	clone := *l
-	base := trimBlockPath(path)
-	if base != "" {
-		clone.path = base + "-"
-	} else {
-		clone.path = ""
-	}
+	clone.path = path
 	return clone.Render(ctx)
 }

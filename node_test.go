@@ -40,7 +40,7 @@ func TestLayout_DirectElementBlockPath_Good(t *testing.T) {
 	ctx := NewContext()
 	got := NewLayout("C").C(El("div", Raw("content"))).Render(ctx)
 
-	if !containsText(got, `data-block="C-0.0"`) {
+	if !containsText(got, `data-block="C.0"`) {
 		t.Fatalf("direct element inside layout should receive a block path, got:\n%s", got)
 	}
 }
@@ -53,10 +53,10 @@ func TestLayout_EachElementBlockPaths_Good(t *testing.T) {
 		}),
 	).Render(ctx)
 
-	if !containsText(got, `data-block="C-0.0.0"`) {
+	if !containsText(got, `data-block="C.0.0"`) {
 		t.Fatalf("first Each item should receive a block path, got:\n%s", got)
 	}
-	if !containsText(got, `data-block="C-0.0.1"`) {
+	if !containsText(got, `data-block="C.0.1"`) {
 		t.Fatalf("second Each item should receive a block path, got:\n%s", got)
 	}
 }
@@ -229,7 +229,7 @@ func TestEachNode_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
 	})
 
 	got := NewLayout("C").C(node).Render(ctx)
-	want := `<main role="main" data-block="C-0"><main role="main" data-block="C-0-C-0">item</main></main>`
+	want := `<main role="main" data-block="C"><main role="main" data-block="C.0">item</main></main>`
 	if got != want {
 		t.Fatalf("Each nested layout render = %q, want %q", got, want)
 	}
@@ -243,7 +243,7 @@ func TestEachSeq_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
 	})
 
 	got := NewLayout("C").C(node).Render(ctx)
-	want := `<main role="main" data-block="C-0"><main role="main" data-block="C-0-C-0">item</main></main>`
+	want := `<main role="main" data-block="C"><main role="main" data-block="C.0">item</main></main>`
 	if got != want {
 		t.Fatalf("EachSeq nested layout render = %q, want %q", got, want)
 	}

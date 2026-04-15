@@ -20,7 +20,7 @@ func TestRenderToString_Good(t *testing.T) {
 		t.Fatalf("renderToString should return string, got %T", gotAny)
 	}
 
-	want := `<main role="main" data-block="C-0"><strong>hello</strong></main>`
+	want := `<main role="main" data-block="C"><strong>hello</strong></main>`
 	if got != want {
 		t.Fatalf("renderToString(...) = %q, want %q", got, want)
 	}
@@ -48,7 +48,7 @@ func TestRenderToString_LocaleTypeGuard(t *testing.T) {
 		t.Fatalf("renderToString should return string, got %T", gotAny)
 	}
 
-	want := `<main role="main" data-block="C-0">x</main>`
+	want := `<main role="main" data-block="C">x</main>`
 	if got != want {
 		t.Fatalf("renderToString with non-string locale = %q, want %q", got, want)
 	}

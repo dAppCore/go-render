@@ -14,7 +14,7 @@ func TestResponsive_SingleVariant_Good(t *testing.T) {
 	if !containsText(got, `data-variant="desktop"`) {
 		t.Errorf("responsive should contain data-variant, got:\n%s", got)
 	}
-	if !containsText(got, `data-block="H-0"`) {
+	if !containsText(got, `data-block="H"`) {
 		t.Errorf("responsive should contain layout content, got:\n%s", got)
 	}
 }
@@ -76,11 +76,14 @@ func TestResponsive_NestedPaths_Good(t *testing.T) {
 
 	got := r.Render(ctx)
 
-	if !containsText(got, `data-block="C-0-H-0"`) {
-		t.Errorf("nested layout in responsive variant missing C-0-H-0 in:\n%s", got)
+	if !containsText(got, `data-block="C.0"`) {
+		t.Errorf("nested layout in responsive variant missing C.0 in:\n%s", got)
 	}
-	if !containsText(got, `data-block="C-0-C-0"`) {
-		t.Errorf("nested layout in responsive variant missing C-0-C-0 in:\n%s", got)
+	if !containsText(got, `data-block="C.0.1"`) {
+		t.Errorf("nested layout in responsive variant missing C.0.1 in:\n%s", got)
+	}
+	if !containsText(got, `data-block="C.0.2"`) {
+		t.Errorf("nested layout in responsive variant missing C.0.2 in:\n%s", got)
 	}
 }
 
@@ -94,7 +97,7 @@ func TestResponsive_NestedInsideLayout_PreservesBlockPath_Good(t *testing.T) {
 	if !containsText(got, `data-variant="mobile"`) {
 		t.Fatalf("responsive wrapper missing variant container in:\n%s", got)
 	}
-	if !containsText(got, `data-block="C-0-C-0"`) {
+	if !containsText(got, `data-block="C.0"`) {
 		t.Fatalf("responsive wrapper should preserve outer layout path, got:\n%s", got)
 	}
 }
@@ -107,9 +110,9 @@ func TestResponsive_VariantsIndependent_Good(t *testing.T) {
 
 	got := r.Render(ctx)
 
-	count := countText(got, `data-block="C-0"`)
+	count := countText(got, `data-block="C"`)
 	if count != 2 {
-		t.Errorf("expected 2 independent C-0 blocks, got %d in:\n%s", count, got)
+		t.Errorf("expected 2 independent C blocks, got %d in:\n%s", count, got)
 	}
 }
 
@@ -125,7 +128,7 @@ func TestResponsive_Variant_NilResponsive_Ugly(t *testing.T) {
 		t.Fatal("expected non-nil responsive from Variant on nil receiver")
 	}
 
-	if output := got.Render(NewContext()); output != `<div data-variant="mobile"><main role="main" data-block="C-0">content</main></div>` {
+	if output := got.Render(NewContext()); output != `<div data-variant="mobile"><main role="main" data-block="C">content</main></div>` {
 		t.Fatalf("unexpected output from nil receiver Variant path: %q", output)
 	}
 }
@@ -135,7 +138,7 @@ func TestResponsive_Render_NilContext_Good(t *testing.T) {
 		Variant("mobile", NewLayout("C").C(Raw("content")))
 
 	got := r.Render(nil)
-	want := `<div data-variant="mobile"><main role="main" data-block="C-0">content</main></div>`
+	want := `<div data-variant="mobile"><main role="main" data-block="C">content</main></div>`
 	if got != want {
 		t.Fatalf("responsive.Render(nil) = %q, want %q", got, want)
 	}

@@ -190,10 +190,10 @@ func TestLayout_DeepNesting10Levels_Ugly(t *testing.T) {
 		t.Error("10 levels deep: missing leaf content")
 	}
 
-	// Should have 10 levels of C-0 nesting
-	expectedBlock := "C-0"
+	// Should have 10 levels of C.0 nesting
+	expectedBlock := "C"
 	for i := 1; i < 10; i++ {
-		expectedBlock += "-C-0"
+		expectedBlock += ".0"
 	}
 	if !containsText(got, `data-block="`+expectedBlock+`"`) {
 		t.Errorf("10 levels deep: missing expected block ID %q in:\n%s", expectedBlock, got)
@@ -317,10 +317,10 @@ func TestEach_WrappedElement_PreservesItemPaths_Good(t *testing.T) {
 
 	got := NewLayout("C").C(node).Render(ctx)
 
-	if !containsText(got, `data-block="C-0.0.0"`) {
+	if !containsText(got, `data-block="C.0.0"`) {
 		t.Fatalf("wrapped Each element should preserve first item path, got:\n%s", got)
 	}
-	if !containsText(got, `data-block="C-0.0.1"`) {
+	if !containsText(got, `data-block="C.0.1"`) {
 		t.Fatalf("wrapped Each element should preserve second item path, got:\n%s", got)
 	}
 }
@@ -334,7 +334,7 @@ func TestEach_WrappedLayout_PreservesBlockPath_Good(t *testing.T) {
 	})
 
 	got := NewLayout("C").C(node).Render(ctx)
-	want := `<main role="main" data-block="C-0"><main role="main" data-block="C-0-C-0">item</main></main>`
+	want := `<main role="main" data-block="C"><main role="main" data-block="C.0">item</main></main>`
 	if got != want {
 		t.Fatalf("wrapped Each layout render = %q, want %q", got, want)
 	}
@@ -390,7 +390,7 @@ func TestLayout_VariantError_Bad(t *testing.T) {
 			build: func(layout *Layout) {
 				layout.H(Raw("header")).C(Raw("main")).F(Raw("footer"))
 			},
-			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main><footer role="contentinfo" data-block="F-0">footer</footer>`,
+			wantRender: `<header role="banner" data-block="H">header</header><main role="main" data-block="C">main</main><footer role="contentinfo" data-block="F">footer</footer>`,
 		},
 		{
 			name:          "mixed invalid variant",
@@ -400,7 +400,7 @@ func TestLayout_VariantError_Bad(t *testing.T) {
 			build: func(layout *Layout) {
 				layout.H(Raw("header")).C(Raw("main"))
 			},
-			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main>`,
+			wantRender: `<header role="banner" data-block="H">header</header><main role="main" data-block="C">main</main>`,
 		},
 	}
 
@@ -516,7 +516,7 @@ func TestLayout_NestedThroughIf_Ugly(t *testing.T) {
 
 	got := outer.Render(ctx)
 
-	if !containsText(got, `data-block="C-0-C-0"`) {
+	if !containsText(got, `data-block="C.0"`) {
 		t.Fatalf("nested layout inside If should inherit block path, got:\n%s", got)
 	}
 }
@@ -532,7 +532,7 @@ func TestLayout_NestedThroughSwitch_Ugly(t *testing.T) {
 
 	got := outer.Render(ctx)
 
-	if !containsText(got, `data-block="C-0-C-0"`) {
+	if !containsText(got, `data-block="C.0"`) {
 		t.Fatalf("nested layout inside Switch should inherit block path, got:\n%s", got)
 	}
 }

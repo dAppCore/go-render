@@ -5,12 +5,10 @@ package html
 // dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
 // stdlib strings is safe for WASM.
 
-import "strings"
-
 // ParseBlockID extracts the slot sequence from a data-block ID.
-// Usage example: slots := ParseBlockID("L-0-C-0")
-// Supports both the current slot-path form ("L-0-C-0") and dotted child
-// coordinates ("C-0.1", "C.2.1").
+// Usage example: slots := ParseBlockID("C.0.1")
+// It accepts the current dotted coordinate form and the older hyphenated
+// form for compatibility.
 func ParseBlockID(id string) []byte {
 	if id == "" {
 		return nil
@@ -82,30 +80,6 @@ func ParseBlockID(id string) []byte {
 		return nil
 	}
 	return slots
-}
-
-// trimBlockPath removes the trailing child coordinate from a block path when
-// the final segment is numeric. It keeps slot roots like "C-0" intact while
-// trimming nested coordinates such as "C-0.1" or "C-0.1.2" back to the parent
-// path.
-func trimBlockPath(path string) string {
-	if path == "" {
-		return ""
-	}
-
-	lastDot := strings.LastIndexByte(path, '.')
-	if lastDot < 0 || lastDot == len(path)-1 {
-		return path
-	}
-
-	for i := lastDot + 1; i < len(path); i++ {
-		ch := path[i]
-		if ch < '0' || ch > '9' {
-			return path
-		}
-	}
-
-	return path[:lastDot]
 }
 
 func allDigits(s string) bool {

@@ -25,7 +25,7 @@ func TestLayout_HLCRF_Good(t *testing.T) {
 	}
 
 	// Must contain data-block IDs
-	for _, want := range []string{`data-block="H-0"`, `data-block="L-0"`, `data-block="C-0"`, `data-block="R-0"`, `data-block="F-0"`} {
+	for _, want := range []string{`data-block="H"`, `data-block="L"`, `data-block="C"`, `data-block="R"`, `data-block="F"`} {
 		if !containsText(got, want) {
 			t.Errorf("HLCRF layout missing %q in:\n%s", want, got)
 		}
@@ -46,14 +46,14 @@ func TestLayout_HCF_Good(t *testing.T) {
 	got := layout.Render(ctx)
 
 	// HCF should have header, main, footer
-	for _, want := range []string{`data-block="H-0"`, `data-block="C-0"`, `data-block="F-0"`} {
+	for _, want := range []string{`data-block="H"`, `data-block="C"`, `data-block="F"`} {
 		if !containsText(got, want) {
 			t.Errorf("HCF layout missing %q in:\n%s", want, got)
 		}
 	}
 
 	// HCF must NOT have L or R slots
-	for _, unwanted := range []string{`data-block="L-0"`, `data-block="R-0"`} {
+	for _, unwanted := range []string{`data-block="L"`, `data-block="R"`} {
 		if containsText(got, unwanted) {
 			t.Errorf("HCF layout should NOT contain %q in:\n%s", unwanted, got)
 		}
@@ -67,15 +67,15 @@ func TestLayout_ContentOnly_Good(t *testing.T) {
 	got := layout.Render(ctx)
 
 	// Only C slot should render
-	if !containsText(got, `data-block="C-0"`) {
-		t.Errorf("C layout missing data-block=\"C-0\" in:\n%s", got)
+	if !containsText(got, `data-block="C"`) {
+		t.Errorf("C layout missing data-block=\"C\" in:\n%s", got)
 	}
 	if !containsText(got, "<main") {
 		t.Errorf("C layout missing <main in:\n%s", got)
 	}
 
 	// No other slots
-	for _, unwanted := range []string{`data-block="H-0"`, `data-block="L-0"`, `data-block="R-0"`, `data-block="F-0"`} {
+	for _, unwanted := range []string{`data-block="H"`, `data-block="L"`, `data-block="R"`, `data-block="F"`} {
 		if containsText(got, unwanted) {
 			t.Errorf("C layout should NOT contain %q in:\n%s", unwanted, got)
 		}
@@ -142,7 +142,7 @@ func TestLayout_Render_NilContext_Good(t *testing.T) {
 	layout := NewLayout("C").C(Raw("content"))
 
 	got := layout.Render(nil)
-	want := `<main role="main" data-block="C-0">content</main>`
+	want := `<main role="main" data-block="C">content</main>`
 	if got != want {
 		t.Fatalf("layout.Render(nil) = %q, want %q", got, want)
 	}
