@@ -6,6 +6,7 @@ import (
 	core "dappco.re/go/core"
 
 	"dappco.re/go/core/i18n/reversal"
+	"unicode/utf8"
 )
 
 // StripTags removes HTML tags from rendered output, returning plain text.
@@ -14,44 +15,47 @@ import (
 // Does not handle script/style element content (go-html does not generate these).
 func StripTags(html string) string {
 	b := core.NewBuilder()
-	runes := []rune(html)
-	inTag := false
 	prevSpace := true // starts true to trim leading space
-	for i := 0; i < len(runes); i++ {
-		r := runes[i]
-		if inTag {
-			if r == '>' {
-				inTag = false
-				if !prevSpace {
-					b.WriteByte(' ')
-					prevSpace = true
+
+	for i := 0; i < len(html); {
+		r, size := utf8.DecodeRuneInString(html[i:])
+
+		if r == '<' {
+			next, nextSize := nextRune(html, i+size)
+			if nextSize > 0 && isTagStartRune(next) {
+				if end, ok := findTagCloser(html, i+size+nextSize); ok {
+					if !prevSpace {
+						b.WriteByte(' ')
+						prevSpace = true
+					}
+					i = end + 1
+					continue
 				}
 			}
-			continue
 		}
 
 		switch r {
-		case '<':
-			if i+1 < len(runes) && isTagStartRune(runes[i+1]) && hasTagCloser(runes, i+2) {
-				inTag = true
-				continue
-			}
-			b.WriteRune(r)
-			prevSpace = false
-		case '>':
-			b.WriteRune(r)
-			prevSpace = false
 		case ' ', '\t', '\n', '\r':
 			if !prevSpace {
 				b.WriteByte(' ')
 				prevSpace = true
 			}
 		default:
-			b.WriteRune(r)
+			_, _ = b.WriteString(html[i : i+size])
 			prevSpace = false
 		}
+
+		i += size
 	}
+
 	return core.Trim(b.String())
+}
+
+func nextRune(s string, i int) (rune, int) {
+	if i >= len(s) {
+		return 0, 0
+	}
+	return utf8.DecodeRuneInString(s[i:])
 }
 
 func isTagStartRune(r rune) bool {
@@ -67,13 +71,29 @@ func isTagStartRune(r rune) bool {
 	}
 }
 
-func hasTagCloser(runes []rune, start int) bool {
-	for i := start; i < len(runes); i++ {
-		if runes[i] == '>' {
-			return true
+func findTagCloser(s string, start int) (int, bool) {
+	inSingleQuote := false
+	inDoubleQuote := false
+
+	for i := start; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		switch r {
+		case '\'':
+			if !inDoubleQuote {
+				inSingleQuote = !inSingleQuote
+			}
+		case '"':
+			if !inSingleQuote {
+				inDoubleQuote = !inDoubleQuote
+			}
+		case '>':
+			if !inSingleQuote && !inDoubleQuote {
+				return i, true
+			}
 		}
+		i += size
 	}
-	return false
+	return 0, false
 }
 
 // Imprint renders a node tree to HTML, strips tags, tokenises the text,

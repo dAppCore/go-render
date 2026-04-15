@@ -70,6 +70,34 @@ func TestStripTags_Entities_Good(t *testing.T) {
 	}
 }
 
+func TestStripTags_QuotedAttributes_Good(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "double quotes",
+			input: `<div title="1 > 0">answer</div>`,
+			want:  "answer",
+		},
+		{
+			name:  "single quotes",
+			input: `<div title='a > b'>answer</div>`,
+			want:  "answer",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := StripTags(tt.input)
+			if got != tt.want {
+				t.Errorf("StripTags(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestImprint_FromNode_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
