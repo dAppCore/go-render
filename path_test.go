@@ -38,6 +38,19 @@ func TestNestedLayout_DeepNesting_Ugly(t *testing.T) {
 	}
 }
 
+func TestNestedLayout_StablePathsAcrossEmptySlots_Good(t *testing.T) {
+	inner := NewLayout("HCF").
+		C(Raw("body")).
+		F(Raw("links"))
+	outer := NewLayout("C").C(inner)
+
+	got := outer.Render(NewContext())
+	want := `<main role="main" data-block="C"><main role="main" data-block="C.0.1">body</main><footer role="contentinfo" data-block="C.0.2">links</footer></main>`
+	if got != want {
+		t.Fatalf("nested layout with empty leading slots = %q, want %q", got, want)
+	}
+}
+
 func TestBlockID_BuildsPath_Good(t *testing.T) {
 	tests := []struct {
 		path     string

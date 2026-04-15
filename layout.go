@@ -174,22 +174,24 @@ func (l *Layout) Render(ctx *Context) string {
 	}
 
 	b := newTextBuilder()
-	rendered := 0
 	slotCounts := make(map[byte]int)
+	slotOrdinal := 0
 
 	for i := range len(l.variant) {
 		slot := l.variant[i]
-		children := l.slots[slot]
-		if len(children) == 0 {
-			continue
-		}
-
 		meta, ok := slotRegistry[slot]
 		if !ok {
 			continue
 		}
 
-		count := rendered
+		count := slotOrdinal
+		slotOrdinal++
+
+		children := l.slots[slot]
+		if len(children) == 0 {
+			continue
+		}
+
 		if l.path == "" {
 			count = slotCounts[slot]
 			slotCounts[slot] = count + 1
@@ -214,7 +216,6 @@ func (l *Layout) Render(ctx *Context) string {
 		b.WriteString("</")
 		b.WriteString(meta.tag)
 		b.WriteByte('>')
-		rendered++
 	}
 
 	return b.String()
