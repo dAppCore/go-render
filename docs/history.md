@@ -95,7 +95,7 @@ The test is skipped under `go test -short` and is guarded with `//go:build !js`.
 
 These are not regressions; they are design choices or deferred work recorded for future consideration.
 
-1. **Invalid layout variants are still non-fatal at render time.** `NewLayout("XYZ")` produces empty output, but `VariantError()` exposes the validation result without changing the `NewLayout` API.
+1. **Invalid layout variants are silently ignored.** `NewLayout("XYZ")` produces empty output, and the compatibility helpers `ValidateLayoutVariant()` / `VariantError()` now return `nil`.
 
 2. **No WASM integration test.** `cmd/wasm/size_test.go` tests binary size only. The `renderToString` behaviour is tested by building and running the WASM binary in a browser, not by an automated test. A `syscall/js`-compatible test harness would be needed.
 

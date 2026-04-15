@@ -93,6 +93,21 @@ func TestTextNode_CustomTranslatorReceivesCountArgs_Good(t *testing.T) {
 	}
 }
 
+func TestTextNode_NonCountKey_DoesNotInjectCount_Good(t *testing.T) {
+	ctx := NewContextWithService(&recordingTranslator{})
+	ctx.Metadata["count"] = 3
+
+	got := Text("greeting.hello").Render(ctx)
+	if got != "translated" {
+		t.Fatalf("Text with non-count key = %q, want %q", got, "translated")
+	}
+
+	svc := ctx.service.(*recordingTranslator)
+	if len(svc.args) != 0 {
+		t.Fatalf("non-count key should not receive count args, got %#v", svc.args)
+	}
+}
+
 func TestContext_SetService_AppliesLocale_Good(t *testing.T) {
 	svc, _ := i18n.New()
 	ctx := NewContext("fr-FR")

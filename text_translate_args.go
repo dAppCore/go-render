@@ -11,6 +11,9 @@ func translationArgs(ctx *Context, key string, args []any) []any {
 	if ctx == nil {
 		return args
 	}
+	if !strings.HasPrefix(key, "i18n.count.") {
+		return args
+	}
 
 	count, ok := contextCount(ctx)
 	if !ok {
@@ -20,7 +23,7 @@ func translationArgs(ctx *Context, key string, args []any) []any {
 	if len(args) == 0 {
 		return []any{count}
 	}
-	if strings.HasPrefix(key, "i18n.count.") && !isCountLike(args[0]) {
+	if !isCountLike(args[0]) {
 		return append([]any{count}, args...)
 	}
 	return args

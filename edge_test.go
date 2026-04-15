@@ -1,7 +1,6 @@
 package html
 
 import (
-	"errors"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
@@ -374,29 +373,24 @@ func TestLayout_InvalidVariantChars_Bad(t *testing.T) {
 	}
 }
 
-func TestLayout_VariantError_Bad(t *testing.T) {
+func TestLayout_VariantError_NoOp_Good(t *testing.T) {
 	tests := []struct {
-		name          string
-		variant       string
-		wantInvalid   bool
-		wantErrString string
-		build         func(*Layout)
-		wantRender    string
+		name       string
+		variant    string
+		build      func(*Layout)
+		wantRender string
 	}{
 		{
-			name:        "valid variant",
-			variant:     "HCF",
-			wantInvalid: false,
+			name:    "valid variant",
+			variant: "HCF",
 			build: func(layout *Layout) {
 				layout.H(Raw("header")).C(Raw("main")).F(Raw("footer"))
 			},
 			wantRender: `<header role="banner" data-block="H">header</header><main role="main" data-block="C">main</main><footer role="contentinfo" data-block="F">footer</footer>`,
 		},
 		{
-			name:          "mixed invalid variant",
-			variant:       "HXC",
-			wantInvalid:   true,
-			wantErrString: "html: invalid layout variant HXC",
+			name:    "mixed invalid variant",
+			variant: "HXC",
 			build: func(layout *Layout) {
 				layout.H(Raw("header")).C(Raw("main"))
 			},
@@ -410,17 +404,7 @@ func TestLayout_VariantError_Bad(t *testing.T) {
 			if tt.build != nil {
 				tt.build(layout)
 			}
-			if tt.wantInvalid {
-				if layout.VariantError() == nil {
-					t.Fatalf("VariantError() = nil, want sentinel error for %q", tt.variant)
-				}
-				if !errors.Is(layout.VariantError(), ErrInvalidLayoutVariant) {
-					t.Fatalf("VariantError() = %v, want errors.Is(..., ErrInvalidLayoutVariant)", layout.VariantError())
-				}
-				if got := layout.VariantError().Error(); got != tt.wantErrString {
-					t.Fatalf("VariantError().Error() = %q, want %q", got, tt.wantErrString)
-				}
-			} else if layout.VariantError() != nil {
+			if layout.VariantError() != nil {
 				t.Fatalf("VariantError() = %v, want nil", layout.VariantError())
 			}
 
@@ -432,30 +416,19 @@ func TestLayout_VariantError_Bad(t *testing.T) {
 	}
 }
 
-func TestValidateLayoutVariant_Good(t *testing.T) {
+func TestValidateLayoutVariant_NoOp_Good(t *testing.T) {
 	tests := []struct {
 		name    string
 		variant string
-		wantErr bool
 	}{
-		{name: "valid", variant: "HCF", wantErr: false},
-		{name: "invalid", variant: "HXC", wantErr: true},
-		{name: "empty", variant: "", wantErr: false},
+		{name: "valid", variant: "HCF"},
+		{name: "invalid", variant: "HXC"},
+		{name: "empty", variant: ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateLayoutVariant(tt.variant)
-			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("ValidateLayoutVariant(%q) = nil, want error", tt.variant)
-				}
-				if !errors.Is(err, ErrInvalidLayoutVariant) {
-					t.Fatalf("ValidateLayoutVariant(%q) = %v, want ErrInvalidLayoutVariant", tt.variant, err)
-				}
-				return
-			}
-
 			if err != nil {
 				t.Fatalf("ValidateLayoutVariant(%q) = %v, want nil", tt.variant, err)
 			}

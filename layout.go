@@ -13,9 +13,11 @@ import (
 // Compile-time interface check.
 var _ Node = (*Layout)(nil)
 
-// ErrInvalidLayoutVariant reports that a layout variant string contains at least
-// one unrecognised slot character.
-// Usage example: if errors.Is(err, html.ErrInvalidLayoutVariant) { ... }
+// ErrInvalidLayoutVariant is retained for compatibility.
+//
+// Layout variant strings now silently skip unknown characters instead of
+// surfacing validation errors, so this sentinel is never returned by the
+// current implementation.
 var ErrInvalidLayoutVariant = errors.New("html: invalid layout variant")
 
 // slotMeta holds the semantic HTML mapping for each HLCRF slot.
@@ -63,28 +65,16 @@ func NewLayout(variant string) *Layout {
 		variant: variant,
 		slots:   make(map[byte][]Node),
 	}
-	l.variantErr = ValidateLayoutVariant(variant)
 	return l
 }
 
-// ValidateLayoutVariant reports whether a layout variant string contains only
-// recognised slot characters.
+// ValidateLayoutVariant is retained for compatibility.
 //
-// It returns nil for valid variants and ErrInvalidLayoutVariant wrapped in a
-// layoutVariantError for invalid ones.
+// Variant strings are permissive now: unknown characters are ignored during
+// rendering, so this helper always returns nil.
 func ValidateLayoutVariant(variant string) error {
-	var invalid bool
-	for i := range len(variant) {
-		if _, ok := slotRegistry[variant[i]]; ok {
-			continue
-		}
-		invalid = true
-		break
-	}
-	if !invalid {
-		return nil
-	}
-	return &layoutVariantError{variant: variant}
+	_ = variant
+	return nil
 }
 
 func (l *Layout) slotsForSlot(slot byte) []Node {
@@ -161,13 +151,15 @@ func (l *Layout) blockID(slot byte, rendered int) string {
 	return l.path + "." + strconv.Itoa(rendered)
 }
 
-// VariantError reports whether the layout variant string contained any invalid
-// slot characters when the layout was constructed.
+// VariantError is retained for compatibility.
+//
+// Layouts no longer record variant validation errors, so this always returns
+// nil. Unknown characters are ignored at render time.
 func (l *Layout) VariantError() error {
 	if l == nil {
 		return nil
 	}
-	return l.variantErr
+	return nil
 }
 
 // Render produces the semantic HTML for this layout.
