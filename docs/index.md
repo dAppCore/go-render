@@ -33,7 +33,7 @@ func main() {
 }
 ```
 
-This builds a Header-Content-Footer layout with semantic HTML elements (`<header>`, `<main>`, `<footer>`), ARIA roles, and deterministic `data-block` path identifiers. Text nodes pass through the `go-i18n` translation layer and are HTML-escaped by default.
+This builds a Header-Content-Footer layout with semantic HTML elements (`<header>`, `<main>`, `<footer>`), ARIA roles, and deterministic `data-block` path identifiers. Text nodes pass through the `go-i18n` translation layer and are HTML-escaped by default. The rendering context exposes both `Data` and `Metadata` as the same backing map, and locale/service setters keep translation wiring explicit.
 
 ## Package Layout
 
@@ -42,7 +42,7 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 | `node.go` | `Node` interface and all node types: `El`, `Text`, `Raw`, `If`, `Unless`, `Each`, `EachSeq`, `Switch`, `Entitled`, plus `AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`, and `Role` helpers |
 | `layout.go` | HLCRF compositor with semantic HTML elements and ARIA roles |
 | `responsive.go` | Multi-variant breakpoint wrapper (`data-variant` containers) and CSS selector helper |
-| `context.go` | Rendering context: identity, locale, entitlements, i18n service |
+| `context.go` | Rendering context: identity, locale, entitlements, data/metadata alias, i18n service |
 | `render.go` | `Render()` convenience function |
 | `path.go` | `ParseBlockID()` for decoding `data-block` path attributes |
 | `pipeline.go` | `StripTags`, `Imprint`, `CompareVariants` (server-side only, `!js` build tag) |
@@ -54,9 +54,9 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 
 **Node tree** -- All renderable units implement `Node`, a single-method interface: `Render(ctx *Context) string`. The library composes nodes into trees using `El()` for elements, `Text()` for translated text, control-flow constructors (`If`, `Unless`, `Each`, `Switch`, `Entitled`), and accessibility helpers (`AriaLabel`, `AltText`, `TabIndex`, `AutoFocus`, `Role`).
 
-**HLCRF Layout** -- A five-slot compositor that maps to semantic HTML: `<header>` (H), `<nav>` (L), `<main>` (C), `<aside>` (R), `<footer>` (F). The variant string controls which slots render: `"HLCRF"` for all five, `"HCF"` for three, `"C"` for content only. Layouts nest: placing a `Layout` inside another layout's slot produces hierarchical `data-block` paths like `L-0-C-0`.
+**HLCRF Layout** -- A five-slot compositor that maps to semantic HTML: `<header>` (H), `<nav>` (L), `<main>` (C), `<aside>` (R), `<footer>` (F). The variant string controls which slots render: `"HLCRF"` for all five, `"HCF"` for three, `"C"` for content only. Layouts nest: placing a `Layout` inside another layout's slot produces hierarchical `data-block` paths like `L.0`, `L.0.1`, and `L.0.2`.
 
-**Responsive variants** -- `Responsive` wraps multiple `Layout` instances with named breakpoints (e.g. `"desktop"`, `"mobile"`). Each variant renders inside a `<div data-variant="name">` container for CSS or JavaScript targeting. `VariantSelector(name)` returns a ready-made attribute selector for styling these containers from CSS.
+**Responsive variants** -- `Responsive` wraps multiple `Layout` instances with named breakpoints (e.g. `"desktop"`, `"mobile"`). Each variant renders inside a `<div data-variant="name">` container for CSS or JavaScript targeting, and `Responsive.Add(name, layout, media)` can also annotate the container with `data-media`. `VariantSelector(name)` returns a ready-made attribute selector for styling these containers from CSS.
 
 **Grammar pipeline** -- Server-side only. `Imprint()` renders a node tree to HTML, strips tags, tokenises the plain text via `go-i18n/reversal`, and returns a `GrammarImprint` for semantic analysis. `CompareVariants()` computes pairwise similarity scores across responsive variants.
 

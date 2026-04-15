@@ -22,7 +22,7 @@ All concrete node types are unexported structs with exported constructor functio
 | Constructor | Behaviour |
 |-------------|-----------|
 | `El(tag, ...Node)` | HTML element with children. Void elements (`br`, `img`, `input`, etc.) never emit a closing tag. |
-| `Attr(Node, key, value)` | Sets an attribute on an `El` node. Traverses through `If`, `Unless`, and `Entitled` wrappers. Returns the node for chaining. |
+| `Attr(Node, key, value)` | Sets an attribute on an `El` node. Traverses through `If`, `Unless`, `Entitled`, `Each`, `EachSeq`, and `Switch` wrappers. Returns the node for chaining. |
 | `AriaLabel(Node, label)` | Convenience helper that sets `aria-label` on an element node. |
 | `AltText(Node, text)` | Convenience helper that sets `alt` on an element node. |
 | `TabIndex(Node, index)` | Convenience helper that sets `tabindex` on an element node. |
@@ -55,6 +55,7 @@ type Context struct {
     Locale       string                     // BCP 47 locale string
     Entitlements func(feature string) bool  // feature gate callback
     Data         map[string]any             // arbitrary per-request data
+    Metadata     map[string]any             // alias of Data for alternate naming
     service      Translator                 // unexported; set via constructor
 }
 ```
@@ -63,6 +64,8 @@ Two constructors are provided:
 
 - `NewContext()` creates a context with sensible defaults and an empty `Data` map.
 - `NewContextWithService(svc)` creates a context backed by any translator implementing `T(key, ...any) string` such as `*i18n.Service`.
+
+`Data` and `Metadata` point at the same backing map when the context is created through `NewContext()`. Use whichever name is clearer in the calling code. `SetLocale()` and `SetService()` keep the active translator in sync when either value changes.
 
 The `service` field is intentionally unexported. When nil, server builds fall back to the global `i18n.T()` default while JS builds render the key unchanged. This prevents callers from setting the service inconsistently after construction while keeping the WASM import graph lean.
 
@@ -142,9 +145,10 @@ html.NewLayout("HCF").
 
 ```go
 ParseBlockID("L.0.C.0")       // returns ['L', 'C']
-ParseBlockID("C.0.C.0.C.0")   // returns ['C', 'C', 'C']
-ParseBlockID("H")             // returns ['H']
-ParseBlockID("")              // returns nil
+ParseBlockID("L-0-C-0")       // legacy hyphenated form, also returns ['L', 'C']
+ParseBlockID("C.0.C.0.C.0")    // returns ['C', 'C', 'C']
+ParseBlockID("H")              // returns ['H']
+ParseBlockID("")               // returns nil
 ```
 
 This enables server-side or client-side code to locate a specific block in the rendered tree by its structural path.
@@ -164,7 +168,7 @@ html.NewResponsive().
         C(html.Raw("main")))
 ```
 
-Each variant renders inside a `<div data-variant="name">` container. Variants render in insertion order. CSS media queries or JavaScript can target these containers for show/hide logic.
+Each variant renders inside a `<div data-variant="name">` container. Variants render in insertion order. When supplied, `Responsive.Add(name, layout, media)` also emits `data-media="..."` on the wrapper so downstream CSS can reflect the breakpoint hint. CSS media queries or JavaScript can target these containers for show/hide logic.
 
 `VariantSelector(name)` returns a CSS attribute selector for a specific responsive variant, making stylesheet targeting less error-prone than hand-writing the attribute selector repeatedly.
 
