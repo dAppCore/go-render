@@ -4,6 +4,7 @@ import (
 	"html"
 	"iter"
 	"maps"
+	"reflect"
 	"slices"
 	"strconv"
 )
@@ -98,24 +99,42 @@ func El(tag string, children ...Node) Node {
 // It recursively traverses through wrappers like If, Unless, Entitled, Each,
 // EachSeq, Switch, Layout, and Responsive when present.
 func Attr(n Node, key, value string) Node {
-	if n == nil {
-		return n
+	if isNilNode(n) {
+		return nil
 	}
 
 	switch t := n.(type) {
 	case *elNode:
+		if t == nil {
+			return nil
+		}
 		t.attrs[key] = value
 	case *ifNode:
+		if t == nil {
+			return nil
+		}
 		Attr(t.node, key, value)
 	case *unlessNode:
+		if t == nil {
+			return nil
+		}
 		Attr(t.node, key, value)
 	case *entitledNode:
+		if t == nil {
+			return nil
+		}
 		Attr(t.node, key, value)
 	case *switchNode:
+		if t == nil {
+			return nil
+		}
 		for _, child := range t.cases {
 			Attr(child, key, value)
 		}
 	case *Layout:
+		if t == nil {
+			return nil
+		}
 		if t.slots != nil {
 			for slot, children := range t.slots {
 				for i := range children {
@@ -132,6 +151,20 @@ func Attr(n Node, key, value string) Node {
 		t.applyAttr(key, value)
 	}
 	return n
+}
+
+func isNilNode(n Node) bool {
+	if n == nil {
+		return true
+	}
+
+	v := reflect.ValueOf(n)
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return v.IsNil()
+	default:
+		return false
+	}
 }
 
 // AriaLabel sets an aria-label attribute on an element node.

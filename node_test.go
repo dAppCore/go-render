@@ -456,6 +456,29 @@ func TestAttr_NonElement_Ugly(t *testing.T) {
 	}
 }
 
+func TestAttr_TypedNilWrappers_Ugly(t *testing.T) {
+	tests := []struct {
+		name string
+		node Node
+	}{
+		{name: "layout", node: (*Layout)(nil)},
+		{name: "responsive", node: (*Responsive)(nil)},
+		{name: "if", node: (*ifNode)(nil)},
+		{name: "unless", node: (*unlessNode)(nil)},
+		{name: "entitled", node: (*entitledNode)(nil)},
+		{name: "switch", node: (*switchNode)(nil)},
+		{name: "each", node: (*eachNode[string])(nil)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Attr(tt.node, "data-test", "x"); got != nil {
+				t.Fatalf("Attr on typed nil %s should return nil, got %#v", tt.name, got)
+			}
+		})
+	}
+}
+
 func TestUnlessNode_True_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Unless(func(*Context) bool { return true }, Raw("hidden"))
