@@ -93,19 +93,19 @@ Slot letters not present in the variant string are ignored, even if nodes have b
 
 ### Deterministic Block IDs
 
-Each rendered slot receives a `data-block` attribute encoding its position in the layout tree. At the root level, IDs follow the pattern `{slot}-0`:
+Each rendered slot receives a `data-block` attribute encoding its position in the layout tree. At the root level, IDs use the slot letter itself:
 
 ```html
-<header role="banner" data-block="H-0">...</header>
-<main role="main" data-block="C-0">...</main>
-<footer role="contentinfo" data-block="F-0">...</footer>
+<header role="banner" data-block="H">...</header>
+<main role="main" data-block="C">...</main>
+<footer role="contentinfo" data-block="F">...</footer>
 ```
 
 Block IDs are constructed by simple string concatenation (no `fmt.Sprintf`) to keep the `fmt` package out of the WASM import graph.
 
 ### Nested Layouts
 
-`Layout` implements `Node`, so a layout can be placed inside any slot of another layout. At render time, nested layouts are cloned and their internal `path` field is set to the parent's block ID as a prefix. This produces hierarchical paths:
+`Layout` implements `Node`, so a layout can be placed inside any slot of another layout. At render time, nested layouts retain the parent's block ID as a prefix. This produces hierarchical paths:
 
 ```go
 inner := html.NewLayout("HCF").
@@ -120,7 +120,7 @@ outer := html.NewLayout("HLCRF").
     F(html.Raw("foot"))
 ```
 
-The inner layout's slots render with prefixed block IDs: `L-0-H-0`, `L-0-C-0`, `L-0-F-0`. At 10 levels of nesting, the deepest block ID becomes `C-0-C-0-C-0-C-0-C-0-C-0-C-0-C-0-C-0-C-0` (tested in `edge_test.go`).
+The inner layout's slots render with prefixed block IDs: `L.0`, `L.0.1`, `L.0.2`. At 10 levels of nesting, the deepest block ID becomes `C.0.0.0.0.0.0.0.0.0` (tested in `edge_test.go`).
 
 The clone-on-render approach means the original layout is never mutated. This is safe for concurrent use.
 
@@ -141,9 +141,9 @@ html.NewLayout("HCF").
 `ParseBlockID()` in `path.go` extracts the slot letter sequence from a `data-block` attribute value:
 
 ```go
-ParseBlockID("L-0-C-0")       // returns ['L', 'C']
-ParseBlockID("C-0-C-0-C-0")   // returns ['C', 'C', 'C']
-ParseBlockID("H-0")           // returns ['H']
+ParseBlockID("L.0.C.0")       // returns ['L', 'C']
+ParseBlockID("C.0.C.0.C.0")   // returns ['C', 'C', 'C']
+ParseBlockID("H")             // returns ['H']
 ParseBlockID("")              // returns nil
 ```
 

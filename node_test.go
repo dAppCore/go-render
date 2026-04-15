@@ -259,6 +259,60 @@ func TestElNode_Attr_Good(t *testing.T) {
 	}
 }
 
+func TestAccessibilityHelpers_Good(t *testing.T) {
+	ctx := NewContext()
+
+	button := Role(
+		AriaLabel(
+			TabIndex(
+				AutoFocus(El("button", Raw("save"))),
+				3,
+			),
+			"Save changes",
+		),
+		"button",
+	)
+
+	got := button.Render(ctx)
+	for _, want := range []string{
+		`aria-label="Save changes"`,
+		`autofocus="autofocus"`,
+		`role="button"`,
+		`tabindex="3"`,
+		">save</button>",
+	} {
+		if !containsText(got, want) {
+			t.Fatalf("accessibility helpers missing %q in:\n%s", want, got)
+		}
+	}
+
+	img := AltText(El("img"), "Profile photo")
+	if got := img.Render(ctx); got != `<img alt="Profile photo">` {
+		t.Fatalf("AltText() = %q, want %q", got, `<img alt="Profile photo">`)
+	}
+}
+
+func TestSwitchNode_Good(t *testing.T) {
+	ctx := NewContext()
+	ctx.Locale = "en-GB"
+
+	node := Switch(
+		func(ctx *Context) string { return ctx.Locale },
+		map[string]Node{
+			"en-GB": Raw("hello"),
+			"fr-FR": Raw("bonjour"),
+		},
+	)
+
+	if got := node.Render(ctx); got != "hello" {
+		t.Fatalf("Switch matched case = %q, want %q", got, "hello")
+	}
+
+	if got := Switch(func(*Context) string { return "de-DE" }, map[string]Node{"en-GB": Raw("hello")}).Render(ctx); got != "" {
+		t.Fatalf("Switch missing case = %q, want empty", got)
+	}
+}
+
 func TestElNode_AttrEscaping_Good(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("img"), "alt", `he said "hello"`)
