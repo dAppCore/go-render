@@ -150,7 +150,10 @@ func (l *Layout) F(nodes ...Node) *Layout {
 // blockID returns the deterministic data-block coordinate for a rendered slot.
 func (l *Layout) blockID(slot byte, rendered int) string {
 	if l.path == "" {
-		return string(slot)
+		if rendered == 0 {
+			return string(slot)
+		}
+		return string(slot) + "." + strconv.Itoa(rendered)
 	}
 	if rendered == 0 {
 		return l.path
@@ -180,7 +183,7 @@ func (l *Layout) Render(ctx *Context) string {
 
 	b := newTextBuilder()
 	rendered := 0
-	rootCounts := make(map[byte]int)
+	slotCounts := make(map[byte]int)
 
 	for i := range len(l.variant) {
 		slot := l.variant[i]
@@ -194,13 +197,12 @@ func (l *Layout) Render(ctx *Context) string {
 			continue
 		}
 
-		bid := l.blockID(slot, rendered)
+		count := rendered
 		if l.path == "" {
-			if seen := rootCounts[slot]; seen > 0 {
-				bid = string(slot) + "." + strconv.Itoa(seen)
-			}
-			rootCounts[slot] = rootCounts[slot] + 1
+			count = slotCounts[slot]
+			slotCounts[slot] = count + 1
 		}
+		bid := l.blockID(slot, count)
 
 		b.WriteByte('<')
 		b.WriteString(escapeHTML(meta.tag))

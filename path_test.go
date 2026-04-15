@@ -46,6 +46,7 @@ func TestBlockID_BuildsPath_Good(t *testing.T) {
 		want     string
 	}{
 		{"", 'H', 0, "H"},
+		{"", 'H', 1, "H.1"},
 		{"", 'F', 0, "F"},
 		{"L.0", 'C', 0, "L.0"},
 		{"L.0", 'C', 1, "L.0.1"},
