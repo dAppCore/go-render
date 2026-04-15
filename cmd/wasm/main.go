@@ -4,8 +4,6 @@ package main
 
 import (
 	"syscall/js"
-
-	html "dappco.re/go/core/html"
 )
 
 // Keep the callback alive for the lifetime of the WASM module.
@@ -25,36 +23,24 @@ func renderToString(_ js.Value, args []js.Value) any {
 		return ""
 	}
 
-	ctx := html.NewContext()
-
+	locale := ""
 	if len(args) >= 2 && args[1].Type() == js.TypeString {
-		ctx.SetLocale(args[1].String())
+		locale = args[1].String()
 	}
 
-	layout := html.NewLayout(variant)
+	slots := make(map[string]string)
 
 	if len(args) >= 3 && args[2].Type() == js.TypeObject {
-		slots := args[2]
+		jsSlots := args[2]
 		for _, slot := range []string{"H", "L", "C", "R", "F"} {
-			content := slots.Get(slot)
-			if content.Type() == js.TypeString && content.String() != "" {
-				switch slot {
-				case "H":
-					layout.H(html.Raw(content.String()))
-				case "L":
-					layout.L(html.Raw(content.String()))
-				case "C":
-					layout.C(html.Raw(content.String()))
-				case "R":
-					layout.R(html.Raw(content.String()))
-				case "F":
-					layout.F(html.Raw(content.String()))
-				}
+			content := jsSlots.Get(slot)
+			if content.Type() == js.TypeString {
+				slots[slot] = content.String()
 			}
 		}
 	}
 
-	return layout.Render(ctx)
+	return renderLayout(variant, locale, slots)
 }
 
 func main() {
