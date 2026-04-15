@@ -3,10 +3,22 @@
 package html
 
 import (
+	"reflect"
 	"testing"
 
 	i18n "dappco.re/go/core/i18n"
 )
+
+type recordingTranslator struct {
+	key  string
+	args []any
+}
+
+func (r *recordingTranslator) T(key string, args ...any) string {
+	r.key = key
+	r.args = append(r.args[:0], args...)
+	return "translated"
+}
 
 func TestNewContext_OptionalLocale_Good(t *testing.T) {
 	ctx := NewContext("en-GB")
@@ -58,6 +70,26 @@ func TestTextNode_UsesMetadataAliasWhenDataNil_Good(t *testing.T) {
 	got := Text("i18n.count.file").Render(ctx)
 	if got != "1 file" {
 		t.Fatalf("Text with metadata-only count = %q, want %q", got, "1 file")
+	}
+}
+
+func TestTextNode_CustomTranslatorReceivesCountArgs_Good(t *testing.T) {
+	ctx := NewContextWithService(&recordingTranslator{})
+	ctx.Metadata["count"] = 3
+
+	got := Text("i18n.count.file", "ignored").Render(ctx)
+	if got != "translated" {
+		t.Fatalf("Text with custom translator = %q, want %q", got, "translated")
+	}
+
+	svc := ctx.service.(*recordingTranslator)
+	if svc.key != "i18n.count.file" {
+		t.Fatalf("custom translator key = %q, want %q", svc.key, "i18n.count.file")
+	}
+
+	wantArgs := []any{3, "ignored"}
+	if !reflect.DeepEqual(svc.args, wantArgs) {
+		t.Fatalf("custom translator args = %#v, want %#v", svc.args, wantArgs)
 	}
 }
 

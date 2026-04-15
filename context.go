@@ -85,3 +85,26 @@ func (ctx *Context) SetLocale(locale string) *Context {
 	applyLocaleToService(ctx.service, ctx.Locale)
 	return ctx
 }
+
+func cloneContext(ctx *Context) *Context {
+	if ctx == nil {
+		return nil
+	}
+
+	clone := *ctx
+	clone.Data = cloneMetadataMap(ctx.Data)
+	clone.Metadata = cloneMetadataMap(ctx.Metadata)
+	return &clone
+}
+
+func cloneMetadataMap(src map[string]any) map[string]any {
+	if len(src) == 0 {
+		return nil
+	}
+
+	dst := make(map[string]any, len(src))
+	for key, value := range src {
+		dst[key] = value
+	}
+	return dst
+}

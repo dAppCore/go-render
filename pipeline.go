@@ -82,7 +82,7 @@ func CompareVariants(r *Responsive, ctx *Context) map[string]float64 {
 		if v.layout == nil {
 			continue
 		}
-		imp := Imprint(v.layout, ctx)
+		imp := Imprint(v.layout, cloneContext(ctx))
 		imprints = append(imprints, named{name: v.name, imp: imp})
 	}
 
