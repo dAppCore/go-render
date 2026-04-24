@@ -1,4 +1,4 @@
-module dappco.re/go/core/html
+module dappco.re/go/html
 
 go 1.26.0
 

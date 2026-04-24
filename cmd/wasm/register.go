@@ -5,7 +5,7 @@ package main
 import (
 	core "dappco.re/go/core"
 
-	"dappco.re/go/core/html/codegen"
+	"dappco.re/go/html/codegen"
 	log "dappco.re/go/core/log"
 )
 

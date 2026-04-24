@@ -19,7 +19,7 @@ import (
 	"time"
 
 	core "dappco.re/go/core"
-	"dappco.re/go/core/html/codegen"
+	"dappco.re/go/html/codegen"
 	coreio "dappco.re/go/core/io"
 	log "dappco.re/go/core/log"
 )
