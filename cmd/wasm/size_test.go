@@ -11,8 +11,6 @@ import (
 	core "dappco.re/go/core"
 	coreio "dappco.re/go/core/io"
 	process "dappco.re/go/core/process"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -30,10 +28,14 @@ func TestCmdWasm_WASMBinarySize_Good(t *testing.T) {
 
 	factory := process.NewService(process.Options{})
 	serviceValue, err := factory(core.New())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	svc, ok := serviceValue.(*process.Service)
-	require.True(t, ok, "process service factory returned %T", serviceValue)
+	if !ok {
+		t.Fatalf("process service factory returned %T", serviceValue)
+	}
 
 	output, err := svc.RunWithOptions(context.Background(), process.RunOptions{
 		Command: "go",
@@ -41,23 +43,34 @@ func TestCmdWasm_WASMBinarySize_Good(t *testing.T) {
 		Dir:     ".",
 		Env:     []string{"GOOS=js", "GOARCH=wasm"},
 	})
-	require.NoError(t, err, "WASM build failed: %s", output)
+	if err != nil {
+		t.Fatalf("WASM build failed: %v: %s", err, output)
+	}
 
 	rawStr, err := coreio.Local.Read(out)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	rawBytes := []byte(rawStr)
 
 	buf := core.NewBuilder()
 	gz, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
-	require.NoError(t, err)
-	_, err = gz.Write(rawBytes)
-	require.NoError(t, err)
-	require.NoError(t, gz.Close())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := gz.Write(rawBytes); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	t.Logf("WASM size: %d bytes raw, %d bytes gzip", len(rawBytes), buf.Len())
 
-	assert.Less(t, buf.Len(), wasmGzLimit,
-		"WASM gzip size %d exceeds 1MB limit", buf.Len())
-	assert.Less(t, len(rawBytes), wasmRawLimit,
-		"WASM raw size %d exceeds 3MB limit", len(rawBytes))
+	if buf.Len() >= wasmGzLimit {
+		t.Fatalf("WASM gzip size %d exceeds 1MB limit", buf.Len())
+	}
+	if len(rawBytes) >= wasmRawLimit {
+		t.Fatalf("WASM raw size %d exceeds 3MB limit", len(rawBytes))
+	}
 }
