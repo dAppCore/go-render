@@ -1,10 +1,12 @@
 package html
 
 import (
+	// Note: html — needed for text sanitization via html.EscapeString in render.
 	"html"
 	"iter"
 	"maps"
 	"slices"
+	// Note: strconv — needed for numeric attribute conversion (Atoi/Itoa) in rendering.
 	"strconv"
 )
 
