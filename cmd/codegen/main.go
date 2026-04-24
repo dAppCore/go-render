@@ -20,8 +20,8 @@ import (
 
 	core "dappco.re/go/core"
 	"dappco.re/go/html/codegen"
-	coreio "dappco.re/go/core/io"
-	log "dappco.re/go/core/log"
+	coreio "dappco.re/go/io"
+	log "dappco.re/go/log"
 )
 
 func generate(data []byte, emitTypes bool) (string, error) {

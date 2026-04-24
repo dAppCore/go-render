@@ -5,7 +5,7 @@ package html
 import (
 	"testing"
 
-	i18n "dappco.re/go/core/i18n"
+	i18n "dappco.re/go/i18n"
 )
 
 func TestStripTags_Simple_Good(t *testing.T) {

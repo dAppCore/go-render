@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	core "dappco.re/go/core"
-	coreio "dappco.re/go/core/io"
-	process "dappco.re/go/core/process"
+	coreio "dappco.re/go/io"
+	process "dappco.re/go/process"
 )
 
 const (
