@@ -4,7 +4,6 @@ import (
 	"html"
 	"iter"
 	"maps"
-	"reflect"
 	"slices"
 	"strconv"
 )
@@ -158,10 +157,27 @@ func isNilNode(n Node) bool {
 		return true
 	}
 
-	v := reflect.ValueOf(n)
-	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
-		return v.IsNil()
+	switch t := n.(type) {
+	case *rawNode:
+		return t == nil
+	case *elNode:
+		return t == nil
+	case *textNode:
+		return t == nil
+	case *ifNode:
+		return t == nil
+	case *unlessNode:
+		return t == nil
+	case *entitledNode:
+		return t == nil
+	case *switchNode:
+		return t == nil
+	case *Layout:
+		return t == nil
+	case *Responsive:
+		return t == nil
+	case interface{ isNilHTMLNode() bool }:
+		return t.isNilHTMLNode()
 	default:
 		return false
 	}
@@ -446,6 +462,10 @@ type eachNode[T any] struct {
 
 type attrApplier interface {
 	applyAttr(key, value string)
+}
+
+func (n *eachNode[T]) isNilHTMLNode() bool {
+	return n == nil
 }
 
 func nodePreservesLayoutPath(node Node, ctx *Context) bool {

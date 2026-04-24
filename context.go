@@ -1,7 +1,5 @@
 package html
 
-import "reflect"
-
 // Translator provides Text() lookups for a rendering context.
 // Usage example: ctx := NewContextWithService(myTranslator)
 //
@@ -31,24 +29,34 @@ func applyLocaleToService(svc Translator, locale string) {
 	}
 
 	if setter, ok := svc.(interface{ SetLanguage(string) error }); ok {
-		// The built-in i18n service matches best on a base language tag.
-		// Custom translators should receive the full locale string.
-		if serviceUsesBaseLanguage(svc) {
-			locale = baseLanguage(locale)
-		}
-		_ = setter.SetLanguage(locale)
+		_ = setter.SetLanguage(serviceLocale(svc, locale))
 	}
 }
 
-func serviceUsesBaseLanguage(svc Translator) bool {
-	t := reflect.TypeOf(svc)
-	for t != nil && t.Kind() == reflect.Pointer {
-		t = t.Elem()
+func serviceLocale(svc Translator, locale string) string {
+	base := baseLanguage(locale)
+	if base == locale {
+		return locale
 	}
-	if t == nil {
-		return false
+
+	languages, ok := svc.(interface{ AvailableLanguages() []string })
+	if !ok {
+		return locale
 	}
-	return t.PkgPath() == "dappco.re/go/core/i18n" && t.Name() == "Service"
+
+	hasBase := false
+	for _, lang := range languages.AvailableLanguages() {
+		if lang == locale {
+			return locale
+		}
+		if lang == base {
+			hasBase = true
+		}
+	}
+	if hasBase {
+		return base
+	}
+	return locale
 }
 
 func baseLanguage(locale string) string {
@@ -143,5 +151,27 @@ func sameMetadataMap(a, b map[string]any) bool {
 		return a == nil && b == nil
 	}
 
-	return reflect.ValueOf(a).Pointer() == reflect.ValueOf(b).Pointer()
+	key := metadataAliasProbeKey(a, b)
+	marker := &struct{}{}
+
+	a[key] = marker
+	defer delete(a, key)
+
+	value, ok := b[key]
+	return ok && value == marker
+}
+
+func metadataAliasProbeKey(a, b map[string]any) string {
+	key := "__go_html_metadata_alias_probe__"
+	for {
+		if _, ok := a[key]; ok {
+			key += "_"
+			continue
+		}
+		if _, ok := b[key]; ok {
+			key += "_"
+			continue
+		}
+		return key
+	}
 }
