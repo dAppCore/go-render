@@ -11,7 +11,6 @@ require (
 )
 
 require (
-	forge.lthn.ai/core/go-inference v0.1.4 // indirect
-	forge.lthn.ai/core/go-log v0.0.4 // indirect
+	dappco.re/go/inference v0.1.4 // indirect
 	golang.org/x/text v0.36.0 // indirect
 )
