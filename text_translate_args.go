@@ -2,17 +2,20 @@
 
 package html
 
+// Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
+// 3.5 MB raw / 1 MB gzip size budget, so count argument normalisation uses
+// small stdlib helpers instead of importing dappco.re/go/core.
+
 import (
 	"strconv"
-
-	core "dappco.re/go/core"
+	"strings"
 )
 
 func translationArgs(ctx *Context, key string, args []any) []any {
 	if ctx == nil {
 		return args
 	}
-	if !core.HasPrefix(key, "i18n.count.") {
+	if !strings.HasPrefix(key, "i18n.count.") {
 		return args
 	}
 
@@ -89,7 +92,7 @@ func countInt(v any) (int, bool) {
 	case float64:
 		return int(n), true
 	case string:
-		n = core.Trim(n)
+		n = strings.TrimSpace(n)
 		if n == "" {
 			return 0, false
 		}

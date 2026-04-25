@@ -1,5 +1,9 @@
 package html
 
+// Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
+// 3.5 MB raw / 1 MB gzip size budget, so this shared context type remains free
+// of dappco.re/go/core and other heavyweight server-only dependencies.
+
 // Translator provides Text() lookups for a rendering context.
 // Usage example: ctx := NewContextWithService(myTranslator)
 //
