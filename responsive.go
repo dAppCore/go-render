@@ -3,12 +3,9 @@ package html
 // Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
 // 3.5 MB raw / 1 MB gzip size budget, so we deliberately avoid importing
 // dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
-// The stdlib strings/strconv primitives are safe for WASM.
+// The stdlib strconv primitive is safe for WASM.
 
-import (
-	"strconv"
-	"strings"
-)
+import "strconv"
 
 // Compile-time interface check.
 var _ Node = (*Responsive)(nil)
@@ -102,7 +99,7 @@ func escapeCSSString(s string) string {
 		return ""
 	}
 
-	var b strings.Builder
+	b := newTextBuilder()
 	for _, r := range s {
 		switch r {
 		case '\\', '"':
@@ -111,9 +108,13 @@ func escapeCSSString(s string) string {
 		default:
 			if r < 0x20 || r == 0x7f {
 				b.WriteByte('\\')
-				esc := strings.ToUpper(strconv.FormatInt(int64(r), 16))
+				esc := strconv.FormatInt(int64(r), 16)
 				for i := 0; i < len(esc); i++ {
-					b.WriteByte(esc[i])
+					c := esc[i]
+					if c >= 'a' && c <= 'f' {
+						c -= 'a' - 'A'
+					}
+					b.WriteByte(c)
 				}
 				b.WriteByte(' ')
 				continue

@@ -4,14 +4,15 @@ package html
 
 import (
 	"strconv"
-	"strings"
+
+	core "dappco.re/go/core"
 )
 
 func translationArgs(ctx *Context, key string, args []any) []any {
 	if ctx == nil {
 		return args
 	}
-	if !strings.HasPrefix(key, "i18n.count.") {
+	if !core.HasPrefix(key, "i18n.count.") {
 		return args
 	}
 
@@ -88,7 +89,7 @@ func countInt(v any) (int, bool) {
 	case float64:
 		return int(n), true
 	case string:
-		n = strings.TrimSpace(n)
+		n = core.Trim(n)
 		if n == "" {
 			return 0, false
 		}
