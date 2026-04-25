@@ -1,0 +1,11 @@
+version: '3'
+
+tasks:
+  wasm:build:
+    desc: Build the browser/Node/Deno render WASM module.
+    env:
+      GOWORK: off
+      GOFLAGS: -mod=readonly
+    cmds:
+      - mkdir -p dist
+      - GOOS=js GOARCH=wasm go build -o dist/render.wasm ./cmd/wasm/
