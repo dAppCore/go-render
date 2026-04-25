@@ -3,12 +3,9 @@ package html
 // Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
 // 3.5 MB raw / 1 MB gzip size budget, so we deliberately avoid importing
 // dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
-// The stdlib errors package is safe for WASM.
+// The stdlib strconv primitive is safe for WASM.
 
-import (
-	"errors"
-	"strconv"
-)
+import "strconv"
 
 // Compile-time interface check.
 var _ Node = (*Layout)(nil)
@@ -18,7 +15,13 @@ var _ Node = (*Layout)(nil)
 // Layout variant strings now silently skip unknown characters instead of
 // surfacing validation errors, so this sentinel is never returned by the
 // current implementation.
-var ErrInvalidLayoutVariant = errors.New("html: invalid layout variant")
+var ErrInvalidLayoutVariant error = layoutInvalidVariantSentinel{}
+
+type layoutInvalidVariantSentinel struct{}
+
+func (layoutInvalidVariantSentinel) Error() string {
+	return "html: invalid layout variant"
+}
 
 // slotMeta holds the semantic HTML mapping for each HLCRF slot.
 type slotMeta struct {
