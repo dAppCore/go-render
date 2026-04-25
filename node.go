@@ -388,13 +388,6 @@ type entitledNode struct {
 	node    Node
 }
 
-// Entitled renders child only when entitlement is granted. Absent, not hidden.
-// Usage example: Entitled("beta", Text("preview"))
-// If no entitlement function is set on the context, access is denied by default.
-func Entitled(feature string, node Node) Node {
-	return &entitledNode{feature: feature, node: node}
-}
-
 func (n *entitledNode) Render(ctx *Context) string {
 	if n == nil || n.node == nil {
 		return ""
