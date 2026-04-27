@@ -2,7 +2,7 @@
 
 **Repo**: `forge.lthn.ai/core/go-html` (clone at `/tmp/core-go-html`)
 **Module**: `forge.lthn.ai/core/go-html`
-**Status**: 19 Go files, 1,591 LOC, 53 tests ALL PASS
+**Status**: Current tests pass; WASM build is within budget and codegen emits JS plus TypeScript defs
 **Wiki**: https://forge.lthn.ai/core/go-html/wiki (6 pages)
 
 ## What This Is
@@ -12,19 +12,19 @@ HLCRF DOM compositor with grammar pipeline. Renders semantic HTML from composabl
 - **HLCRF Layout**: Header/Left/Content/Right/Footer with ARIA roles
 - **Responsive**: Multi-variant breakpoint rendering
 - **Pipeline**: Render → strip tags → tokenise via go-i18n/reversal → GrammarImprint
-- **WASM target**: `cmd/wasm/` exposes renderToString() and registerComponents() to JS
-- **Codegen**: Web Component classes with closed Shadow DOM
+- **WASM target**: `cmd/wasm/` exposes `renderToString()` to JS
+- **Codegen**: Web Component classes with closed Shadow DOM plus `.d.ts` generation
 
 ## Current State
 
 | Area | Status |
 |------|--------|
 | Core (node, layout, responsive, pipeline) | SOLID — all tested, clean API |
-| Tests | 53/53 pass, excellent coverage ratios |
+| Tests | Passing |
 | go vet | Clean |
 | TODOs/FIXMEs | None |
-| WASM build | FAILS — 1.58 MB gzip exceeds 1 MB Makefile limit |
-| Codegen | Working — generates WC classes |
+| WASM build | PASS — within the 1 MB gzip gate |
+| Codegen | Working — generates WC classes and `.d.ts` definitions |
 
 ## Dependencies
 
@@ -34,21 +34,7 @@ HLCRF DOM compositor with grammar pipeline. Renders semantic HTML from composabl
 
 ## Priority Work
 
-### High (blockers)
-1. **Fix WASM size** — Move `buildComponentJS()` / JSON parsing to server-side. WASM should only do `Render()`. Current: 6.0 MB raw / 1.58 MB gzip.
-2. **WASM integration tests** — No `cmd/wasm/main_test.go` exists. Can't test JS↔Go round-trip.
-
-### Medium (completeness)
-3. **Performance benchmarks** — No `BenchmarkRender()` or `BenchmarkImprint()`. Add them.
-4. **TypeScript type definitions** — Codegen only produces JS. Add `.d.ts` generation for WC bundle.
-5. **Accessibility helpers** — Layout has semantic HTML + ARIA roles, but no aria-label builder or alt text helpers.
-6. **Layout variant validation** — `NewLayout("XYZ")` silently produces empty output. Could warn.
-
-### Low (hardening)
-7. **Unicode/RTL edge cases** — Test emoji, RTL text in Text nodes
-8. **Deep nesting stress test** — Circular or very deep Layout nesting
-9. **Large Each[T]** — Test with thousands of items
-10. **Browser polyfill docs** — Closed Shadow DOM support matrix
+No active blockers recorded here. See `docs/history.md` for the remaining design choices and deferred ideas that were captured during earlier implementation phases.
 
 ## File Map
 

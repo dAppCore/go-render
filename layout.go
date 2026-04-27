@@ -1,13 +1,27 @@
 package html
 
-import "errors"
+// Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
+// 3.5 MB raw / 1 MB gzip size budget, so we deliberately avoid importing
+// dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
+// The stdlib strconv primitive is safe for WASM.
+
+import "strconv"
 
 // Compile-time interface check.
 var _ Node = (*Layout)(nil)
 
-// ErrInvalidLayoutVariant reports that a layout variant string contains at least
-// one unrecognised slot character.
-var ErrInvalidLayoutVariant = errors.New("html: invalid layout variant")
+// ErrInvalidLayoutVariant is retained for compatibility.
+//
+// Layout variant strings now silently skip unknown characters instead of
+// surfacing validation errors, so this sentinel is never returned by the
+// current implementation.
+var ErrInvalidLayoutVariant error = layoutInvalidVariantSentinel{}
+
+type layoutInvalidVariantSentinel struct{}
+
+func (layoutInvalidVariantSentinel) Error() string {
+	return "html: invalid layout variant"
+}
 
 // slotMeta holds the semantic HTML mapping for each HLCRF slot.
 type slotMeta struct {
@@ -18,7 +32,7 @@ type slotMeta struct {
 // slotRegistry maps slot letters to their semantic HTML elements and ARIA roles.
 var slotRegistry = map[byte]slotMeta{
 	'H': {tag: "header", role: "banner"},
-	'L': {tag: "aside", role: "complementary"},
+	'L': {tag: "nav", role: "navigation"},
 	'C': {tag: "main", role: "main"},
 	'R': {tag: "aside", role: "complementary"},
 	'F': {tag: "footer", role: "contentinfo"},
@@ -29,7 +43,7 @@ var slotRegistry = map[byte]slotMeta{
 // Usage example: page := NewLayout("HCF").H(Text("title")).C(Text("body"))
 type Layout struct {
 	variant    string          // "HLCRF", "HCF", "C", etc.
-	path       string          // "" for root, "L-0-" for nested
+	path       string          // "" for root, "C.0" for nested
 	slots      map[byte][]Node // H, L, C, R, F → children
 	variantErr error
 }
@@ -43,51 +57,7 @@ func renderWithLayoutPath(node Node, ctx *Context, path string) string {
 		return renderer.renderWithLayoutPath(ctx, path)
 	}
 
-	switch t := node.(type) {
-	case *Layout:
-		if t == nil {
-			return ""
-		}
-		clone := *t
-		clone.path = path
-		return clone.Render(ctx)
-	case *ifNode:
-		if t == nil || t.cond == nil || t.node == nil {
-			return ""
-		}
-		if t.cond(ctx) {
-			return renderWithLayoutPath(t.node, ctx, path)
-		}
-		return ""
-	case *unlessNode:
-		if t == nil || t.cond == nil || t.node == nil {
-			return ""
-		}
-		if !t.cond(ctx) {
-			return renderWithLayoutPath(t.node, ctx, path)
-		}
-		return ""
-	case *entitledNode:
-		if t == nil || t.node == nil {
-			return ""
-		}
-		if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(t.feature) {
-			return ""
-		}
-		return renderWithLayoutPath(t.node, ctx, path)
-	case *switchNode:
-		if t == nil || t.selector == nil || t.cases == nil {
-			return ""
-		}
-		key := t.selector(ctx)
-		node, ok := t.cases[key]
-		if !ok || node == nil {
-			return ""
-		}
-		return renderWithLayoutPath(node, ctx, path)
-	default:
-		return node.Render(ctx)
-	}
+	return node.Render(ctx)
 }
 
 // NewLayout creates a new Layout with the given variant string.
@@ -98,28 +68,16 @@ func NewLayout(variant string) *Layout {
 		variant: variant,
 		slots:   make(map[byte][]Node),
 	}
-	l.variantErr = ValidateLayoutVariant(variant)
 	return l
 }
 
-// ValidateLayoutVariant reports whether a layout variant string contains only
-// recognised slot characters.
+// ValidateLayoutVariant is retained for compatibility.
 //
-// It returns nil for valid variants and ErrInvalidLayoutVariant wrapped in a
-// layoutVariantError for invalid ones.
+// Variant strings are permissive now: unknown characters are ignored during
+// rendering, so this helper always returns nil.
 func ValidateLayoutVariant(variant string) error {
-	var invalid bool
-	for i := range len(variant) {
-		if _, ok := slotRegistry[variant[i]]; ok {
-			continue
-		}
-		invalid = true
-		break
-	}
-	if !invalid {
-		return nil
-	}
-	return &layoutVariantError{variant: variant}
+	_ = variant
+	return nil
 }
 
 func (l *Layout) slotsForSlot(slot byte) []Node {
@@ -142,7 +100,7 @@ func (l *Layout) H(nodes ...Node) *Layout {
 	return l
 }
 
-// L appends nodes to the Left aside slot.
+// L appends nodes to the Left navigation slot.
 // Usage example: NewLayout("LC").L(Text("nav"))
 func (l *Layout) L(nodes ...Node) *Layout {
 	if l == nil {
@@ -182,18 +140,29 @@ func (l *Layout) F(nodes ...Node) *Layout {
 	return l
 }
 
-// blockID returns the deterministic data-block attribute value for a slot.
-func (l *Layout) blockID(slot byte) string {
-	return l.path + string(slot) + "-0"
+// blockID returns the deterministic data-block coordinate for a rendered slot.
+func (l *Layout) blockID(slot byte, rendered int) string {
+	if l.path == "" {
+		if rendered == 0 {
+			return string(slot)
+		}
+		return string(slot) + "." + strconv.Itoa(rendered)
+	}
+	if rendered == 0 {
+		return l.path
+	}
+	return l.path + "." + strconv.Itoa(rendered)
 }
 
-// VariantError reports whether the layout variant string contained any invalid
-// slot characters when the layout was constructed.
+// VariantError is retained for compatibility.
+//
+// Layouts no longer record variant validation errors, so this always returns
+// nil. Unknown characters are ignored at render time.
 func (l *Layout) VariantError() error {
 	if l == nil {
 		return nil
 	}
-	return l.variantErr
+	return nil
 }
 
 // Render produces the semantic HTML for this layout.
@@ -208,20 +177,29 @@ func (l *Layout) Render(ctx *Context) string {
 	}
 
 	b := newTextBuilder()
+	slotCounts := make(map[byte]int)
+	slotOrdinal := 0
 
 	for i := range len(l.variant) {
 		slot := l.variant[i]
-		children := l.slots[slot]
-		if len(children) == 0 {
-			continue
-		}
-
 		meta, ok := slotRegistry[slot]
 		if !ok {
 			continue
 		}
 
-		bid := l.blockID(slot)
+		count := slotOrdinal
+		slotOrdinal++
+
+		children := l.slots[slot]
+		if len(children) == 0 {
+			continue
+		}
+
+		if l.path == "" {
+			count = slotCounts[slot]
+			slotCounts[slot] = count + 1
+		}
+		bid := l.blockID(slot, count)
 
 		b.WriteByte('<')
 		b.WriteString(escapeHTML(meta.tag))
@@ -231,11 +209,11 @@ func (l *Layout) Render(ctx *Context) string {
 		b.WriteString(escapeAttr(bid))
 		b.WriteString(`">`)
 
-		for _, child := range children {
+		for i, child := range children {
 			if child == nil {
 				continue
 			}
-			b.WriteString(renderWithLayoutPath(child, ctx, bid+"-"))
+			b.WriteString(renderWithLayoutPath(child, ctx, bid+"."+strconv.Itoa(i)))
 		}
 
 		b.WriteString("</")
@@ -256,4 +234,14 @@ func (e *layoutVariantError) Error() string {
 
 func (e *layoutVariantError) Unwrap() error {
 	return ErrInvalidLayoutVariant
+}
+
+func (l *Layout) renderWithLayoutPath(ctx *Context, path string) string {
+	if l == nil {
+		return ""
+	}
+
+	clone := *l
+	clone.path = path
+	return clone.Render(ctx)
 }

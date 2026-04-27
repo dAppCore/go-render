@@ -5,7 +5,8 @@ package html
 import (
 	core "dappco.re/go/core"
 
-	"dappco.re/go/core/i18n/reversal"
+	"dappco.re/go/i18n/reversal"
+	"unicode/utf8"
 )
 
 // StripTags removes HTML tags from rendered output, returning plain text.
@@ -14,34 +15,85 @@ import (
 // Does not handle script/style element content (go-html does not generate these).
 func StripTags(html string) string {
 	b := core.NewBuilder()
-	inTag := false
 	prevSpace := true // starts true to trim leading space
-	for _, r := range html {
+
+	for i := 0; i < len(html); {
+		r, size := utf8.DecodeRuneInString(html[i:])
+
 		if r == '<' {
-			inTag = true
-			continue
+			next, nextSize := nextRune(html, i+size)
+			if nextSize > 0 && isTagStartRune(next) {
+				if end, ok := findTagCloser(html, i+size+nextSize); ok {
+					if !prevSpace {
+						b.WriteByte(' ')
+						prevSpace = true
+					}
+					i = end + 1
+					continue
+				}
+			}
 		}
-		if r == '>' {
-			inTag = false
+
+		switch r {
+		case ' ', '\t', '\n', '\r':
 			if !prevSpace {
 				b.WriteByte(' ')
 				prevSpace = true
 			}
-			continue
+		default:
+			_, _ = b.WriteString(html[i : i+size])
+			prevSpace = false
 		}
-		if !inTag {
-			if r == ' ' || r == '\t' || r == '\n' {
-				if !prevSpace {
-					b.WriteByte(' ')
-					prevSpace = true
-				}
-			} else {
-				b.WriteRune(r)
-				prevSpace = false
+
+		i += size
+	}
+
+	return core.Trim(b.String())
+}
+
+func nextRune(s string, i int) (rune, int) {
+	if i >= len(s) {
+		return 0, 0
+	}
+	return utf8.DecodeRuneInString(s[i:])
+}
+
+func isTagStartRune(r rune) bool {
+	switch {
+	case r >= 'a' && r <= 'z':
+		return true
+	case r >= 'A' && r <= 'Z':
+		return true
+	case r == '/', r == '!', r == '?':
+		return true
+	default:
+		return false
+	}
+}
+
+func findTagCloser(s string, start int) (int, bool) {
+	inSingleQuote := false
+	inDoubleQuote := false
+
+	for i := start; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		switch r {
+		case '\'':
+			if !inDoubleQuote {
+				inSingleQuote = !inSingleQuote
+			}
+		case '"':
+			if !inSingleQuote {
+				inDoubleQuote = !inDoubleQuote
+			}
+		case '>':
+			if !inSingleQuote && !inDoubleQuote {
+				return i, true
 			}
 		}
+		i += size
 	}
-	return core.Trim(b.String())
+	return 0, false
 }
 
 // Imprint renders a node tree to HTML, strips tags, tokenises the text,
@@ -82,14 +134,19 @@ func CompareVariants(r *Responsive, ctx *Context) map[string]float64 {
 		if v.layout == nil {
 			continue
 		}
-		imp := Imprint(v.layout, ctx)
+		imp := Imprint(v.layout, cloneContext(ctx))
 		imprints = append(imprints, named{name: v.name, imp: imp})
 	}
 
 	scores := make(map[string]float64)
 	for i := range len(imprints) {
 		for j := i + 1; j < len(imprints); j++ {
-			key := imprints[i].name + ":" + imprints[j].name
+			left := imprints[i].name
+			right := imprints[j].name
+			if right < left {
+				left, right = right, left
+			}
+			key := left + ":" + right
 			scores[key] = imprints[i].imp.Similar(imprints[j].imp)
 		}
 	}

@@ -3,61 +3,92 @@
 package main
 
 import (
+	"strings"
 	"syscall/js"
 
-	html "dappco.re/go/core/html"
+	html "dappco.re/go/html"
 )
 
-// renderToString builds an HLCRF layout from JS arguments and returns HTML.
-// Slot content is injected via Raw() — the caller is responsible for sanitisation.
-// This is intentional: the WASM module is a rendering engine for trusted content
-// produced server-side or by the application's own templates.
+// Keep the callback alive for the lifetime of the WASM module.
+var renderToStringFunc js.Func
+
+// renderToString renders a template string with optional scalar data.
+// TinyGo can be evaluated later if stdlib WASM size becomes the limiting factor.
 func renderToString(_ js.Value, args []js.Value) any {
 	if len(args) < 1 || args[0].Type() != js.TypeString {
 		return ""
 	}
 
-	variant := args[0].String()
-	if variant == "" {
+	template := args[0].String()
+	if template == "" {
 		return ""
 	}
 
-	ctx := html.NewContext()
-
-	if len(args) >= 2 && args[1].Type() == js.TypeString {
-		ctx.SetLocale(args[1].String())
+	if len(args) >= 3 {
+		return renderLegacyLayout(args)
 	}
 
-	layout := html.NewLayout(variant)
+	if len(args) < 2 || args[1].Type() != js.TypeObject {
+		return html.Render(html.Raw(template), html.NewContext())
+	}
+
+	return renderTemplateString(template, args[1])
+}
+
+func renderLegacyLayout(args []js.Value) string {
+	variant := args[0].String()
+
+	locale := ""
+	if len(args) >= 2 && args[1].Type() == js.TypeString {
+		locale = args[1].String()
+	}
+
+	slots := make(map[string]string)
 
 	if len(args) >= 3 && args[2].Type() == js.TypeObject {
-		slots := args[2]
+		jsSlots := args[2]
 		for _, slot := range []string{"H", "L", "C", "R", "F"} {
-			content := slots.Get(slot)
-			if content.Type() == js.TypeString && content.String() != "" {
-				switch slot {
-				case "H":
-					layout.H(html.Raw(content.String()))
-				case "L":
-					layout.L(html.Raw(content.String()))
-				case "C":
-					layout.C(html.Raw(content.String()))
-				case "R":
-					layout.R(html.Raw(content.String()))
-				case "F":
-					layout.F(html.Raw(content.String()))
-				}
+			content := jsSlots.Get(slot)
+			if content.Type() == js.TypeString {
+				slots[slot] = content.String()
 			}
 		}
 	}
 
-	return layout.Render(ctx)
+	return renderLayout(variant, locale, slots)
+}
+
+func renderTemplateString(template string, data js.Value) string {
+	ctx := html.NewContext()
+	out := template
+	keys := js.Global().Get("Object").Call("keys", data)
+	for i := 0; i < keys.Get("length").Int(); i++ {
+		key := keys.Index(i).String()
+		value := data.Get(key)
+		if value.Type() == js.TypeUndefined || value.Type() == js.TypeNull || value.Type() == js.TypeObject || value.Type() == js.TypeFunction {
+			continue
+		}
+		rendered := html.Render(html.Text(scalarString(value)), ctx)
+		out = strings.ReplaceAll(out, "{{"+key+"}}", rendered)
+		out = strings.ReplaceAll(out, "{{ "+key+" }}", rendered)
+	}
+	return out
+}
+
+func scalarString(value js.Value) string {
+	if value.Type() == js.TypeString {
+		return value.String()
+	}
+	return js.Global().Get("String").Invoke(value).String()
 }
 
 func main() {
-	js.Global().Set("gohtml", js.ValueOf(map[string]any{
-		"renderToString": js.FuncOf(renderToString),
-	}))
+	renderToStringFunc = js.FuncOf(renderToString)
+
+	api := js.Global().Get("Object").New()
+	api.Set("renderToString", renderToStringFunc)
+	js.Global().Set("gohtml", api)
+	js.Global().Set("renderToString", renderToStringFunc)
 
 	select {}
 }

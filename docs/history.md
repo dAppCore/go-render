@@ -95,7 +95,7 @@ The test is skipped under `go test -short` and is guarded with `//go:build !js`.
 
 These are not regressions; they are design choices or deferred work recorded for future consideration.
 
-1. **Invalid layout variants are silent.** `NewLayout("XYZ")` produces empty output. No error, no warning. Adding validation would require changing the return type of `NewLayout` from `*Layout` to `(*Layout, error)`, which is a breaking API change.
+1. **Invalid layout variants are silently ignored.** `NewLayout("XYZ")` produces empty output, and the compatibility helpers `ValidateLayoutVariant()` / `VariantError()` now return `nil`.
 
 2. **No WASM integration test.** `cmd/wasm/size_test.go` tests binary size only. The `renderToString` behaviour is tested by building and running the WASM binary in a browser, not by an automated test. A `syscall/js`-compatible test harness would be needed.
 
@@ -103,7 +103,7 @@ These are not regressions; they are design choices or deferred work recorded for
 
 4. **Context.service is private.** The i18n service is still unexported, but callers can now swap it explicitly with `Context.SetService()`. This keeps the field encapsulated while allowing controlled mutation.
 
-5. **TypeScript definitions not generated.** `codegen.GenerateBundle()` produces JS only. A `.d.ts` companion would benefit TypeScript consumers of the generated Web Components.
+5. **TypeScript definitions are generated.** `codegen.GenerateTypeScriptDefinitions()` and the `cmd/codegen -types` flag emit `.d.ts` companions for generated Web Components.
 
 6. **CSS scoping helper added.** `VariantSelector(name)` returns a reusable `data-variant` attribute selector for stylesheet targeting. The `Responsive` rendering model remains unchanged.
 

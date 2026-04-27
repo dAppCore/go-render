@@ -7,23 +7,22 @@
 //
 //	echo '{"H":"nav-bar","C":"main-content"}' | go run ./cmd/codegen/ > components.js
 //	echo '{"H":"nav-bar","C":"main-content"}' | go run ./cmd/codegen/ -types > components.d.ts
-//	echo '{"H":"nav-bar","C":"main-content"}' | go run ./cmd/codegen/ -watch -input slots.json -output components.js
+//	go run ./cmd/codegen/ -watch --input=slots.json --output=components.js
 package main
 
 import (
 	"context"
-	"errors"
-	"flag"
-	goio "io"
-	"os"
-	"os/signal"
 	"time"
 
 	core "dappco.re/go/core"
-	"dappco.re/go/core/html/codegen"
-	coreio "dappco.re/go/core/io"
-	log "dappco.re/go/core/log"
+	"dappco.re/go/html/codegen"
+	coreio "dappco.re/go/io"
+	log "dappco.re/go/log"
 )
+
+const defaultPollInterval = 250 * time.Millisecond
+const defaultInputPath = "/dev/stdin"
+const defaultOutputPath = "/dev/stdout"
 
 func generate(data []byte, emitTypes bool) (string, error) {
 	var slots map[string]string
@@ -43,10 +42,10 @@ func generate(data []byte, emitTypes bool) (string, error) {
 	return out, nil
 }
 
-func run(r goio.Reader, w goio.Writer, emitTypes bool) error {
-	data, err := goio.ReadAll(r)
+func run(input, output any, emitTypes bool) error {
+	data, err := readInput(input)
 	if err != nil {
-		return log.E("codegen", "reading stdin", err)
+		return log.E("codegen", "reading input", err)
 	}
 
 	out, err := generate(data, emitTypes)
@@ -54,9 +53,33 @@ func run(r goio.Reader, w goio.Writer, emitTypes bool) error {
 		return err
 	}
 
-	_, err = goio.WriteString(w, out)
-	if err != nil {
+	if err := writeOutput(output, out); err != nil {
 		return log.E("codegen", "writing output", err)
+	}
+	return nil
+}
+
+func readInput(input any) ([]byte, error) {
+	if path, ok := input.(string); ok {
+		return readLocalFile(path)
+	}
+
+	result := core.ReadAll(input)
+	if !result.OK {
+		return nil, resultError("codegen", "reading input stream", result)
+	}
+	content, _ := result.Value.(string)
+	return []byte(content), nil
+}
+
+func writeOutput(output any, content string) error {
+	if path, ok := output.(string); ok {
+		return writeLocalFile(path, content)
+	}
+
+	result := core.WriteAll(output, content)
+	if !result.OK {
+		return resultError("codegen", "writing output stream", result)
 	}
 	return nil
 }
@@ -69,7 +92,7 @@ func runDaemon(ctx context.Context, inputPath, outputPath string, emitTypes bool
 		return log.E("codegen", "watch mode requires -output", nil)
 	}
 	if pollInterval <= 0 {
-		pollInterval = 250 * time.Millisecond
+		pollInterval = defaultPollInterval
 	}
 
 	var lastInput []byte
@@ -92,7 +115,7 @@ func runDaemon(ctx context.Context, inputPath, outputPath string, emitTypes bool
 
 		select {
 		case <-ctx.Done():
-			if errors.Is(ctx.Err(), context.Canceled) {
+			if core.Is(ctx.Err(), context.Canceled) {
 				return nil
 			}
 			return ctx.Err()
@@ -102,28 +125,54 @@ func runDaemon(ctx context.Context, inputPath, outputPath string, emitTypes bool
 }
 
 func readLocalFile(path string) ([]byte, error) {
-	f, err := coreio.Local.Open(path)
+	if path == "" {
+		path = defaultInputPath
+	}
+
+	if path == defaultInputPath {
+		f, err := coreio.Local.Open(path)
+		if err != nil {
+			return nil, err
+		}
+
+		result := core.ReadAll(f)
+		if !result.OK {
+			return nil, resultError("codegen", "reading stdin", result)
+		}
+		content, _ := result.Value.(string)
+		return []byte(content), nil
+	}
+
+	content, err := coreio.Local.Read(path)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		_ = f.Close()
-	}()
-
-	return goio.ReadAll(f)
+	return []byte(content), nil
 }
 
 func writeLocalFile(path, content string) error {
-	f, err := coreio.Local.Create(path)
-	if err != nil {
-		return err
+	if path == "" {
+		path = defaultOutputPath
 	}
-	defer func() {
-		_ = f.Close()
-	}()
 
-	_, err = goio.WriteString(f, content)
-	return err
+	if path == defaultOutputPath {
+		f, err := coreio.Local.Create(path)
+		if err != nil {
+			f, err = coreio.Local.Append(path)
+			if err != nil {
+				core.Print(nil, "%s", content)
+				return nil
+			}
+		}
+
+		result := core.WriteAll(f, content)
+		if !result.OK {
+			return resultError("codegen", "writing stdout", result)
+		}
+		return nil
+	}
+
+	return coreio.Local.Write(path, content)
 }
 
 func sameBytes(a, b []byte) bool {
@@ -138,44 +187,180 @@ func sameBytes(a, b []byte) bool {
 	return true
 }
 
-func main() {
-	emitWatch := flag.Bool("watch", false, "poll input and rewrite output when the JSON changes")
-	inputPath := flag.String("input", "", "path to the JSON slot map used by -watch")
-	outputPath := flag.String("output", "", "path to the generated bundle written by -watch")
-	emitTypes := flag.Bool("types", false, "emit TypeScript declarations instead of JavaScript")
-	pollInterval := flag.Duration("poll", 250*time.Millisecond, "poll interval used by -watch")
-	flag.Parse()
+func runStdio(emitTypes bool) error {
+	return run(defaultInputPath, defaultOutputPath, emitTypes)
+}
 
-	if *emitWatch {
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer stop()
-
-		if err := runDaemon(ctx, *inputPath, *outputPath, *emitTypes, *pollInterval); err != nil {
-			log.Error("codegen failed", "scope", "codegen.main", "err", err)
-			os.Exit(1)
-		}
-		return
+func newCodegenApp() *core.Core {
+	c := core.New(core.WithOption("name", "codegen"))
+	if cli := c.Cli(); cli != nil {
+		cli.SetOutput(discardWriter{})
 	}
 
-	stdin, err := coreio.Local.Open("/dev/stdin")
+	registerCodegenCommands(c)
+	return c
+}
+
+func registerCodegenCommands(c *core.Core) {
+	c.Command("generate", core.Command{
+		Description: "Generate JavaScript or TypeScript from a JSON slot map on stdin",
+		Flags:       codegenCommandFlags(),
+		Action: func(opts core.Options) core.Result {
+			return resultFromError(runGenerateCommand(opts, opts.Bool("types")))
+		},
+	})
+	c.Command("types", core.Command{
+		Description: "Generate TypeScript declarations from a JSON slot map on stdin",
+		Flags:       codegenCommandFlags(),
+		Action: func(opts core.Options) core.Result {
+			return resultFromError(runGenerateCommand(opts, true))
+		},
+	})
+	c.Command("-types", core.Command{
+		Hidden: true,
+		Flags:  codegenCommandFlags(),
+		Action: func(opts core.Options) core.Result {
+			return resultFromError(runGenerateCommand(opts, true))
+		},
+	})
+	c.Command("--types", core.Command{
+		Hidden: true,
+		Flags:  codegenCommandFlags(),
+		Action: func(opts core.Options) core.Result {
+			return resultFromError(runGenerateCommand(opts, true))
+		},
+	})
+	c.Command("watch", core.Command{
+		Description: "Poll an input JSON file and rewrite the generated output",
+		Flags:       codegenCommandFlags(),
+		Action: func(opts core.Options) core.Result {
+			return resultFromError(runWatchCommand(c, opts, opts.Bool("types")))
+		},
+	})
+	c.Command("-watch", core.Command{
+		Hidden: true,
+		Flags:  codegenCommandFlags(),
+		Action: func(opts core.Options) core.Result {
+			return resultFromError(runWatchCommand(c, opts, opts.Bool("types")))
+		},
+	})
+	c.Command("--watch", core.Command{
+		Hidden: true,
+		Flags:  codegenCommandFlags(),
+		Action: func(opts core.Options) core.Result {
+			return resultFromError(runWatchCommand(c, opts, opts.Bool("types")))
+		},
+	})
+}
+
+func codegenCommandFlags() core.Options {
+	return core.NewOptions(
+		core.Option{Key: "types", Value: false},
+		core.Option{Key: "input", Value: ""},
+		core.Option{Key: "output", Value: ""},
+		core.Option{Key: "poll", Value: defaultPollInterval.String()},
+	)
+}
+
+func runGenerateCommand(opts core.Options, emitTypes bool) error {
+	return run(inputPathFromOptions(opts), outputPathFromOptions(opts), emitTypes)
+}
+
+func inputPathFromOptions(opts core.Options) string {
+	if input := opts.String("input"); input != "" {
+		return input
+	}
+	return defaultInputPath
+}
+
+func outputPathFromOptions(opts core.Options) string {
+	if output := opts.String("output"); output != "" {
+		return output
+	}
+	return defaultOutputPath
+}
+
+func runWatchCommand(c *core.Core, opts core.Options, emitTypes bool) error {
+	pollInterval, err := pollIntervalFromOptions(opts)
 	if err != nil {
-		log.Error("failed to open stdin", "scope", "codegen.main", "err", log.E("codegen.main", "open stdin", err))
-		os.Exit(1)
+		return err
 	}
 
-	stdout, err := coreio.Local.Create("/dev/stdout")
-	if err != nil {
-		_ = stdin.Close()
-		log.Error("failed to open stdout", "scope", "codegen.main", "err", log.E("codegen.main", "open stdout", err))
-		os.Exit(1)
+	ctx := context.Background()
+	if c != nil {
+		ctx = c.Context()
 	}
+	return runDaemon(ctx, opts.String("input"), opts.String("output"), emitTypes, pollInterval)
+}
+
+func pollIntervalFromOptions(opts core.Options) (time.Duration, error) {
+	raw := opts.String("poll")
+	if raw == "" {
+		return defaultPollInterval, nil
+	}
+
+	pollInterval, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, log.E("codegen", "invalid poll interval", err)
+	}
+	return pollInterval, nil
+}
+
+func runCodegenApp(c *core.Core) error {
+	if c == nil {
+		return log.E("codegen.main", "core app is required", nil)
+	}
+
 	defer func() {
-		_ = stdin.Close()
-		_ = stdout.Close()
+		_ = c.ServiceShutdown(context.Background())
 	}()
 
-	if err := run(stdin, stdout, *emitTypes); err != nil {
+	if result := c.ServiceStartup(c.Context(), nil); !result.OK {
+		return resultError("codegen.main", "startup failed", result)
+	}
+
+	cli := c.Cli()
+	if cli == nil {
+		return runStdio(false)
+	}
+
+	result := cli.Run()
+	if result.OK {
+		return nil
+	}
+	if err, ok := result.Value.(error); ok && err != nil {
+		return err
+	}
+
+	return runStdio(false)
+}
+
+func resultFromError(err error) core.Result {
+	if err != nil {
+		return core.Result{Value: err, OK: false}
+	}
+	return core.Result{OK: true}
+}
+
+func resultError(op, msg string, result core.Result) error {
+	if result.OK {
+		return nil
+	}
+	if err, ok := result.Value.(error); ok && err != nil {
+		return err
+	}
+	return log.E(op, msg, nil)
+}
+
+type discardWriter struct{}
+
+func (discardWriter) Write(data []byte) (int, error) {
+	return len(data), nil
+}
+
+func main() {
+	c := newCodegenApp()
+	if err := runCodegenApp(c); err != nil {
 		log.Error("codegen failed", "scope", "codegen.main", "err", err)
-		os.Exit(1)
 	}
 }

@@ -1,10 +1,18 @@
 package html
 
+// Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
+// 3.5 MB raw / 1 MB gzip size budget, so we deliberately avoid importing
+// dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
+// The small stdlib imports below preserve escaping and deterministic rendering
+// without pulling in that larger dependency graph.
+
 import (
+	// Note: html — needed for text sanitization via html.EscapeString in render.
 	"html"
 	"iter"
 	"maps"
 	"slices"
+	// Note: strconv — needed for numeric attribute conversion (Atoi/Itoa) in rendering.
 	"strconv"
 )
 
@@ -71,6 +79,10 @@ func (n *rawNode) Render(_ *Context) string {
 	return n.content
 }
 
+func (n *rawNode) renderWithLayoutPath(_ *Context, _ string) string {
+	return n.Render(nil)
+}
+
 // --- elNode ---
 
 type elNode struct {
@@ -91,29 +103,92 @@ func El(tag string, children ...Node) Node {
 
 // Attr sets an attribute on an El node. Returns the node for chaining.
 // Usage example: Attr(El("a", Text("docs")), "href", "/docs")
-// It recursively traverses through wrappers like If, Unless, Entitled, and Each.
+// It recursively traverses through wrappers like If, Unless, Entitled, Each,
+// EachSeq, Switch, Layout, and Responsive when present.
 func Attr(n Node, key, value string) Node {
-	if n == nil {
-		return n
+	if isNilNode(n) {
+		return nil
 	}
 
 	switch t := n.(type) {
 	case *elNode:
+		if t == nil {
+			return nil
+		}
 		t.attrs[key] = value
 	case *ifNode:
+		if t == nil {
+			return nil
+		}
 		Attr(t.node, key, value)
 	case *unlessNode:
+		if t == nil {
+			return nil
+		}
 		Attr(t.node, key, value)
 	case *entitledNode:
+		if t == nil {
+			return nil
+		}
 		Attr(t.node, key, value)
 	case *switchNode:
+		if t == nil {
+			return nil
+		}
 		for _, child := range t.cases {
 			Attr(child, key, value)
+		}
+	case *Layout:
+		if t == nil {
+			return nil
+		}
+		if t.slots != nil {
+			for slot, children := range t.slots {
+				for i := range children {
+					children[i] = Attr(children[i], key, value)
+				}
+				t.slots[slot] = children
+			}
+		}
+	case *Responsive:
+		for i := range t.variants {
+			Attr(t.variants[i].layout, key, value)
 		}
 	case attrApplier:
 		t.applyAttr(key, value)
 	}
 	return n
+}
+
+func isNilNode(n Node) bool {
+	if n == nil {
+		return true
+	}
+
+	switch t := n.(type) {
+	case *rawNode:
+		return t == nil
+	case *elNode:
+		return t == nil
+	case *textNode:
+		return t == nil
+	case *ifNode:
+		return t == nil
+	case *unlessNode:
+		return t == nil
+	case *entitledNode:
+		return t == nil
+	case *switchNode:
+		return t == nil
+	case *Layout:
+		return t == nil
+	case *Responsive:
+		return t == nil
+	case interface{ isNilHTMLNode() bool }:
+		return t.isNilHTMLNode()
+	default:
+		return false
+	}
 }
 
 // AriaLabel sets an aria-label attribute on an element node.
@@ -147,23 +222,39 @@ func Role(n Node, role string) Node {
 }
 
 func (n *elNode) Render(ctx *Context) string {
+	return n.render(ctx, "")
+}
+
+func (n *elNode) renderWithLayoutPath(ctx *Context, path string) string {
+	return n.render(ctx, path)
+}
+
+func (n *elNode) render(ctx *Context, path string) string {
 	if n == nil {
 		return ""
 	}
 
 	b := newTextBuilder()
+	attrs := n.attrs
+	if path != "" {
+		attrs = make(map[string]string, len(n.attrs)+1)
+		for key, value := range n.attrs {
+			attrs[key] = value
+		}
+		attrs["data-block"] = path
+	}
 
 	b.WriteByte('<')
 	b.WriteString(escapeHTML(n.tag))
 
 	// Sort attribute keys for deterministic output.
-	keys := slices.Collect(maps.Keys(n.attrs))
+	keys := slices.Collect(maps.Keys(attrs))
 	slices.Sort(keys)
 	for _, key := range keys {
 		b.WriteByte(' ')
 		b.WriteString(escapeHTML(key))
 		b.WriteString(`="`)
-		b.WriteString(escapeAttr(n.attrs[key]))
+		b.WriteString(escapeAttr(attrs[key]))
 		b.WriteByte('"')
 	}
 
@@ -174,10 +265,15 @@ func (n *elNode) Render(ctx *Context) string {
 	}
 
 	for i := range len(n.children) {
-		if n.children[i] == nil {
+		child := n.children[i]
+		if child == nil {
 			continue
 		}
-		b.WriteString(n.children[i].Render(ctx))
+		if path == "" {
+			b.WriteString(child.Render(ctx))
+			continue
+		}
+		b.WriteString(renderWithLayoutPath(child, ctx, path+"."+strconv.Itoa(i)))
 	}
 
 	b.WriteString("</")
@@ -215,6 +311,10 @@ func (n *textNode) Render(ctx *Context) string {
 	return escapeHTML(translateText(ctx, n.key, n.args...))
 }
 
+func (n *textNode) renderWithLayoutPath(ctx *Context, _ string) string {
+	return n.Render(ctx)
+}
+
 // --- ifNode ---
 
 type ifNode struct {
@@ -234,6 +334,16 @@ func (n *ifNode) Render(ctx *Context) string {
 	}
 	if n.cond(ctx) {
 		return n.node.Render(ctx)
+	}
+	return ""
+}
+
+func (n *ifNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
+	if n.cond(ctx) {
+		return renderWithLayoutPath(n.node, ctx, path)
 	}
 	return ""
 }
@@ -261,18 +371,21 @@ func (n *unlessNode) Render(ctx *Context) string {
 	return ""
 }
 
+func (n *unlessNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.cond == nil || n.node == nil {
+		return ""
+	}
+	if !n.cond(ctx) {
+		return renderWithLayoutPath(n.node, ctx, path)
+	}
+	return ""
+}
+
 // --- entitledNode ---
 
 type entitledNode struct {
 	feature string
 	node    Node
-}
-
-// Entitled renders child only when entitlement is granted. Absent, not hidden.
-// Usage example: Entitled("beta", Text("preview"))
-// If no entitlement function is set on the context, access is denied by default.
-func Entitled(feature string, node Node) Node {
-	return &entitledNode{feature: feature, node: node}
 }
 
 func (n *entitledNode) Render(ctx *Context) string {
@@ -283,6 +396,16 @@ func (n *entitledNode) Render(ctx *Context) string {
 		return ""
 	}
 	return n.node.Render(ctx)
+}
+
+func (n *entitledNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.node == nil {
+		return ""
+	}
+	if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(n.feature) {
+		return ""
+	}
+	return renderWithLayoutPath(n.node, ctx, path)
 }
 
 // --- switchNode ---
@@ -315,10 +438,26 @@ func (n *switchNode) Render(ctx *Context) string {
 	return ""
 }
 
+func (n *switchNode) renderWithLayoutPath(ctx *Context, path string) string {
+	if n == nil || n.selector == nil {
+		return ""
+	}
+	key := n.selector(ctx)
+	if n.cases == nil {
+		return ""
+	}
+	node, ok := n.cases[key]
+	if !ok || node == nil {
+		return ""
+	}
+	return renderWithLayoutPath(node, ctx, path)
+}
+
 // --- eachNode ---
 
 type eachNode[T any] struct {
-	items iter.Seq[T]
+	items []T
+	seq   iter.Seq[T]
 	fn    func(T) Node
 }
 
@@ -326,16 +465,56 @@ type attrApplier interface {
 	applyAttr(key, value string)
 }
 
+func (n *eachNode[T]) isNilHTMLNode() bool {
+	return n == nil
+}
+
+func nodePreservesLayoutPath(node Node, ctx *Context) bool {
+	switch n := node.(type) {
+	case *Layout, *Responsive:
+		return true
+	case *ifNode:
+		if n == nil || n.cond == nil || n.node == nil || !n.cond(ctx) {
+			return false
+		}
+		return nodePreservesLayoutPath(n.node, ctx)
+	case *unlessNode:
+		if n == nil || n.cond == nil || n.node == nil || n.cond(ctx) {
+			return false
+		}
+		return nodePreservesLayoutPath(n.node, ctx)
+	case *entitledNode:
+		if n == nil || n.node == nil {
+			return false
+		}
+		if ctx == nil || ctx.Entitlements == nil || !ctx.Entitlements(n.feature) {
+			return false
+		}
+		return nodePreservesLayoutPath(n.node, ctx)
+	case *switchNode:
+		if n == nil || n.selector == nil || n.cases == nil {
+			return false
+		}
+		child, ok := n.cases[n.selector(ctx)]
+		if !ok || child == nil {
+			return false
+		}
+		return nodePreservesLayoutPath(child, ctx)
+	default:
+		return false
+	}
+}
+
 // Each iterates items and renders each via fn.
 // Usage example: Each([]string{"a", "b"}, func(v string) Node { return Text(v) })
 func Each[T any](items []T, fn func(T) Node) Node {
-	return EachSeq(slices.Values(items), fn)
+	return &eachNode[T]{items: items, fn: fn}
 }
 
 // EachSeq iterates an iter.Seq and renders each via fn.
 // Usage example: EachSeq(slices.Values([]string{"a", "b"}), func(v string) Node { return Text(v) })
 func EachSeq[T any](items iter.Seq[T], fn func(T) Node) Node {
-	return &eachNode[T]{items: items, fn: fn}
+	return &eachNode[T]{seq: items, fn: fn}
 }
 
 func (n *eachNode[T]) Render(ctx *Context) string {
@@ -354,17 +533,42 @@ func (n *eachNode[T]) applyAttr(key, value string) {
 }
 
 func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
-	if n == nil || n.fn == nil || n.items == nil {
+	if n == nil || n.fn == nil {
+		return ""
+	}
+
+	items := n.materialiseItems()
+	if len(items) == 0 {
 		return ""
 	}
 
 	b := newTextBuilder()
-	for item := range n.items {
+	total := len(items)
+	for idx, item := range items {
 		child := n.fn(item)
 		if child == nil {
 			continue
 		}
-		b.WriteString(renderWithLayoutPath(child, ctx, path))
+		childPath := path
+		if path != "" && (!nodePreservesLayoutPath(child, ctx) || total > 1) {
+			childPath = path + "." + strconv.Itoa(idx)
+		}
+		b.WriteString(renderWithLayoutPath(child, ctx, childPath))
 	}
 	return b.String()
+}
+
+func (n *eachNode[T]) materialiseItems() []T {
+	if n == nil {
+		return nil
+	}
+	if n.seq == nil {
+		return n.items
+	}
+
+	items := make([]T, 0)
+	for item := range n.seq {
+		items = append(items, item)
+	}
+	return items
 }

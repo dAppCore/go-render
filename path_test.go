@@ -11,14 +11,14 @@ func TestNestedLayout_PathChain_Good(t *testing.T) {
 	got := outer.Render(NewContext())
 
 	// Inner layout paths must be prefixed with parent block ID
-	for _, want := range []string{`data-block="L-0-H-0"`, `data-block="L-0-C-0"`, `data-block="L-0-F-0"`} {
+	for _, want := range []string{`data-block="L.0"`, `data-block="L.0.1"`, `data-block="L.0.2"`} {
 		if !containsText(got, want) {
 			t.Errorf("nested layout missing %q in:\n%s", want, got)
 		}
 	}
 
 	// Outer layout must still have root-level paths
-	for _, want := range []string{`data-block="H-0"`, `data-block="C-0"`, `data-block="F-0"`} {
+	for _, want := range []string{`data-block="H"`, `data-block="C"`, `data-block="F"`} {
 		if !containsText(got, want) {
 			t.Errorf("outer layout missing %q in:\n%s", want, got)
 		}
@@ -31,30 +31,46 @@ func TestNestedLayout_DeepNesting_Ugly(t *testing.T) {
 	outer := NewLayout("C").C(middle)
 	got := outer.Render(NewContext())
 
-	for _, want := range []string{`data-block="C-0"`, `data-block="C-0-C-0"`, `data-block="C-0-C-0-C-0"`} {
+	for _, want := range []string{`data-block="C"`, `data-block="C.0"`, `data-block="C.0.0"`} {
 		if !containsText(got, want) {
 			t.Errorf("deep nesting missing %q in:\n%s", want, got)
 		}
 	}
 }
 
+func TestNestedLayout_StablePathsAcrossEmptySlots_Good(t *testing.T) {
+	inner := NewLayout("HCF").
+		C(Raw("body")).
+		F(Raw("links"))
+	outer := NewLayout("C").C(inner)
+
+	got := outer.Render(NewContext())
+	want := `<main role="main" data-block="C"><main role="main" data-block="C.0.1">body</main><footer role="contentinfo" data-block="C.0.2">links</footer></main>`
+	if got != want {
+		t.Fatalf("nested layout with empty leading slots = %q, want %q", got, want)
+	}
+}
+
 func TestBlockID_BuildsPath_Good(t *testing.T) {
 	tests := []struct {
-		path string
-		slot byte
-		want string
+		path     string
+		slot     byte
+		rendered int
+		want     string
 	}{
-		{"", 'H', "H-0"},
-		{"L-0-", 'C', "L-0-C-0"},
-		{"C-0-C-0-", 'C', "C-0-C-0-C-0"},
-		{"", 'F', "F-0"},
+		{"", 'H', 0, "H"},
+		{"", 'H', 1, "H.1"},
+		{"", 'F', 0, "F"},
+		{"L.0", 'C', 0, "L.0"},
+		{"L.0", 'C', 1, "L.0.1"},
+		{"C.0.1", 'C', 0, "C.0.1"},
 	}
 
 	for _, tt := range tests {
 		l := &Layout{path: tt.path}
-		got := l.blockID(tt.slot)
+		got := l.blockID(tt.slot, tt.rendered)
 		if got != tt.want {
-			t.Errorf("blockID(%q, %c) = %q, want %q", tt.path, tt.slot, got, tt.want)
+			t.Errorf("blockID(%q, %c, %d) = %q, want %q", tt.path, tt.slot, tt.rendered, got, tt.want)
 		}
 	}
 }
@@ -65,7 +81,13 @@ func TestParseBlockID_ExtractsSlots_Good(t *testing.T) {
 		want []byte
 	}{
 		{"L-0-C-0", []byte{'L', 'C'}},
-		{"H-0", []byte{'H'}},
+		{"L.0.C.0", []byte{'L', 'C'}},
+		{"L.0", []byte{'L'}},
+		{"L.0.1", []byte{'L'}},
+		{"C.0", []byte{'C'}},
+		{"C.2.1", []byte{'C'}},
+		{"C.0.1.2", []byte{'C'}},
+		{"H", []byte{'H'}},
 		{"C-0-C-0-C-0", []byte{'C', 'C', 'C'}},
 		{"", nil},
 	}
@@ -88,7 +110,10 @@ func TestParseBlockID_InvalidInput_Good(t *testing.T) {
 	tests := []string{
 		"L-1-C-0",
 		"L-0-C",
-		"L-0-",
+		"L.0.",
+		"L.0-C.0",
+		"C.C.0",
+		"C-0-0",
 		"X",
 	}
 

@@ -5,7 +5,7 @@ package html
 import (
 	"testing"
 
-	i18n "dappco.re/go/core/i18n"
+	i18n "dappco.re/go/i18n"
 )
 
 func TestStripTags_Simple_Good(t *testing.T) {
@@ -46,11 +46,55 @@ func TestStripTags_NoTags_Good(t *testing.T) {
 	}
 }
 
+func TestStripTags_PreservesComparisonOperators_Good(t *testing.T) {
+	got := StripTags(`<p>1 < 2 and 3 > 2</p>`)
+	want := "1 < 2 and 3 > 2"
+	if got != want {
+		t.Errorf("StripTags(comparisons) = %q, want %q", got, want)
+	}
+}
+
+func TestStripTags_LiteralAngleBracket_Good(t *testing.T) {
+	got := StripTags(`a<b`)
+	want := `a<b`
+	if got != want {
+		t.Errorf("StripTags(literal angle) = %q, want %q", got, want)
+	}
+}
+
 func TestStripTags_Entities_Good(t *testing.T) {
 	got := StripTags(`&lt;script&gt;`)
 	want := "&lt;script&gt;"
 	if got != want {
 		t.Errorf("StripTags should preserve entities, got %q, want %q", got, want)
+	}
+}
+
+func TestStripTags_QuotedAttributes_Good(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "double quotes",
+			input: `<div title="1 > 0">answer</div>`,
+			want:  "answer",
+		},
+		{
+			name:  "single quotes",
+			input: `<div title='a > b'>answer</div>`,
+			want:  "answer",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := StripTags(tt.input)
+			if got != tt.want {
+				t.Errorf("StripTags(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -126,5 +170,21 @@ func TestCompareVariants_SameContent_Good(t *testing.T) {
 	}
 	if sim < 0.8 {
 		t.Errorf("same content in different variants should score >= 0.8, got %f", sim)
+	}
+}
+
+func TestCompareVariants_KeyOrderDeterministic_Good(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	ctx := NewContext()
+
+	r := NewResponsive().
+		Variant("beta", NewLayout("C").C(El("p", Text("Building project")))).
+		Variant("alpha", NewLayout("C").C(El("p", Text("Building project"))))
+
+	scores := CompareVariants(r, ctx)
+
+	if _, ok := scores["alpha:beta"]; !ok {
+		t.Fatalf("CompareVariants should use deterministic key ordering, got keys: %v", scores)
 	}
 }

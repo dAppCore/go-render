@@ -1,10 +1,9 @@
 package html
 
 import (
-	"errors"
 	"testing"
 
-	i18n "dappco.re/go/core/i18n"
+	i18n "dappco.re/go/i18n"
 )
 
 // --- Unicode / RTL edge cases ---
@@ -190,10 +189,10 @@ func TestLayout_DeepNesting10Levels_Ugly(t *testing.T) {
 		t.Error("10 levels deep: missing leaf content")
 	}
 
-	// Should have 10 levels of C-0 nesting
-	expectedBlock := "C-0"
+	// Should have 10 levels of C.0 nesting
+	expectedBlock := "C"
 	for i := 1; i < 10; i++ {
-		expectedBlock += "-C-0"
+		expectedBlock += ".0"
 	}
 	if !containsText(got, `data-block="`+expectedBlock+`"`) {
 		t.Errorf("10 levels deep: missing expected block ID %q in:\n%s", expectedBlock, got)
@@ -308,6 +307,38 @@ func TestEach_NestedEach_Ugly(t *testing.T) {
 	}
 }
 
+func TestEach_WrappedElement_PreservesItemPaths_Good(t *testing.T) {
+	ctx := NewContext()
+
+	node := Each([]string{"a", "b"}, func(item string) Node {
+		return If(func(*Context) bool { return true }, El("span", Raw(item)))
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+
+	if !containsText(got, `data-block="C.0.0"`) {
+		t.Fatalf("wrapped Each element should preserve first item path, got:\n%s", got)
+	}
+	if !containsText(got, `data-block="C.0.1"`) {
+		t.Fatalf("wrapped Each element should preserve second item path, got:\n%s", got)
+	}
+}
+
+func TestEach_WrappedLayout_PreservesBlockPath_Good(t *testing.T) {
+	ctx := NewContext()
+	inner := NewLayout("C").C(Raw("item"))
+
+	node := Each([]Node{inner}, func(item Node) Node {
+		return If(func(*Context) bool { return true }, item)
+	})
+
+	got := NewLayout("C").C(node).Render(ctx)
+	want := `<main role="main" data-block="C"><main role="main" data-block="C.0">item</main></main>`
+	if got != want {
+		t.Fatalf("wrapped Each layout render = %q, want %q", got, want)
+	}
+}
+
 // --- Layout variant validation ---
 
 func TestLayout_InvalidVariantChars_Bad(t *testing.T) {
@@ -342,33 +373,28 @@ func TestLayout_InvalidVariantChars_Bad(t *testing.T) {
 	}
 }
 
-func TestLayout_VariantError_Bad(t *testing.T) {
+func TestLayout_VariantError_NoOp_Good(t *testing.T) {
 	tests := []struct {
-		name          string
-		variant       string
-		wantInvalid   bool
-		wantErrString string
-		build         func(*Layout)
-		wantRender    string
+		name       string
+		variant    string
+		build      func(*Layout)
+		wantRender string
 	}{
 		{
-			name:        "valid variant",
-			variant:     "HCF",
-			wantInvalid: false,
+			name:    "valid variant",
+			variant: "HCF",
 			build: func(layout *Layout) {
 				layout.H(Raw("header")).C(Raw("main")).F(Raw("footer"))
 			},
-			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main><footer role="contentinfo" data-block="F-0">footer</footer>`,
+			wantRender: `<header role="banner" data-block="H">header</header><main role="main" data-block="C">main</main><footer role="contentinfo" data-block="F">footer</footer>`,
 		},
 		{
-			name:          "mixed invalid variant",
-			variant:       "HXC",
-			wantInvalid:   true,
-			wantErrString: "html: invalid layout variant HXC",
+			name:    "mixed invalid variant",
+			variant: "HXC",
 			build: func(layout *Layout) {
 				layout.H(Raw("header")).C(Raw("main"))
 			},
-			wantRender: `<header role="banner" data-block="H-0">header</header><main role="main" data-block="C-0">main</main>`,
+			wantRender: `<header role="banner" data-block="H">header</header><main role="main" data-block="C">main</main>`,
 		},
 	}
 
@@ -378,17 +404,7 @@ func TestLayout_VariantError_Bad(t *testing.T) {
 			if tt.build != nil {
 				tt.build(layout)
 			}
-			if tt.wantInvalid {
-				if layout.VariantError() == nil {
-					t.Fatalf("VariantError() = nil, want sentinel error for %q", tt.variant)
-				}
-				if !errors.Is(layout.VariantError(), ErrInvalidLayoutVariant) {
-					t.Fatalf("VariantError() = %v, want errors.Is(..., ErrInvalidLayoutVariant)", layout.VariantError())
-				}
-				if got := layout.VariantError().Error(); got != tt.wantErrString {
-					t.Fatalf("VariantError().Error() = %q, want %q", got, tt.wantErrString)
-				}
-			} else if layout.VariantError() != nil {
+			if layout.VariantError() != nil {
 				t.Fatalf("VariantError() = %v, want nil", layout.VariantError())
 			}
 
@@ -400,30 +416,19 @@ func TestLayout_VariantError_Bad(t *testing.T) {
 	}
 }
 
-func TestValidateLayoutVariant_Good(t *testing.T) {
+func TestValidateLayoutVariant_NoOp_Good(t *testing.T) {
 	tests := []struct {
 		name    string
 		variant string
-		wantErr bool
 	}{
-		{name: "valid", variant: "HCF", wantErr: false},
-		{name: "invalid", variant: "HXC", wantErr: true},
-		{name: "empty", variant: "", wantErr: false},
+		{name: "valid", variant: "HCF"},
+		{name: "invalid", variant: "HXC"},
+		{name: "empty", variant: ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateLayoutVariant(tt.variant)
-			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("ValidateLayoutVariant(%q) = nil, want error", tt.variant)
-				}
-				if !errors.Is(err, ErrInvalidLayoutVariant) {
-					t.Fatalf("ValidateLayoutVariant(%q) = %v, want ErrInvalidLayoutVariant", tt.variant, err)
-				}
-				return
-			}
-
 			if err != nil {
 				t.Fatalf("ValidateLayoutVariant(%q) = %v, want nil", tt.variant, err)
 			}
@@ -464,6 +469,19 @@ func TestLayout_DuplicateVariantChars_Ugly(t *testing.T) {
 	}
 }
 
+func TestLayout_DuplicateVariantChars_UniqueBlockIDs_Good(t *testing.T) {
+	ctx := NewContext()
+
+	layout := NewLayout("CCC").C(Raw("content"))
+	got := layout.Render(ctx)
+
+	for _, want := range []string{`data-block="C"`, `data-block="C.1"`, `data-block="C.2"`} {
+		if !containsText(got, want) {
+			t.Fatalf("CCC variant should assign unique block ID %q, got:\n%s", want, got)
+		}
+	}
+}
+
 func TestLayout_EmptySlots_Ugly(t *testing.T) {
 	ctx := NewContext()
 
@@ -484,7 +502,7 @@ func TestLayout_NestedThroughIf_Ugly(t *testing.T) {
 
 	got := outer.Render(ctx)
 
-	if !containsText(got, `data-block="C-0-C-0"`) {
+	if !containsText(got, `data-block="C.0"`) {
 		t.Fatalf("nested layout inside If should inherit block path, got:\n%s", got)
 	}
 }
@@ -500,7 +518,7 @@ func TestLayout_NestedThroughSwitch_Ugly(t *testing.T) {
 
 	got := outer.Render(ctx)
 
-	if !containsText(got, `data-block="C-0-C-0"`) {
+	if !containsText(got, `data-block="C.0"`) {
 		t.Fatalf("nested layout inside Switch should inherit block path, got:\n%s", got)
 	}
 }

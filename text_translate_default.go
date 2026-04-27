@@ -4,7 +4,9 @@
 
 package html
 
-import i18n "dappco.re/go/core/i18n"
+import (
+	i18n "dappco.re/go/i18n"
+)
 
 func translateDefault(key string, args ...any) string {
 	return i18n.T(key, args...)
