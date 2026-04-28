@@ -33,7 +33,9 @@ func applyLocaleToService(svc Translator, locale string) {
 	}
 
 	if setter, ok := svc.(interface{ SetLanguage(string) error }); ok {
-		_ = setter.SetLanguage(serviceLocale(svc, locale))
+		if err := setter.SetLanguage(serviceLocale(svc, locale)); err != nil {
+			return
+		}
 	}
 }
 

@@ -14,7 +14,7 @@ import (
 	"context"
 	"time"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	"dappco.re/go/html/codegen"
 	coreio "dappco.re/go/io"
 	log "dappco.re/go/log"
@@ -312,7 +312,9 @@ func runCodegenApp(c *core.Core) error {
 	}
 
 	defer func() {
-		_ = c.ServiceShutdown(context.Background())
+		if result := c.ServiceShutdown(context.Background()); !result.OK {
+			log.Warn("codegen shutdown failed", "scope", "codegen.main", "err", result.Error())
+		}
 	}()
 
 	if result := c.ServiceStartup(c.Context(), nil); !result.OK {
@@ -337,9 +339,9 @@ func runCodegenApp(c *core.Core) error {
 
 func resultFromError(err error) core.Result {
 	if err != nil {
-		return core.Result{Value: err, OK: false}
+		return core.Fail(err)
 	}
-	return core.Result{OK: true}
+	return core.Ok(nil)
 }
 
 func resultError(op, msg string, result core.Result) error {

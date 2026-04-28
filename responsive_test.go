@@ -117,7 +117,11 @@ func TestResponsive_VariantsIndependent_Good(t *testing.T) {
 }
 
 func TestResponsive_ImplementsNode_Ugly(t *testing.T) {
-	var _ Node = NewResponsive()
+	var node Node = NewResponsive()
+	got := node.Render(NewContext())
+	if got != "" {
+		t.Fatalf("empty responsive Render() = %q, want empty", got)
+	}
 }
 
 func TestResponsive_Variant_NilResponsive_Ugly(t *testing.T) {

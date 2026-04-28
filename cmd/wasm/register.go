@@ -3,7 +3,7 @@
 package main
 
 import (
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 
 	"dappco.re/go/html/codegen"
 	log "dappco.re/go/log"

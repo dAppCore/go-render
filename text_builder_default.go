@@ -4,7 +4,7 @@
 
 package html
 
-import core "dappco.re/go/core"
+import core "dappco.re/go"
 
 type builderOps interface {
 	WriteByte(byte) error

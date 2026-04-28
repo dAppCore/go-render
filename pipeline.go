@@ -3,7 +3,7 @@
 package html
 
 import (
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 
 	"dappco.re/go/i18n/reversal"
 	"unicode/utf8"

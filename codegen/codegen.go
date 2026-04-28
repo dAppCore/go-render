@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	log "dappco.re/go/log"
 )
 
