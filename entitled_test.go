@@ -2,7 +2,10 @@
 
 package html
 
-import "testing"
+import (
+	core "dappco.re/go"
+	"testing"
+)
 
 type stubEntitlementChecker map[string]bool
 
@@ -54,4 +57,59 @@ func TestEntitledChecker_GoodBadUgly(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEntitled_AllChecker_Check_Good(t *core.T) {
+	checker := denyAllChecker{}
+	got := checker.Check("premium")
+	core.AssertFalse(t, got)
+}
+
+func TestEntitled_AllChecker_Check_Bad(t *core.T) {
+	checker := denyAllChecker{}
+	got := checker.Check("")
+	core.AssertFalse(t, got)
+}
+
+func TestEntitled_AllChecker_Check_Ugly(t *core.T) {
+	var checker EntitlementChecker = denyAllChecker{}
+	got := checker.Check("anything")
+	core.AssertFalse(t, got)
+}
+
+func TestEntitled_Entitled_Good(t *core.T) {
+	node := Entitled(stubEntitlementChecker{"premium": true}, "premium", Text("granted"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "granted", got)
+}
+
+func TestEntitled_Entitled_Bad(t *core.T) {
+	node := Entitled(stubEntitlementChecker{"premium": false}, "premium", Text("denied"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestEntitled_Entitled_Ugly(t *core.T) {
+	ctx := NewContext()
+	ctx.Entitlements = func(feature string) bool { return feature == "premium" }
+	got := Entitled("premium", Text("legacy")).Render(ctx)
+	core.AssertEqual(t, "legacy", got)
+}
+
+func TestEntitled_Node_Render_Good(t *core.T) {
+	var node Node = emptyNode{}
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestEntitled_Node_Render_Bad(t *core.T) {
+	node := emptySentinel()
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestEntitled_Node_Render_Ugly(t *core.T) {
+	var node Node = (*entitledNode)(nil)
+	got := Render(node, NewContext())
+	core.AssertEqual(t, "", got)
 }

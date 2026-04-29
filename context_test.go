@@ -3,6 +3,7 @@
 package html
 
 import (
+	core "dappco.re/go"
 	"reflect"
 	"testing"
 
@@ -26,7 +27,7 @@ func (r *recordingTranslator) T(key string, args ...any) string {
 	return "translated"
 }
 
-func TestNewContext_OptionalLocale_Good(t *testing.T) {
+func TestNewContext_OptionalLocaleGood(t *testing.T) {
 	ctx := NewContext("en-GB")
 
 	if ctx == nil {
@@ -40,7 +41,7 @@ func TestNewContext_OptionalLocale_Good(t *testing.T) {
 	}
 }
 
-func TestNewContextWithService_OptionalLocale_Good(t *testing.T) {
+func TestNewContextWithService_OptionalLocaleGood(t *testing.T) {
 	svc, _ := i18n.New()
 	ctx := NewContextWithService(svc, "fr-FR")
 
@@ -55,7 +56,7 @@ func TestNewContextWithService_OptionalLocale_Good(t *testing.T) {
 	}
 }
 
-func TestNewContextWithService_AppliesLocaleToService_Good(t *testing.T) {
+func TestNewContextWithService_AppliesLocaleToServiceGood(t *testing.T) {
 	svc, _ := i18n.New()
 	ctx := NewContextWithService(svc, "fr-FR")
 
@@ -65,7 +66,7 @@ func TestNewContextWithService_AppliesLocaleToService_Good(t *testing.T) {
 	}
 }
 
-func TestNewContextWithService_ForwardsFullLocaleToTranslator_Good(t *testing.T) {
+func TestNewContextWithService_ForwardsFullLocaleToTranslatorGood(t *testing.T) {
 	svc := &recordingTranslator{}
 	ctx := NewContextWithService(svc, "en-GB")
 
@@ -77,7 +78,7 @@ func TestNewContextWithService_ForwardsFullLocaleToTranslator_Good(t *testing.T)
 	}
 }
 
-func TestTextNode_UsesMetadataAliasWhenDataNil_Good(t *testing.T) {
+func TestTextNode_UsesMetadataAliasWhenDataNilGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -91,7 +92,7 @@ func TestTextNode_UsesMetadataAliasWhenDataNil_Good(t *testing.T) {
 	}
 }
 
-func TestTextNode_CustomTranslatorReceivesCountArgs_Good(t *testing.T) {
+func TestTextNode_CustomTranslatorReceivesCountArgsGood(t *testing.T) {
 	ctx := NewContextWithService(&recordingTranslator{})
 	ctx.Metadata["count"] = 3
 
@@ -111,7 +112,7 @@ func TestTextNode_CustomTranslatorReceivesCountArgs_Good(t *testing.T) {
 	}
 }
 
-func TestTextNode_NonCountKey_DoesNotInjectCount_Good(t *testing.T) {
+func TestTextNode_NonCountKey_DoesNotInjectCountGood(t *testing.T) {
 	ctx := NewContextWithService(&recordingTranslator{})
 	ctx.Metadata["count"] = 3
 
@@ -181,7 +182,7 @@ func TestContext_SetLocale_NilContext_Ugly(t *testing.T) {
 	}
 }
 
-func TestCloneContext_PreservesMetadataAlias_Good(t *testing.T) {
+func TestCloneContext_PreservesMetadataAliasGood(t *testing.T) {
 	ctx := NewContext()
 	ctx.Data["count"] = 3
 
@@ -201,4 +202,80 @@ func TestCloneContext_PreservesMetadataAlias_Good(t *testing.T) {
 	if clone.Data["count"] != 3 || clone.Metadata["count"] != 3 {
 		t.Fatalf("cloneContext should copy map contents, got Data=%v Metadata=%v", clone.Data, clone.Metadata)
 	}
+}
+
+func TestContext_NewContext_Good(t *core.T) {
+	ctx := NewContext("cy")
+	core.AssertEqual(t, "cy", ctx.Locale)
+	core.AssertEqual(t, ctx.Data, ctx.Metadata)
+}
+
+func TestContext_NewContext_Bad(t *core.T) {
+	ctx := NewContext()
+	got := ctx.Locale
+	core.AssertEqual(t, "", got)
+}
+
+func TestContext_NewContext_Ugly(t *core.T) {
+	ctx := NewContext("")
+	got := ctx.Metadata
+	core.AssertNotNil(t, got)
+}
+
+func TestContext_NewContextWithService_Good(t *core.T) {
+	tr := &complianceTranslator{}
+	ctx := NewContextWithService(tr, "cy")
+	core.AssertEqual(t, "cy", ctx.Locale)
+}
+
+func TestContext_NewContextWithService_Bad(t *core.T) {
+	ctx := NewContextWithService(nil, "cy")
+	got := ctx.Locale
+	core.AssertEqual(t, "cy", got)
+}
+
+func TestContext_NewContextWithService_Ugly(t *core.T) {
+	tr := &complianceTranslator{available: []string{"en"}}
+	NewContextWithService(tr, "en-GB")
+	core.AssertEqual(t, "en", tr.lang)
+}
+
+func TestContext_Context_SetService_Good(t *core.T) {
+	tr := &complianceTranslator{}
+	ctx := NewContext("cy")
+	got := ctx.SetService(tr)
+	core.AssertEqual(t, ctx, got)
+}
+
+func TestContext_Context_SetService_Bad(t *core.T) {
+	var ctx *Context
+	got := ctx.SetService(&complianceTranslator{})
+	core.AssertNil(t, got)
+}
+
+func TestContext_Context_SetService_Ugly(t *core.T) {
+	tr := &complianceTranslator{}
+	ctx := NewContext("cy")
+	ctx.SetService(tr)
+	core.AssertEqual(t, "cy", tr.lang)
+}
+
+func TestContext_Context_SetLocale_Good(t *core.T) {
+	tr := &complianceTranslator{available: []string{"en"}}
+	ctx := NewContextWithService(tr)
+	got := ctx.SetLocale("en-GB")
+	core.AssertEqual(t, ctx, got)
+}
+
+func TestContext_Context_SetLocale_Bad(t *core.T) {
+	var ctx *Context
+	got := ctx.SetLocale("en")
+	core.AssertNil(t, got)
+}
+
+func TestContext_Context_SetLocale_Ugly(t *core.T) {
+	tr := &complianceTranslator{available: []string{"en"}}
+	ctx := NewContextWithService(tr)
+	ctx.SetLocale("en-GB")
+	core.AssertEqual(t, "en", tr.lang)
 }

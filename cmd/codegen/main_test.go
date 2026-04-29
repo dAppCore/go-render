@@ -4,9 +4,8 @@ package main
 
 import (
 	"context"
+	. "dappco.re/go"
 	goio "io"
-	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 	coreio "dappco.re/go/io"
 )
 
-func TestRun_WritesBundle_Good(t *testing.T) {
+func TestRun_WritesBundleGood(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
@@ -23,13 +22,13 @@ func TestRun_WritesBundle_Good(t *testing.T) {
 	}
 
 	js := output.String()
-	if !strings.Contains(js, "NavBar") {
+	if !core.Contains(js, "NavBar") {
 		t.Fatal("expected js to contain NavBar")
 	}
-	if !strings.Contains(js, "MainContent") {
+	if !core.Contains(js, "MainContent") {
 		t.Fatal("expected js to contain MainContent")
 	}
-	if !strings.Contains(js, "customElements.define") {
+	if !core.Contains(js, "customElements.define") {
 		t.Fatal("expected js to contain customElements.define")
 	}
 	if got := countSubstr(js, "extends HTMLElement"); got != 2 {
@@ -37,7 +36,7 @@ func TestRun_WritesBundle_Good(t *testing.T) {
 	}
 }
 
-func TestRun_InvalidJSON_Bad(t *testing.T) {
+func TestRun_InvalidJSONBad(t *testing.T) {
 	input := core.NewReader(`not json`)
 	output := core.NewBuilder()
 
@@ -45,12 +44,12 @@ func TestRun_InvalidJSON_Bad(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "invalid JSON") {
+	if !core.Contains(err.Error(), "invalid JSON") {
 		t.Fatalf("expected error to contain %q, got %v", "invalid JSON", err)
 	}
 }
 
-func TestRun_InvalidTag_Bad(t *testing.T) {
+func TestRun_InvalidTagBad(t *testing.T) {
 	input := core.NewReader(`{"H":"notag"}`)
 	output := core.NewBuilder()
 
@@ -58,12 +57,12 @@ func TestRun_InvalidTag_Bad(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "hyphen") {
+	if !core.Contains(err.Error(), "hyphen") {
 		t.Fatalf("expected error to contain %q, got %v", "hyphen", err)
 	}
 }
 
-func TestRun_InvalidTagCharacters_Bad(t *testing.T) {
+func TestRun_InvalidTagCharactersBad(t *testing.T) {
 	input := core.NewReader(`{"H":"Nav-Bar","C":"nav bar"}`)
 	output := core.NewBuilder()
 
@@ -71,12 +70,12 @@ func TestRun_InvalidTagCharacters_Bad(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "lowercase hyphenated name") {
+	if !core.Contains(err.Error(), "lowercase hyphenated name") {
 		t.Fatalf("expected error to contain %q, got %v", "lowercase hyphenated name", err)
 	}
 }
 
-func TestRun_EmptySlots_Good(t *testing.T) {
+func TestRun_EmptySlotsGood(t *testing.T) {
 	input := core.NewReader(`{}`)
 	output := core.NewBuilder()
 
@@ -88,7 +87,7 @@ func TestRun_EmptySlots_Good(t *testing.T) {
 	}
 }
 
-func TestRun_WritesTypeScriptDefinitions_Good(t *testing.T) {
+func TestRun_WritesTypeScriptDefinitionsGood(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
@@ -104,16 +103,16 @@ func TestRun_WritesTypeScriptDefinitions_Good(t *testing.T) {
 		"export declare class NavBar extends HTMLElement",
 		"export declare class MainContent extends HTMLElement",
 	} {
-		if !strings.Contains(dts, want) {
+		if !core.Contains(dts, want) {
 			t.Fatalf("expected dts to contain %q", want)
 		}
 	}
 }
 
-func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
+func TestRunDaemon_WritesUpdatedBundleGood(t *testing.T) {
 	dir := t.TempDir()
-	inputPath := filepath.Join(dir, "slots.json")
-	outputPath := filepath.Join(dir, "bundle.js")
+	inputPath := core.Path(dir, "slots.json")
+	outputPath := core.Path(dir, "bundle.js")
 
 	if err := writeTextFile(inputPath, `{"H":"nav-bar","C":"main-content"}`); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -131,7 +130,7 @@ func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
 	ok := false
 	for time.Now().Before(deadline) {
 		got, err := readTextFile(outputPath)
-		if err == nil && strings.Contains(got, "NavBar") && strings.Contains(got, "MainContent") {
+		if err == nil && core.Contains(got, "NavBar") && core.Contains(got, "MainContent") {
 			ok = true
 			break
 		}
@@ -147,12 +146,12 @@ func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
 	}
 }
 
-func TestRunDaemon_MissingPaths_Bad(t *testing.T) {
+func TestRunDaemon_MissingPathsBad(t *testing.T) {
 	err := runDaemon(context.Background(), "", "", false, time.Millisecond)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !strings.Contains(err.Error(), "watch mode requires -input") {
+	if !core.Contains(err.Error(), "watch mode requires -input") {
 		t.Fatalf("expected error to contain %q, got %v", "watch mode requires -input", err)
 	}
 }
@@ -219,4 +218,25 @@ func readTextFile(path string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func TestMain_Writer_Write_Good(t *T) {
+	writer := discardWriter{}
+	n, err := writer.Write([]byte("agent"))
+	AssertNoError(t, err)
+	AssertEqual(t, 5, n)
+}
+
+func TestMain_Writer_Write_Bad(t *T) {
+	writer := discardWriter{}
+	n, err := writer.Write(nil)
+	AssertNoError(t, err)
+	AssertEqual(t, 0, n)
+}
+
+func TestMain_Writer_Write_Ugly(t *T) {
+	writer := discardWriter{}
+	n, err := writer.Write([]byte{0, 'x'})
+	AssertNoError(t, err)
+	AssertEqual(t, 2, n)
 }

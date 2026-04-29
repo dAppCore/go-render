@@ -1,9 +1,6 @@
 package html
 
-import (
-	"strings"
-	"unicode"
-)
+import "unicode"
 
 // ShadowComponent describes a Web Component class generated from a static
 // go-html node tree.
@@ -30,7 +27,7 @@ func (sc *ShadowComponent) RenderClass() string {
 		body = "<style>" + sc.Style + "</style>" + body
 	}
 
-	var b strings.Builder
+	b := newTextBuilder()
 	b.WriteString("class ")
 	b.WriteString(className)
 	b.WriteString(" extends HTMLElement {\n")
@@ -81,7 +78,7 @@ func shadowMode(mode string) string {
 }
 
 func pascalCase(s string) string {
-	var b strings.Builder
+	b := newTextBuilder()
 	upperNext := true
 	for _, r := range s {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
@@ -108,14 +105,15 @@ const (
 
 func kebabCase(s string) string {
 	runes := []rune(s)
-	var b strings.Builder
+	b := newTextBuilder()
 	lastWasDash := true
 	previous := kebabNone
+	written := false
 
 	for i, r := range runes {
 		kind := classifyKebabRune(r)
 		if kind == kebabNone {
-			if b.Len() > 0 && !lastWasDash {
+			if written && !lastWasDash {
 				b.WriteByte('-')
 				lastWasDash = true
 			}
@@ -123,15 +121,28 @@ func kebabCase(s string) string {
 			continue
 		}
 
-		if b.Len() > 0 && !lastWasDash && shouldInsertKebabDash(previous, kind, runes, i) {
+		if written && !lastWasDash && shouldInsertKebabDash(previous, kind, runes, i) {
 			b.WriteByte('-')
 		}
 		b.WriteRune(unicode.ToLower(r))
 		lastWasDash = false
 		previous = kind
+		written = true
 	}
 
-	return strings.Trim(b.String(), "-")
+	return trimDashes(b.String())
+}
+
+func trimDashes(s string) string {
+	start := 0
+	for start < len(s) && s[start] == '-' {
+		start++
+	}
+	end := len(s)
+	for end > start && s[end-1] == '-' {
+		end--
+	}
+	return s[start:end]
 }
 
 func classifyKebabRune(r rune) kebabRuneKind {
@@ -165,14 +176,14 @@ func nextKebabRuneKind(runes []rune, index int) kebabRuneKind {
 }
 
 func jsStringLiteral(s string) string {
-	var b strings.Builder
+	b := newTextBuilder()
 	b.WriteByte('"')
-	appendJSStringLiteral(&b, s)
+	appendJSStringLiteral(b, s)
 	b.WriteByte('"')
 	return b.String()
 }
 
-func appendJSStringLiteral(b *strings.Builder, s string) {
+func appendJSStringLiteral(b *textBuilder, s string) {
 	for _, r := range s {
 		switch r {
 		case '\\':
@@ -209,7 +220,7 @@ func appendJSStringLiteral(b *strings.Builder, s string) {
 	}
 }
 
-func appendUnicodeEscape(b *strings.Builder, r rune) {
+func appendUnicodeEscape(b *textBuilder, r rune) {
 	const hex = "0123456789ABCDEF"
 	b.WriteString(`\u`)
 	b.WriteByte(hex[(r>>12)&0xF])

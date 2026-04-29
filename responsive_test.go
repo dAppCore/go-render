@@ -1,10 +1,11 @@
 package html
 
 import (
+	core "dappco.re/go"
 	"testing"
 )
 
-func TestResponsive_SingleVariant_Good(t *testing.T) {
+func TestResponsive_SingleVariantGood(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("desktop", NewLayout("HLCRF").
@@ -34,7 +35,7 @@ func TestResponsive_Add_MediaHint_Good(t *testing.T) {
 	}
 }
 
-func TestResponsive_MultiVariant_Good(t *testing.T) {
+func TestResponsive_MultiVariantGood(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("desktop", NewLayout("HLCRF").H(Raw("h")).L(Raw("l")).C(Raw("c")).R(Raw("r")).F(Raw("f"))).
@@ -50,7 +51,7 @@ func TestResponsive_MultiVariant_Good(t *testing.T) {
 	}
 }
 
-func TestResponsive_VariantOrder_Good(t *testing.T) {
+func TestResponsive_VariantOrderGood(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("desktop", NewLayout("HLCRF").C(Raw("d"))).
@@ -68,7 +69,7 @@ func TestResponsive_VariantOrder_Good(t *testing.T) {
 	}
 }
 
-func TestResponsive_NestedPaths_Good(t *testing.T) {
+func TestResponsive_NestedPathsGood(t *testing.T) {
 	ctx := NewContext()
 	inner := NewLayout("HCF").H(Raw("ih")).C(Raw("ic")).F(Raw("if"))
 	r := NewResponsive().
@@ -87,7 +88,7 @@ func TestResponsive_NestedPaths_Good(t *testing.T) {
 	}
 }
 
-func TestResponsive_NestedInsideLayout_PreservesBlockPath_Good(t *testing.T) {
+func TestResponsive_NestedInsideLayout_PreservesBlockPathGood(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("mobile", NewLayout("C").C(Raw("content")))
@@ -102,7 +103,7 @@ func TestResponsive_NestedInsideLayout_PreservesBlockPath_Good(t *testing.T) {
 	}
 }
 
-func TestResponsive_VariantsIndependent_Good(t *testing.T) {
+func TestResponsive_VariantsIndependentGood(t *testing.T) {
 	ctx := NewContext()
 	r := NewResponsive().
 		Variant("a", NewLayout("HLCRF").C(Raw("content-a"))).
@@ -116,7 +117,7 @@ func TestResponsive_VariantsIndependent_Good(t *testing.T) {
 	}
 }
 
-func TestResponsive_ImplementsNode_Ugly(t *testing.T) {
+func TestResponsive_ImplementsNodeUgly(t *testing.T) {
 	var node Node = NewResponsive()
 	got := node.Render(NewContext())
 	if got != "" {
@@ -156,7 +157,7 @@ func TestVariantSelector_Good(t *testing.T) {
 	}
 }
 
-func TestVariantSelector_Escapes_Good(t *testing.T) {
+func TestVariantSelector_EscapesGood(t *testing.T) {
 	got := VariantSelector("desk\"top\\wide")
 	want := `[data-variant="desk\"top\\wide"]`
 	if got != want {
@@ -164,10 +165,101 @@ func TestVariantSelector_Escapes_Good(t *testing.T) {
 	}
 }
 
-func TestVariantSelector_ControlChars_Escape_Good(t *testing.T) {
+func TestVariantSelector_ControlChars_EscapeGood(t *testing.T) {
 	got := VariantSelector("a\tb\nc\u0007")
 	want := `[data-variant="a\9 b\A c\7 "]`
 	if got != want {
 		t.Fatalf("VariantSelector control escapes = %q, want %q", got, want)
 	}
+}
+
+func TestResponsive_NewResponsive_Good(t *core.T) {
+	r := NewResponsive()
+	core.AssertNotNil(t, r)
+	core.AssertEqual(t, "", r.Render(NewContext()))
+}
+
+func TestResponsive_NewResponsive_Bad(t *core.T) {
+	r := NewResponsive()
+	got := len(r.variants)
+	core.AssertEqual(t, 0, got)
+}
+
+func TestResponsive_NewResponsive_Ugly(t *core.T) {
+	r := NewResponsive().Add("", NewLayout("C").C(Text("content")))
+	got := r.Render(NewContext())
+	core.AssertContains(t, got, `data-variant=""`)
+}
+
+func TestResponsive_Responsive_Variant_Good(t *core.T) {
+	r := NewResponsive().Variant("desktop", NewLayout("C").C(Text("wide")))
+	got := r.Render(NewContext())
+	core.AssertContains(t, got, "wide")
+}
+
+func TestResponsive_Responsive_Variant_Bad(t *core.T) {
+	r := NewResponsive().Variant("desktop", nil)
+	got := r.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestResponsive_Responsive_Variant_Ugly(t *core.T) {
+	var r *Responsive
+	got := r.Variant("mobile", NewLayout("C").C(Text("small")))
+	core.AssertContains(t, got.Render(NewContext()), "small")
+}
+
+func TestResponsive_Responsive_Add_Good(t *core.T) {
+	r := NewResponsive().Add("desktop", NewLayout("C").C(Text("wide")), "(min-width: 80rem)")
+	got := r.Render(NewContext())
+	core.AssertContains(t, got, `data-media="(min-width: 80rem)"`)
+}
+
+func TestResponsive_Responsive_Add_Bad(t *core.T) {
+	var r *Responsive
+	got := r.Add("mobile", nil)
+	core.AssertNotNil(t, got)
+	core.AssertEqual(t, "", got.Render(NewContext()))
+}
+
+func TestResponsive_Responsive_Add_Ugly(t *core.T) {
+	r := NewResponsive().Add("", NewLayout("C").C(Text("empty")))
+	got := r.Render(NewContext())
+	core.AssertContains(t, got, `data-variant=""`)
+}
+
+func TestResponsive_Responsive_Render_Good(t *core.T) {
+	r := NewResponsive().Variant("mobile", NewLayout("C").C(Text("small")))
+	got := r.Render(NewContext())
+	core.AssertContains(t, got, `data-variant="mobile"`)
+}
+
+func TestResponsive_Responsive_Render_Bad(t *core.T) {
+	var r *Responsive
+	got := r.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestResponsive_Responsive_Render_Ugly(t *core.T) {
+	r := NewResponsive().Variant("missing", nil).Variant("real", NewLayout("C").C(Text("ok")))
+	got := r.Render(nil)
+	core.AssertContains(t, got, `data-variant="real"`)
+}
+
+func TestResponsive_VariantSelector_Good(t *core.T) {
+	got := VariantSelector("desktop")
+	want := `[data-variant="desktop"]`
+	core.AssertEqual(t, want, got)
+}
+
+func TestResponsive_VariantSelector_Bad(t *core.T) {
+	got := VariantSelector("")
+	want := `[data-variant=""]`
+	core.AssertEqual(t, want, got)
+}
+
+func TestResponsive_VariantSelector_Ugly(t *core.T) {
+	got := VariantSelector("a\"b\\c")
+	want := `[data-variant="a\"b\\c"]`
+	core.AssertEqual(t, want, got)
 }

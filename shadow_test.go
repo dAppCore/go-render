@@ -1,7 +1,7 @@
 package html
 
 import (
-	"strings"
+	core "dappco.re/go"
 	"testing"
 )
 
@@ -20,17 +20,17 @@ func TestShadowComponent_Good(t *testing.T) {
 		`shadow.innerHTML = "<style>:host { display: block; }</style><button>Press</button>";`,
 		`customElements.define("my-button", MyButton);`,
 	} {
-		if !strings.Contains(got, want) {
+		if !containsText(got, want) {
 			t.Fatalf("RenderAll() should contain %q, got:\n%s", want, got)
 		}
 	}
 
-	if strings.Contains(got, `" + "`) {
+	if containsText(got, `" + "`) {
 		t.Fatalf("RenderAll() should emit a static JS string literal, got:\n%s", got)
 	}
 }
 
-func TestShadowComponent_EmptyName_Bad(t *testing.T) {
+func TestShadowComponent_EmptyNameBad(t *testing.T) {
 	component := &ShadowComponent{
 		Template: El("button", Text("Press")),
 	}
@@ -85,7 +85,7 @@ func TestShadowNamingHelpers_Good(t *testing.T) {
 	}
 }
 
-func TestShadowNamingHelpers_LeadingTrailingDashes_Ugly(t *testing.T) {
+func TestShadowNamingHelpers_LeadingTrailingDashesUgly(t *testing.T) {
 	const input = "-my-button-"
 
 	if got := pascalCase(input); got != "MyButton" {
@@ -99,4 +99,58 @@ func TestShadowNamingHelpers_LeadingTrailingDashes_Ugly(t *testing.T) {
 	if got := component.Register(); got != `customElements.define("my-button", MyButton);` {
 		t.Fatalf("Register() = %q, want normalised custom element registration", got)
 	}
+}
+
+func TestShadow_ShadowComponent_RenderClass_Good(t *core.T) {
+	sc := &ShadowComponent{Name: "nav-bar", Template: Text("ready")}
+	got := sc.RenderClass()
+	core.AssertContains(t, got, "class NavBar extends HTMLElement")
+}
+
+func TestShadow_ShadowComponent_RenderClass_Bad(t *core.T) {
+	sc := &ShadowComponent{Name: ""}
+	got := sc.RenderClass()
+	core.AssertEqual(t, "", got)
+}
+
+func TestShadow_ShadowComponent_RenderClass_Ugly(t *core.T) {
+	sc := &ShadowComponent{Name: "nav-bar", Template: Text("ready"), Style: "p{color:red}"}
+	got := sc.RenderClass()
+	core.AssertContains(t, got, "<style>p{color:red}</style>")
+}
+
+func TestShadow_ShadowComponent_Register_Good(t *core.T) {
+	sc := &ShadowComponent{Name: "nav-bar"}
+	got := sc.Register()
+	core.AssertContains(t, got, `customElements.define("nav-bar", NavBar)`)
+}
+
+func TestShadow_ShadowComponent_Register_Bad(t *core.T) {
+	sc := &ShadowComponent{}
+	got := sc.Register()
+	core.AssertEqual(t, "", got)
+}
+
+func TestShadow_ShadowComponent_Register_Ugly(t *core.T) {
+	sc := &ShadowComponent{Name: "NavBar"}
+	got := sc.Register()
+	core.AssertContains(t, got, `"nav-bar"`)
+}
+
+func TestShadow_ShadowComponent_RenderAll_Good(t *core.T) {
+	sc := &ShadowComponent{Name: "nav-bar", Template: Text("ready")}
+	got := sc.RenderAll()
+	core.AssertContains(t, got, "customElements.define")
+}
+
+func TestShadow_ShadowComponent_RenderAll_Bad(t *core.T) {
+	var sc *ShadowComponent
+	got := sc.RenderAll()
+	core.AssertEqual(t, "", got)
+}
+
+func TestShadow_ShadowComponent_RenderAll_Ugly(t *core.T) {
+	sc := &ShadowComponent{Name: "nav-bar", Template: Text("ready"), Mode: "open"}
+	got := sc.RenderAll()
+	core.AssertContains(t, got, `mode: "open"`)
 }

@@ -26,7 +26,7 @@ func TestRenderToString_Good(t *testing.T) {
 	}
 }
 
-func TestRenderToString_EmptySlot_Good(t *testing.T) {
+func TestRenderToString_EmptySlotGood(t *testing.T) {
 	gotAny := renderToString(js.Value{}, []js.Value{
 		js.ValueOf("C"),
 		js.ValueOf("en-GB"),

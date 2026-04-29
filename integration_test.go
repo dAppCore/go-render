@@ -6,7 +6,7 @@ import (
 	i18n "dappco.re/go/i18n"
 )
 
-func TestIntegration_RenderThenReverse_Good(t *testing.T) {
+func TestIntegration_RenderThenReverseGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -26,7 +26,7 @@ func TestIntegration_RenderThenReverse_Good(t *testing.T) {
 	}
 }
 
-func TestIntegration_ResponsiveImprint_Good(t *testing.T) {
+func TestIntegration_ResponsiveImprintGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()

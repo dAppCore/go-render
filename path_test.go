@@ -1,10 +1,11 @@
 package html
 
 import (
+	core "dappco.re/go"
 	"testing"
 )
 
-func TestNestedLayout_PathChain_Good(t *testing.T) {
+func TestNestedLayout_PathChainGood(t *testing.T) {
 	inner := NewLayout("HCF").H(Raw("inner h")).C(Raw("inner c")).F(Raw("inner f"))
 	outer := NewLayout("HLCRF").
 		H(Raw("header")).L(inner).C(Raw("main")).R(Raw("right")).F(Raw("footer"))
@@ -25,7 +26,7 @@ func TestNestedLayout_PathChain_Good(t *testing.T) {
 	}
 }
 
-func TestNestedLayout_DeepNesting_Ugly(t *testing.T) {
+func TestNestedLayout_DeepNestingUgly(t *testing.T) {
 	deepest := NewLayout("C").C(Raw("deep"))
 	middle := NewLayout("C").C(deepest)
 	outer := NewLayout("C").C(middle)
@@ -38,7 +39,7 @@ func TestNestedLayout_DeepNesting_Ugly(t *testing.T) {
 	}
 }
 
-func TestNestedLayout_StablePathsAcrossEmptySlots_Good(t *testing.T) {
+func TestNestedLayout_StablePathsAcrossEmptySlotsGood(t *testing.T) {
 	inner := NewLayout("HCF").
 		C(Raw("body")).
 		F(Raw("links"))
@@ -51,7 +52,7 @@ func TestNestedLayout_StablePathsAcrossEmptySlots_Good(t *testing.T) {
 	}
 }
 
-func TestBlockID_BuildsPath_Good(t *testing.T) {
+func TestBlockID_BuildsPathGood(t *testing.T) {
 	tests := []struct {
 		path     string
 		slot     byte
@@ -75,7 +76,7 @@ func TestBlockID_BuildsPath_Good(t *testing.T) {
 	}
 }
 
-func TestParseBlockID_ExtractsSlots_Good(t *testing.T) {
+func TestParseBlockID_ExtractsSlotsGood(t *testing.T) {
 	tests := []struct {
 		id   string
 		want []byte
@@ -106,7 +107,7 @@ func TestParseBlockID_ExtractsSlots_Good(t *testing.T) {
 	}
 }
 
-func TestParseBlockID_InvalidInput_Good(t *testing.T) {
+func TestParseBlockID_InvalidInputGood(t *testing.T) {
 	tests := []string{
 		"L-1-C-0",
 		"L-0-C",
@@ -122,4 +123,22 @@ func TestParseBlockID_InvalidInput_Good(t *testing.T) {
 			t.Errorf("ParseBlockID(%q) = %v, want nil", id, got)
 		}
 	}
+}
+
+func TestPath_ParseBlockID_Good(t *core.T) {
+	got := ParseBlockID("C.0.H.1")
+	want := []byte{'C', 'H'}
+	core.AssertEqual(t, want, got)
+}
+
+func TestPath_ParseBlockID_Bad(t *core.T) {
+	got := ParseBlockID("C-0.H")
+	want := []byte(nil)
+	core.AssertEqual(t, want, got)
+}
+
+func TestPath_ParseBlockID_Ugly(t *core.T) {
+	got := ParseBlockID("H-0-C-0")
+	want := []byte{'H', 'C'}
+	core.AssertEqual(t, want, got)
 }
