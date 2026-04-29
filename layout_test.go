@@ -186,21 +186,21 @@ func TestLayout_NewLayout_Ugly(t *core.T) {
 }
 
 func TestLayout_ValidateLayoutVariant_Good(t *core.T) {
-	err := ValidateLayoutVariant("HLCRF")
-	core.AssertNil(t, err)
-	core.AssertTrue(t, err == nil)
+	result := ValidateLayoutVariant("HLCRF")
+	core.AssertTrue(t, result.OK)
+	core.AssertNil(t, result.Value)
 }
 
 func TestLayout_ValidateLayoutVariant_Bad(t *core.T) {
-	err := ValidateLayoutVariant("???")
-	core.AssertNil(t, err)
-	core.AssertTrue(t, err == nil)
+	result := ValidateLayoutVariant("???")
+	core.AssertTrue(t, result.OK)
+	core.AssertNil(t, result.Value)
 }
 
 func TestLayout_ValidateLayoutVariant_Ugly(t *core.T) {
-	err := ValidateLayoutVariant("")
-	core.AssertNil(t, err)
-	core.AssertTrue(t, err == nil)
+	result := ValidateLayoutVariant("")
+	core.AssertTrue(t, result.OK)
+	core.AssertNil(t, result.Value)
 }
 
 func TestLayout_Layout_H_Good(t *core.T) {
@@ -295,20 +295,23 @@ func TestLayout_Layout_F_Ugly(t *core.T) {
 
 func TestLayout_Layout_VariantError_Good(t *core.T) {
 	l := NewLayout("C")
-	err := l.VariantError()
-	core.AssertNil(t, err)
+	result := l.VariantError()
+	core.AssertTrue(t, result.OK)
+	core.AssertNil(t, result.Value)
 }
 
 func TestLayout_Layout_VariantError_Bad(t *core.T) {
 	var l *Layout
-	err := l.VariantError()
-	core.AssertNil(t, err)
+	result := l.VariantError()
+	core.AssertTrue(t, result.OK)
+	core.AssertNil(t, result.Value)
 }
 
 func TestLayout_Layout_VariantError_Ugly(t *core.T) {
 	l := NewLayout("???")
-	err := l.VariantError()
-	core.AssertNil(t, err)
+	result := l.VariantError()
+	core.AssertTrue(t, result.OK)
+	core.AssertNil(t, result.Value)
 }
 
 func TestLayout_Layout_Render_Good(t *core.T) {
@@ -345,22 +348,4 @@ func TestLayout_VariantError_Error_Ugly(t *core.T) {
 	err := &layoutVariantError{variant: "\n"}
 	got := err.Error()
 	core.AssertContains(t, got, "\n")
-}
-
-func TestLayout_VariantError_Unwrap_Good(t *core.T) {
-	err := &layoutVariantError{variant: "XYZ"}
-	got := err.Unwrap()
-	core.AssertEqual(t, ErrInvalidLayoutVariant, got)
-}
-
-func TestLayout_VariantError_Unwrap_Bad(t *core.T) {
-	err := &layoutVariantError{}
-	got := err.Unwrap()
-	core.AssertEqual(t, ErrInvalidLayoutVariant, got)
-}
-
-func TestLayout_VariantError_Unwrap_Ugly(t *core.T) {
-	var err *layoutVariantError
-	got := err.Unwrap()
-	core.AssertEqual(t, ErrInvalidLayoutVariant, got)
 }

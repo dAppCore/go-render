@@ -41,7 +41,7 @@ func StripTags(html string) string {
 				prevSpace = true
 			}
 		default:
-			_, _ = b.WriteString(html[i : i+size])
+			b.WriteString(html[i : i+size])
 			prevSpace = false
 		}
 

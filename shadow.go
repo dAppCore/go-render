@@ -28,19 +28,19 @@ func (sc *ShadowComponent) RenderClass() string {
 	}
 
 	b := newTextBuilder()
-	b.WriteString("class ")
-	b.WriteString(className)
-	b.WriteString(" extends HTMLElement {\n")
-	b.WriteString("  constructor() {\n")
-	b.WriteString("    super();\n")
-	b.WriteString("    const shadow = this.attachShadow({ mode: ")
-	b.WriteString(jsStringLiteral(shadowMode(sc.Mode)))
-	b.WriteString(" });\n")
-	b.WriteString("    shadow.innerHTML = ")
-	b.WriteString(jsStringLiteral(body))
-	b.WriteString(";\n")
-	b.WriteString("  }\n")
-	b.WriteString("}")
+	b.AppendString("class ")
+	b.AppendString(className)
+	b.AppendString(" extends HTMLElement {\n")
+	b.AppendString("  constructor() {\n")
+	b.AppendString("    super();\n")
+	b.AppendString("    const shadow = this.attachShadow({ mode: ")
+	b.AppendString(jsStringLiteral(shadowMode(sc.Mode)))
+	b.AppendString(" });\n")
+	b.AppendString("    shadow.innerHTML = ")
+	b.AppendString(jsStringLiteral(body))
+	b.AppendString(";\n")
+	b.AppendString("  }\n")
+	b.AppendString("}")
 	return b.String()
 }
 
@@ -88,7 +88,7 @@ func pascalCase(s string) string {
 		if upperNext && unicode.IsLetter(r) {
 			r = unicode.ToUpper(r)
 		}
-		b.WriteRune(r)
+		b.AppendRune(r)
 		upperNext = false
 	}
 	return b.String()
@@ -114,7 +114,7 @@ func kebabCase(s string) string {
 		kind := classifyKebabRune(r)
 		if kind == kebabNone {
 			if written && !lastWasDash {
-				b.WriteByte('-')
+				b.AppendByte('-')
 				lastWasDash = true
 			}
 			previous = kebabNone
@@ -122,9 +122,9 @@ func kebabCase(s string) string {
 		}
 
 		if written && !lastWasDash && shouldInsertKebabDash(previous, kind, runes, i) {
-			b.WriteByte('-')
+			b.AppendByte('-')
 		}
-		b.WriteRune(unicode.ToLower(r))
+		b.AppendRune(unicode.ToLower(r))
 		lastWasDash = false
 		previous = kind
 		written = true
@@ -177,9 +177,9 @@ func nextKebabRuneKind(runes []rune, index int) kebabRuneKind {
 
 func jsStringLiteral(s string) string {
 	b := newTextBuilder()
-	b.WriteByte('"')
+	b.AppendByte('"')
 	appendJSStringLiteral(b, s)
-	b.WriteByte('"')
+	b.AppendByte('"')
 	return b.String()
 }
 
@@ -187,23 +187,23 @@ func appendJSStringLiteral(b *textBuilder, s string) {
 	for _, r := range s {
 		switch r {
 		case '\\':
-			b.WriteString(`\\`)
+			b.AppendString(`\\`)
 		case '"':
-			b.WriteString(`\"`)
+			b.AppendString(`\"`)
 		case '\b':
-			b.WriteString(`\b`)
+			b.AppendString(`\b`)
 		case '\f':
-			b.WriteString(`\f`)
+			b.AppendString(`\f`)
 		case '\n':
-			b.WriteString(`\n`)
+			b.AppendString(`\n`)
 		case '\r':
-			b.WriteString(`\r`)
+			b.AppendString(`\r`)
 		case '\t':
-			b.WriteString(`\t`)
+			b.AppendString(`\t`)
 		case 0x2028:
-			b.WriteString(`\u2028`)
+			b.AppendString(`\u2028`)
 		case 0x2029:
-			b.WriteString(`\u2029`)
+			b.AppendString(`\u2029`)
 		default:
 			if r < 0x20 {
 				appendUnicodeEscape(b, r)
@@ -215,16 +215,16 @@ func appendJSStringLiteral(b *textBuilder, s string) {
 				appendUnicodeEscape(b, rune(0xDC00+(rr&0x3FF)))
 				continue
 			}
-			b.WriteRune(r)
+			b.AppendRune(r)
 		}
 	}
 }
 
 func appendUnicodeEscape(b *textBuilder, r rune) {
 	const hex = "0123456789ABCDEF"
-	b.WriteString(`\u`)
-	b.WriteByte(hex[(r>>12)&0xF])
-	b.WriteByte(hex[(r>>8)&0xF])
-	b.WriteByte(hex[(r>>4)&0xF])
-	b.WriteByte(hex[r&0xF])
+	b.AppendString(`\u`)
+	b.AppendByte(hex[(r>>12)&0xF])
+	b.AppendByte(hex[(r>>8)&0xF])
+	b.AppendByte(hex[(r>>4)&0xF])
+	b.AppendByte(hex[r&0xF])
 }

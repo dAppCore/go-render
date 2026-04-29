@@ -18,8 +18,9 @@ func ExampleNewLayout() {
 }
 
 func ExampleValidateLayoutVariant() {
-	core.Println(ValidateLayoutVariant("???") == nil)
-	// Output: true
+	result := ValidateLayoutVariant("???")
+	core.Println(result.OK, result.Value == nil)
+	// Output: true true
 }
 
 func ExampleLayout_H() {
@@ -48,8 +49,9 @@ func ExampleLayout_F() {
 }
 
 func ExampleLayout_VariantError() {
-	core.Println(NewLayout("C").VariantError() == nil)
-	// Output: true
+	result := NewLayout("C").VariantError()
+	core.Println(result.OK, result.Value == nil)
+	// Output: true true
 }
 
 func ExampleLayout_Render() {
@@ -61,10 +63,4 @@ func ExampleVariantError_Error() {
 	err := &VariantError{variant: "XYZ"}
 	core.Println(err.Error())
 	// Output: html: invalid layout variant XYZ
-}
-
-func ExampleVariantError_Unwrap() {
-	err := &VariantError{variant: "XYZ"}
-	core.Println(err.Unwrap() == ErrInvalidLayoutVariant)
-	// Output: true
 }

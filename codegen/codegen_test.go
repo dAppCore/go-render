@@ -10,10 +10,11 @@ import (
 )
 
 func TestGenerateClass_ValidTagGood(t *testing.T) {
-	js, err := GenerateClass("photo-grid", "C")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	result := GenerateClass("photo-grid", "C")
+	if !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
+	js, _ := result.Value.(string)
 	for _, want := range []string{
 		"class PhotoGrid extends HTMLElement",
 		"attachShadow",
@@ -27,17 +28,17 @@ func TestGenerateClass_ValidTagGood(t *testing.T) {
 }
 
 func TestGenerateClass_InvalidTagBad(t *testing.T) {
-	if _, err := GenerateClass("invalid", "C"); err == nil {
-		t.Fatal("expected error: custom element names must contain a hyphen")
+	if result := GenerateClass("invalid", "C"); result.OK {
+		t.Fatal("expected error result: custom element names must contain a hyphen")
 	}
-	if _, err := GenerateClass("Nav-Bar", "C"); err == nil {
-		t.Fatal("expected error: custom element names must be lowercase")
+	if result := GenerateClass("Nav-Bar", "C"); result.OK {
+		t.Fatal("expected error result: custom element names must be lowercase")
 	}
-	if _, err := GenerateClass("nav bar", "C"); err == nil {
-		t.Fatal("expected error: custom element names must reject spaces")
+	if result := GenerateClass("nav bar", "C"); result.OK {
+		t.Fatal("expected error result: custom element names must reject spaces")
 	}
-	if _, err := GenerateClass("annotation-xml", "C"); err == nil {
-		t.Fatal("expected error: reserved custom element names must be rejected")
+	if result := GenerateClass("annotation-xml", "C"); result.OK {
+		t.Fatal("expected error result: reserved custom element names must be rejected")
 	}
 }
 
@@ -65,10 +66,11 @@ func TestGenerateClass_ValidExtendedTagGood(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.tag, func(t *testing.T) {
-			js, err := GenerateClass(tt.tag, "C")
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+			result := GenerateClass(tt.tag, "C")
+			if !result.OK {
+				t.Fatalf("unexpected error: %v", result.Error())
 			}
+			js, _ := result.Value.(string)
 			if want := "class " + tt.wantClass + " extends HTMLElement"; !core.Contains(js, want) {
 				t.Fatalf("expected js to contain %q", want)
 			}
@@ -106,10 +108,11 @@ func TestGenerateBundle_DeduplicatesRegistrationsGood(t *testing.T) {
 		"C": "main-content",
 		"F": "nav-bar",
 	}
-	js, err := GenerateBundle(slots)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	result := GenerateBundle(slots)
+	if !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
+	js, _ := result.Value.(string)
 	if !core.Contains(js, "NavBar") {
 		t.Fatal("expected js to contain NavBar")
 	}
@@ -131,10 +134,11 @@ func TestGenerateBundle_DeterministicOrderingGood(t *testing.T) {
 		"M": "main-content",
 	}
 
-	js, err := GenerateBundle(slots)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	result := GenerateBundle(slots)
+	if !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
+	js, _ := result.Value.(string)
 
 	alpha := indexSubstr(js, "class AlphaPanel")
 	main := indexSubstr(js, "class MainContent")
@@ -272,20 +276,22 @@ func indexSubstr(s, substr string) int {
 }
 
 func TestCodegen_GenerateClass_Good(t *T) {
-	got, err := GenerateClass("nav-bar", "H")
-	AssertNoError(t, err)
+	result := GenerateClass("nav-bar", "H")
+	AssertTrue(t, result.OK)
+	got, _ := result.Value.(string)
 	AssertContains(t, got, "class NavBar extends HTMLElement")
 }
 
 func TestCodegen_GenerateClass_Bad(t *T) {
-	got, err := GenerateClass("notag", "H")
-	AssertError(t, err)
-	AssertEqual(t, "", got)
+	result := GenerateClass("notag", "H")
+	AssertFalse(t, result.OK)
+	AssertContains(t, result.Error(), "hyphenated")
 }
 
 func TestCodegen_GenerateClass_Ugly(t *T) {
-	got, err := GenerateClass("nav-bar", `"&`)
-	AssertNoError(t, err)
+	result := GenerateClass("nav-bar", `"&`)
+	AssertTrue(t, result.OK)
+	got, _ := result.Value.(string)
 	AssertContains(t, got, `\"&`)
 }
 
@@ -326,19 +332,21 @@ func TestCodegen_TagToClassName_Ugly(t *T) {
 }
 
 func TestCodegen_GenerateBundle_Good(t *T) {
-	got, err := GenerateBundle(map[string]string{"H": "nav-bar"})
-	AssertNoError(t, err)
+	result := GenerateBundle(map[string]string{"H": "nav-bar"})
+	AssertTrue(t, result.OK)
+	got, _ := result.Value.(string)
 	AssertContains(t, got, "customElements.define")
 }
 
 func TestCodegen_GenerateBundle_Bad(t *T) {
-	got, err := GenerateBundle(map[string]string{"H": "notag"})
-	AssertError(t, err)
-	AssertEqual(t, "", got)
+	result := GenerateBundle(map[string]string{"H": "notag"})
+	AssertFalse(t, result.OK)
+	AssertContains(t, result.Error(), "hyphenated")
 }
 
 func TestCodegen_GenerateBundle_Ugly(t *T) {
-	got, err := GenerateBundle(map[string]string{"H": "nav-bar", "C": "nav-bar"})
-	AssertNoError(t, err)
+	result := GenerateBundle(map[string]string{"H": "nav-bar", "C": "nav-bar"})
+	AssertTrue(t, result.OK)
+	got, _ := result.Value.(string)
 	AssertEqual(t, 1, countSubstr(got, "customElements.define"))
 }

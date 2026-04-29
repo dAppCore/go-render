@@ -75,15 +75,15 @@ func (r *Responsive) renderWithLayoutPath(ctx *Context, path string) string {
 			continue
 		}
 
-		b.WriteString(`<div data-variant="`)
-		b.WriteString(escapeAttr(v.name))
+		b.AppendString(`<div data-variant="`)
+		b.AppendString(escapeAttr(v.name))
 		if v.media != "" {
-			b.WriteString(`" data-media="`)
-			b.WriteString(escapeAttr(v.media))
+			b.AppendString(`" data-media="`)
+			b.AppendString(escapeAttr(v.media))
 		}
-		b.WriteString(`">`)
-		b.WriteString(renderWithLayoutPath(v.layout, ctx, path))
-		b.WriteString(`</div>`)
+		b.AppendString(`">`)
+		b.AppendString(renderWithLayoutPath(v.layout, ctx, path))
+		b.AppendString(`</div>`)
 	}
 	return b.String()
 }
@@ -103,23 +103,23 @@ func escapeCSSString(s string) string {
 	for _, r := range s {
 		switch r {
 		case '\\', '"':
-			b.WriteByte('\\')
-			b.WriteRune(r)
+			b.AppendByte('\\')
+			b.AppendRune(r)
 		default:
 			if r < 0x20 || r == 0x7f {
-				b.WriteByte('\\')
+				b.AppendByte('\\')
 				esc := strconv.FormatInt(int64(r), 16)
 				for i := 0; i < len(esc); i++ {
 					c := esc[i]
 					if c >= 'a' && c <= 'f' {
 						c -= 'a' - 'A'
 					}
-					b.WriteByte(c)
+					b.AppendByte(c)
 				}
-				b.WriteByte(' ')
+				b.AppendByte(' ')
 				continue
 			}
-			b.WriteRune(r)
+			b.AppendRune(r)
 		}
 	}
 	return b.String()

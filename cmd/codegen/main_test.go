@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	. "dappco.re/go"
 	goio "io"
 	"testing"
 	"time"
@@ -17,8 +16,8 @@ func TestRun_WritesBundleGood(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
-	if err := run(input, output, false); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := run(input, output, false); !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 
 	js := output.String()
@@ -40,12 +39,12 @@ func TestRun_InvalidJSONBad(t *testing.T) {
 	input := core.NewReader(`not json`)
 	output := core.NewBuilder()
 
-	err := run(input, output, false)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := run(input, output, false)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !core.Contains(err.Error(), "invalid JSON") {
-		t.Fatalf("expected error to contain %q, got %v", "invalid JSON", err)
+	if !core.Contains(result.Error(), "invalid JSON") {
+		t.Fatalf("expected error to contain %q, got %v", "invalid JSON", result.Error())
 	}
 }
 
@@ -53,12 +52,12 @@ func TestRun_InvalidTagBad(t *testing.T) {
 	input := core.NewReader(`{"H":"notag"}`)
 	output := core.NewBuilder()
 
-	err := run(input, output, false)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := run(input, output, false)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !core.Contains(err.Error(), "hyphen") {
-		t.Fatalf("expected error to contain %q, got %v", "hyphen", err)
+	if !core.Contains(result.Error(), "hyphen") {
+		t.Fatalf("expected error to contain %q, got %v", "hyphen", result.Error())
 	}
 }
 
@@ -66,12 +65,12 @@ func TestRun_InvalidTagCharactersBad(t *testing.T) {
 	input := core.NewReader(`{"H":"Nav-Bar","C":"nav bar"}`)
 	output := core.NewBuilder()
 
-	err := run(input, output, false)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := run(input, output, false)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !core.Contains(err.Error(), "lowercase hyphenated name") {
-		t.Fatalf("expected error to contain %q, got %v", "lowercase hyphenated name", err)
+	if !core.Contains(result.Error(), "lowercase hyphenated name") {
+		t.Fatalf("expected error to contain %q, got %v", "lowercase hyphenated name", result.Error())
 	}
 }
 
@@ -79,8 +78,8 @@ func TestRun_EmptySlotsGood(t *testing.T) {
 	input := core.NewReader(`{}`)
 	output := core.NewBuilder()
 
-	if err := run(input, output, false); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := run(input, output, false); !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 	if got := output.String(); got != "" {
 		t.Fatalf("expected empty output, got %q", got)
@@ -91,8 +90,8 @@ func TestRun_WritesTypeScriptDefinitionsGood(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
-	if err := run(input, output, true); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := run(input, output, true); !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 
 	dts := output.String()
@@ -121,7 +120,7 @@ func TestRunDaemon_WritesUpdatedBundleGood(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	done := make(chan error, 1)
+	done := make(chan core.Result, 1)
 	go func() {
 		done <- runDaemon(ctx, inputPath, outputPath, false, 5*time.Millisecond)
 	}()
@@ -141,18 +140,18 @@ func TestRunDaemon_WritesUpdatedBundleGood(t *testing.T) {
 	}
 
 	cancel()
-	if err := <-done; err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := <-done; !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 }
 
 func TestRunDaemon_MissingPathsBad(t *testing.T) {
-	err := runDaemon(context.Background(), "", "", false, time.Millisecond)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := runDaemon(context.Background(), "", "", false, time.Millisecond)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !core.Contains(err.Error(), "watch mode requires -input") {
-		t.Fatalf("expected error to contain %q, got %v", "watch mode requires -input", err)
+	if !core.Contains(result.Error(), "watch mode requires -input") {
+		t.Fatalf("expected error to contain %q, got %v", "watch mode requires -input", result.Error())
 	}
 }
 
@@ -218,25 +217,4 @@ func readTextFile(path string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
-}
-
-func TestMain_Writer_Write_Good(t *T) {
-	writer := discardWriter{}
-	n, err := writer.Write([]byte("agent"))
-	AssertNoError(t, err)
-	AssertEqual(t, 5, n)
-}
-
-func TestMain_Writer_Write_Bad(t *T) {
-	writer := discardWriter{}
-	n, err := writer.Write(nil)
-	AssertNoError(t, err)
-	AssertEqual(t, 0, n)
-}
-
-func TestMain_Writer_Write_Ugly(t *T) {
-	writer := discardWriter{}
-	n, err := writer.Write([]byte{0, 'x'})
-	AssertNoError(t, err)
-	AssertEqual(t, 2, n)
 }

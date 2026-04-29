@@ -138,10 +138,10 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
 }`))
 
 // GenerateClass produces a JS class definition for a custom element.
-// Usage example: js, err := GenerateClass("nav-bar", "H")
-func GenerateClass(tag, slot string) (string, error) {
+// Usage example: result := GenerateClass("nav-bar", "H")
+func GenerateClass(tag, slot string) core.Result {
 	if !isValidCustomElementTag(tag) {
-		return "", log.E("codegen.GenerateClass", "custom element tag must be a lowercase hyphenated name: "+tag, nil)
+		return core.Fail(log.E("codegen.GenerateClass", "custom element tag must be a lowercase hyphenated name: "+tag, nil))
 	}
 	b := core.NewBuilder()
 	tagLiteral := escapeJSStringLiteral(tag)
@@ -154,9 +154,9 @@ func GenerateClass(tag, slot string) (string, error) {
 		SlotLiteral: slotLiteral,
 	})
 	if err != nil {
-		return "", log.E("codegen.GenerateClass", "template exec", err)
+		return core.Fail(log.E("codegen.GenerateClass", "template exec", err))
 	}
-	return b.String(), nil
+	return core.Ok(b.String())
 }
 
 // GenerateRegistration produces the customElements.define() call.
@@ -191,8 +191,8 @@ func TagToClassName(tag string) string {
 
 // GenerateBundle produces all WC class definitions and registrations
 // for a set of HLCRF slot assignments.
-// Usage example: js, err := GenerateBundle(map[string]string{"H": "nav-bar"})
-func GenerateBundle(slots map[string]string) (string, error) {
+// Usage example: result := GenerateBundle(map[string]string{"H": "nav-bar"})
+func GenerateBundle(slots map[string]string) core.Result {
 	seen := make(map[string]bool)
 	b := core.NewBuilder()
 	keys := make([]string, 0, len(slots))
@@ -208,14 +208,19 @@ func GenerateBundle(slots map[string]string) (string, error) {
 		}
 		seen[tag] = true
 
-		cls, err := GenerateClass(tag, slot)
-		if err != nil {
-			return "", log.E("codegen.GenerateBundle", "generate class for tag "+tag, err)
+		clsResult := GenerateClass(tag, slot)
+		if !clsResult.OK {
+			var err error
+			if value, ok := clsResult.Value.(error); ok {
+				err = value
+			}
+			return core.Fail(log.E("codegen.GenerateBundle", "generate class for tag "+tag, err))
 		}
+		cls, _ := clsResult.Value.(string)
 		b.WriteString(cls)
 		b.WriteByte('\n')
 		b.WriteString(GenerateRegistration(tag, TagToClassName(tag)))
 		b.WriteByte('\n')
 	}
-	return b.String(), nil
+	return core.Ok(b.String())
 }

@@ -8,30 +8,30 @@ import core "dappco.re/go"
 
 type Builder = textBuilder
 
-func ExampleBuilder_WriteByte() {
+func ExampleBuilder_AppendByte() {
 	b := newTextBuilder()
-	b.WriteByte('A')
+	b.AppendByte('A')
 	core.Println(b.String())
 	// Output: A
 }
 
-func ExampleBuilder_WriteRune() {
+func ExampleBuilder_AppendRune() {
 	b := newTextBuilder()
-	b.WriteRune('R')
+	b.AppendRune('R')
 	core.Println(b.String())
 	// Output: R
 }
 
-func ExampleBuilder_WriteString() {
+func ExampleBuilder_AppendString() {
 	b := newTextBuilder()
-	n, _ := b.WriteString("go")
+	n := b.AppendString("go")
 	core.Println(n, b.String())
 	// Output: 2 go
 }
 
 func ExampleBuilder_String() {
 	b := newTextBuilder()
-	b.WriteString("ready")
+	b.AppendString("ready")
 	core.Println(b.String())
 	// Output: ready
 }

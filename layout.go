@@ -3,7 +3,8 @@ package html
 // Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
 // 3.5 MB raw / 1 MB gzip size budget, so we deliberately avoid importing
 // dappco.re/go/core here — it transitively pulls in fmt/os/log (~500 KB+).
-// The stdlib strconv primitive is safe for WASM.
+// Result-shaped compatibility helpers are bridged through result_default.go
+// and result_js.go so the WASM build avoids importing the full core package.
 
 import "strconv"
 
@@ -75,9 +76,9 @@ func NewLayout(variant string) *Layout {
 //
 // Variant strings are permissive now: unknown characters are ignored during
 // rendering, so this helper always returns nil.
-func ValidateLayoutVariant(variant string) error {
+func ValidateLayoutVariant(variant string) result {
 	_ = variant
-	return nil
+	return okResult(nil)
 }
 
 func (l *Layout) slotsForSlot(slot byte) []Node {
@@ -158,11 +159,11 @@ func (l *Layout) blockID(slot byte, rendered int) string {
 //
 // Layouts no longer record variant validation errors, so this always returns
 // nil. Unknown characters are ignored at render time.
-func (l *Layout) VariantError() error {
+func (l *Layout) VariantError() result {
 	if l == nil {
-		return nil
+		return okResult(nil)
 	}
-	return nil
+	return okResult(nil)
 }
 
 // Render produces the semantic HTML for this layout.
@@ -201,24 +202,24 @@ func (l *Layout) Render(ctx *Context) string {
 		}
 		bid := l.blockID(slot, count)
 
-		b.WriteByte('<')
-		b.WriteString(escapeHTML(meta.tag))
-		b.WriteString(` role="`)
-		b.WriteString(escapeAttr(meta.role))
-		b.WriteString(`" data-block="`)
-		b.WriteString(escapeAttr(bid))
-		b.WriteString(`">`)
+		b.AppendByte('<')
+		b.AppendString(escapeHTML(meta.tag))
+		b.AppendString(` role="`)
+		b.AppendString(escapeAttr(meta.role))
+		b.AppendString(`" data-block="`)
+		b.AppendString(escapeAttr(bid))
+		b.AppendString(`">`)
 
 		for i, child := range children {
 			if child == nil {
 				continue
 			}
-			b.WriteString(renderWithLayoutPath(child, ctx, bid+"."+strconv.Itoa(i)))
+			b.AppendString(renderWithLayoutPath(child, ctx, bid+"."+strconv.Itoa(i)))
 		}
 
-		b.WriteString("</")
-		b.WriteString(meta.tag)
-		b.WriteByte('>')
+		b.AppendString("</")
+		b.AppendString(meta.tag)
+		b.AppendByte('>')
 	}
 
 	return b.String()
@@ -230,10 +231,6 @@ type layoutVariantError struct {
 
 func (e *layoutVariantError) Error() string {
 	return "html: invalid layout variant " + e.variant
-}
-
-func (e *layoutVariantError) Unwrap() error {
-	return ErrInvalidLayoutVariant
 }
 
 func (l *Layout) renderWithLayoutPath(ctx *Context, path string) string {

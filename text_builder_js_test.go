@@ -6,73 +6,63 @@ package html
 
 import core "dappco.re/go"
 
-func TestTextBuilderJs_Builder_WriteByte_Good(t *core.T) {
+func TestTextBuilderJs_Builder_AppendByte_Good(t *core.T) {
 	b := newTextBuilder()
-	err := b.WriteByte('A')
-	core.AssertNoError(t, err)
+	b.AppendByte('A')
 	core.AssertEqual(t, "A", b.String())
 }
 
-func TestTextBuilderJs_Builder_WriteByte_Bad(t *core.T) {
+func TestTextBuilderJs_Builder_AppendByte_Bad(t *core.T) {
 	b := newTextBuilder()
-	err := b.WriteByte(0)
-	core.AssertNoError(t, err)
+	b.AppendByte(0)
 	core.AssertEqual(t, "\x00", b.String())
 }
 
-func TestTextBuilderJs_Builder_WriteByte_Ugly(t *core.T) {
+func TestTextBuilderJs_Builder_AppendByte_Ugly(t *core.T) {
 	b := newTextBuilder()
-	err := b.WriteByte('\n')
-	core.AssertNoError(t, err)
+	b.AppendByte('\n')
 	core.AssertEqual(t, "\n", b.String())
 }
 
-func TestTextBuilderJs_Builder_WriteRune_Good(t *core.T) {
+func TestTextBuilderJs_Builder_AppendRune_Good(t *core.T) {
 	b := newTextBuilder()
-	n, err := b.WriteRune('A')
-	core.AssertNoError(t, err)
+	n := b.AppendRune('A')
 	core.AssertEqual(t, 1, n)
 }
 
-func TestTextBuilderJs_Builder_WriteRune_Bad(t *core.T) {
+func TestTextBuilderJs_Builder_AppendRune_Bad(t *core.T) {
 	b := newTextBuilder()
-	n, err := b.WriteRune(0)
-	core.AssertNoError(t, err)
+	n := b.AppendRune(0)
 	core.AssertEqual(t, 1, n)
 }
 
-func TestTextBuilderJs_Builder_WriteRune_Ugly(t *core.T) {
+func TestTextBuilderJs_Builder_AppendRune_Ugly(t *core.T) {
 	b := newTextBuilder()
-	n, err := b.WriteRune('λ')
-	core.AssertNoError(t, err)
+	n := b.AppendRune('λ')
 	core.AssertEqual(t, len("λ"), n)
 }
 
-func TestTextBuilderJs_Builder_WriteString_Good(t *core.T) {
+func TestTextBuilderJs_Builder_AppendString_Good(t *core.T) {
 	b := newTextBuilder()
-	n, err := b.WriteString("agent")
-	core.AssertNoError(t, err)
+	n := b.AppendString("agent")
 	core.AssertEqual(t, 5, n)
 }
 
-func TestTextBuilderJs_Builder_WriteString_Bad(t *core.T) {
+func TestTextBuilderJs_Builder_AppendString_Bad(t *core.T) {
 	b := newTextBuilder()
-	n, err := b.WriteString("")
-	core.AssertNoError(t, err)
+	n := b.AppendString("")
 	core.AssertEqual(t, 0, n)
 }
 
-func TestTextBuilderJs_Builder_WriteString_Ugly(t *core.T) {
+func TestTextBuilderJs_Builder_AppendString_Ugly(t *core.T) {
 	b := newTextBuilder()
-	n, err := b.WriteString("λ")
-	core.AssertNoError(t, err)
+	n := b.AppendString("λ")
 	core.AssertEqual(t, len("λ"), n)
 }
 
 func TestTextBuilderJs_Builder_String_Good(t *core.T) {
 	b := newTextBuilder()
-	_, err := b.WriteString("agent")
-	core.AssertNoError(t, err)
+	b.AppendString("agent")
 	core.AssertEqual(t, "agent", b.String())
 }
 
@@ -84,7 +74,6 @@ func TestTextBuilderJs_Builder_String_Bad(t *core.T) {
 
 func TestTextBuilderJs_Builder_String_Ugly(t *core.T) {
 	b := newTextBuilder()
-	err := b.WriteByte(0)
-	core.AssertNoError(t, err)
+	b.AppendByte(0)
 	core.AssertEqual(t, "\x00", b.String())
 }

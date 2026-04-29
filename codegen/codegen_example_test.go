@@ -7,8 +7,9 @@ package codegen
 import . "dappco.re/go"
 
 func ExampleGenerateClass() {
-	js, err := GenerateClass("nav-bar", "H")
-	Println(err == nil, Contains(js, "class NavBar extends HTMLElement"))
+	result := GenerateClass("nav-bar", "H")
+	js, _ := result.Value.(string)
+	Println(result.OK, Contains(js, "class NavBar extends HTMLElement"))
 	// Output: true true
 }
 
@@ -23,7 +24,8 @@ func ExampleTagToClassName() {
 }
 
 func ExampleGenerateBundle() {
-	js, err := GenerateBundle(map[string]string{"H": "nav-bar"})
-	Println(err == nil, Contains(js, "customElements.define"))
+	result := GenerateBundle(map[string]string{"H": "nav-bar"})
+	js, _ := result.Value.(string)
+	Println(result.OK, Contains(js, "customElements.define"))
 	// Output: true true
 }

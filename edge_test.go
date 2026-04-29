@@ -404,8 +404,8 @@ func TestLayout_VariantError_NoOp_Good(t *testing.T) {
 			if tt.build != nil {
 				tt.build(layout)
 			}
-			if layout.VariantError() != nil {
-				t.Fatalf("VariantError() = %v, want nil", layout.VariantError())
+			if result := layout.VariantError(); !result.OK || result.Value != nil {
+				t.Fatalf("VariantError() = %+v, want OK nil", result)
 			}
 
 			got := layout.Render(NewContext())
@@ -428,9 +428,9 @@ func TestValidateLayoutVariant_NoOpGood(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateLayoutVariant(tt.variant)
-			if err != nil {
-				t.Fatalf("ValidateLayoutVariant(%q) = %v, want nil", tt.variant, err)
+			result := ValidateLayoutVariant(tt.variant)
+			if !result.OK || result.Value != nil {
+				t.Fatalf("ValidateLayoutVariant(%q) = %+v, want OK nil", tt.variant, result)
 			}
 		})
 	}

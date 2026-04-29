@@ -10,10 +10,11 @@ import (
 
 func TestBuildComponentJS_ValidJSONGood(t *testing.T) {
 	slotsJSON := `{"H":"nav-bar","C":"main-content"}`
-	js, err := buildComponentJS(slotsJSON)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	result := buildComponentJS(slotsJSON)
+	if !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
+	js, _ := result.Value.(string)
 	if !core.Contains(js, "NavBar") {
 		t.Fatal("expected js to contain NavBar")
 	}
@@ -26,8 +27,8 @@ func TestBuildComponentJS_ValidJSONGood(t *testing.T) {
 }
 
 func TestBuildComponentJS_InvalidJSONBad(t *testing.T) {
-	_, err := buildComponentJS("not json")
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := buildComponentJS("not json")
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
 }
