@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	dappco.re/go/core v0.8.0-alpha.1 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
@@ -46,17 +47,3 @@ require (
 	dappco.re/go/inference v0.8.0-alpha.1 // indirect
 	golang.org/x/text v0.36.0 // indirect
 )
-
-replace dappco.re/go => ../go
-
-replace dappco.re/go/core => ./.compat/core
-
-replace dappco.re/go/i18n => ../go-i18n
-
-replace dappco.re/go/inference => ../go-inference
-
-replace dappco.re/go/io => ../go-io
-
-replace dappco.re/go/log => ../go-log
-
-replace dappco.re/go/process => ../go-process
