@@ -6,8 +6,9 @@
 //
 // Use it at build time, or through the cmd/codegen CLI:
 //
-//	bundle, err := GenerateBundle(map[string]string{
+//	result := GenerateBundle(map[string]string{
 //		"H": "site-header",
 //		"C": "app-main",
 //	})
+//	bundle, _ := result.Value.(string)
 package codegen

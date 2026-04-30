@@ -4,7 +4,7 @@
 
 package html
 
-import core "dappco.re/go/core"
+import core "dappco.re/go"
 
 type builderOps interface {
 	WriteByte(byte) error
@@ -21,16 +21,18 @@ func newTextBuilder() *textBuilder {
 	return &textBuilder{inner: core.NewBuilder()}
 }
 
-func (b *textBuilder) WriteByte(c byte) error {
-	return b.inner.WriteByte(c)
+func (b *textBuilder) AppendByte(c byte) {
+	b.inner.WriteByte(c)
 }
 
-func (b *textBuilder) WriteRune(r rune) (int, error) {
-	return b.inner.WriteRune(r)
+func (b *textBuilder) AppendRune(r rune) int {
+	n, _ := b.inner.WriteRune(r)
+	return n
 }
 
-func (b *textBuilder) WriteString(s string) (int, error) {
-	return b.inner.WriteString(s)
+func (b *textBuilder) AppendString(s string) int {
+	n, _ := b.inner.WriteString(s)
+	return n
 }
 
 func (b *textBuilder) String() string {

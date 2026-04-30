@@ -12,20 +12,19 @@ func newTextBuilder() *textBuilder {
 	return &textBuilder{buf: make([]byte, 0, 128)}
 }
 
-func (b *textBuilder) WriteByte(c byte) error {
+func (b *textBuilder) AppendByte(c byte) {
 	b.buf = append(b.buf, c)
-	return nil
 }
 
-func (b *textBuilder) WriteRune(r rune) (int, error) {
+func (b *textBuilder) AppendRune(r rune) int {
 	s := string(r)
 	b.buf = append(b.buf, s...)
-	return len(s), nil
+	return len(s)
 }
 
-func (b *textBuilder) WriteString(s string) (int, error) {
+func (b *textBuilder) AppendString(s string) int {
 	b.buf = append(b.buf, s...)
-	return len(s), nil
+	return len(s)
 }
 
 func (b *textBuilder) String() string {

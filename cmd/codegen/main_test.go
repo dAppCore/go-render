@@ -5,31 +5,29 @@ package main
 import (
 	"context"
 	goio "io"
-	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	coreio "dappco.re/go/io"
 )
 
-func TestRun_WritesBundle_Good(t *testing.T) {
+func TestRun_WritesBundleGood(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
-	if err := run(input, output, false); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := run(input, output, false); !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 
 	js := output.String()
-	if !strings.Contains(js, "NavBar") {
+	if !core.Contains(js, "NavBar") {
 		t.Fatal("expected js to contain NavBar")
 	}
-	if !strings.Contains(js, "MainContent") {
+	if !core.Contains(js, "MainContent") {
 		t.Fatal("expected js to contain MainContent")
 	}
-	if !strings.Contains(js, "customElements.define") {
+	if !core.Contains(js, "customElements.define") {
 		t.Fatal("expected js to contain customElements.define")
 	}
 	if got := countSubstr(js, "extends HTMLElement"); got != 2 {
@@ -37,63 +35,63 @@ func TestRun_WritesBundle_Good(t *testing.T) {
 	}
 }
 
-func TestRun_InvalidJSON_Bad(t *testing.T) {
+func TestRun_InvalidJSONBad(t *testing.T) {
 	input := core.NewReader(`not json`)
 	output := core.NewBuilder()
 
-	err := run(input, output, false)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := run(input, output, false)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !strings.Contains(err.Error(), "invalid JSON") {
-		t.Fatalf("expected error to contain %q, got %v", "invalid JSON", err)
+	if !core.Contains(result.Error(), "invalid JSON") {
+		t.Fatalf("expected error to contain %q, got %v", "invalid JSON", result.Error())
 	}
 }
 
-func TestRun_InvalidTag_Bad(t *testing.T) {
+func TestRun_InvalidTagBad(t *testing.T) {
 	input := core.NewReader(`{"H":"notag"}`)
 	output := core.NewBuilder()
 
-	err := run(input, output, false)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := run(input, output, false)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !strings.Contains(err.Error(), "hyphen") {
-		t.Fatalf("expected error to contain %q, got %v", "hyphen", err)
+	if !core.Contains(result.Error(), "hyphen") {
+		t.Fatalf("expected error to contain %q, got %v", "hyphen", result.Error())
 	}
 }
 
-func TestRun_InvalidTagCharacters_Bad(t *testing.T) {
+func TestRun_InvalidTagCharactersBad(t *testing.T) {
 	input := core.NewReader(`{"H":"Nav-Bar","C":"nav bar"}`)
 	output := core.NewBuilder()
 
-	err := run(input, output, false)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+	result := run(input, output, false)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !strings.Contains(err.Error(), "lowercase hyphenated name") {
-		t.Fatalf("expected error to contain %q, got %v", "lowercase hyphenated name", err)
+	if !core.Contains(result.Error(), "lowercase hyphenated name") {
+		t.Fatalf("expected error to contain %q, got %v", "lowercase hyphenated name", result.Error())
 	}
 }
 
-func TestRun_EmptySlots_Good(t *testing.T) {
+func TestRun_EmptySlotsGood(t *testing.T) {
 	input := core.NewReader(`{}`)
 	output := core.NewBuilder()
 
-	if err := run(input, output, false); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := run(input, output, false); !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 	if got := output.String(); got != "" {
 		t.Fatalf("expected empty output, got %q", got)
 	}
 }
 
-func TestRun_WritesTypeScriptDefinitions_Good(t *testing.T) {
+func TestRun_WritesTypeScriptDefinitionsGood(t *testing.T) {
 	input := core.NewReader(`{"H":"nav-bar","C":"main-content"}`)
 	output := core.NewBuilder()
 
-	if err := run(input, output, true); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := run(input, output, true); !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 
 	dts := output.String()
@@ -104,16 +102,16 @@ func TestRun_WritesTypeScriptDefinitions_Good(t *testing.T) {
 		"export declare class NavBar extends HTMLElement",
 		"export declare class MainContent extends HTMLElement",
 	} {
-		if !strings.Contains(dts, want) {
+		if !core.Contains(dts, want) {
 			t.Fatalf("expected dts to contain %q", want)
 		}
 	}
 }
 
-func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
+func TestRunDaemon_WritesUpdatedBundleGood(t *testing.T) {
 	dir := t.TempDir()
-	inputPath := filepath.Join(dir, "slots.json")
-	outputPath := filepath.Join(dir, "bundle.js")
+	inputPath := core.Path(dir, "slots.json")
+	outputPath := core.Path(dir, "bundle.js")
 
 	if err := writeTextFile(inputPath, `{"H":"nav-bar","C":"main-content"}`); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -122,7 +120,7 @@ func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	done := make(chan error, 1)
+	done := make(chan core.Result, 1)
 	go func() {
 		done <- runDaemon(ctx, inputPath, outputPath, false, 5*time.Millisecond)
 	}()
@@ -131,7 +129,7 @@ func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
 	ok := false
 	for time.Now().Before(deadline) {
 		got, err := readTextFile(outputPath)
-		if err == nil && strings.Contains(got, "NavBar") && strings.Contains(got, "MainContent") {
+		if err == nil && core.Contains(got, "NavBar") && core.Contains(got, "MainContent") {
 			ok = true
 			break
 		}
@@ -142,18 +140,18 @@ func TestRunDaemon_WritesUpdatedBundle_Good(t *testing.T) {
 	}
 
 	cancel()
-	if err := <-done; err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if result := <-done; !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
 }
 
-func TestRunDaemon_MissingPaths_Bad(t *testing.T) {
-	err := runDaemon(context.Background(), "", "", false, time.Millisecond)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+func TestRunDaemon_MissingPathsBad(t *testing.T) {
+	result := runDaemon(context.Background(), "", "", false, time.Millisecond)
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
-	if !strings.Contains(err.Error(), "watch mode requires -input") {
-		t.Fatalf("expected error to contain %q, got %v", "watch mode requires -input", err)
+	if !core.Contains(result.Error(), "watch mode requires -input") {
+		t.Fatalf("expected error to contain %q, got %v", "watch mode requires -input", result.Error())
 	}
 }
 

@@ -2,7 +2,7 @@
 
 package html
 
-import core "dappco.re/go/core"
+import core "dappco.re/go"
 
 func containsText(s, substr string) bool {
 	return core.Contains(s, substr)
@@ -45,4 +45,31 @@ func indexText(s, substr string) int {
 
 func itoaText(v int) string {
 	return core.Sprint(v)
+}
+
+type complianceTranslator struct {
+	lang      string
+	available []string
+}
+
+func (tr *complianceTranslator) T(key string, args ...any) string {
+	if len(args) > 0 {
+		return key + ":" + core.Sprint(args[0])
+	}
+	return key
+}
+
+func (tr *complianceTranslator) SetLanguage(lang string) error {
+	tr.lang = lang
+	return nil
+}
+
+func (tr *complianceTranslator) AvailableLanguages() []string {
+	return tr.available
+}
+
+type compliancePanicNode struct{}
+
+func (compliancePanicNode) Render(*Context) string {
+	panic("rendered")
 }

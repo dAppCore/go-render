@@ -244,21 +244,21 @@ func (n *elNode) render(ctx *Context, path string) string {
 		attrs["data-block"] = path
 	}
 
-	b.WriteByte('<')
-	b.WriteString(escapeHTML(n.tag))
+	b.AppendByte('<')
+	b.AppendString(escapeHTML(n.tag))
 
 	// Sort attribute keys for deterministic output.
 	keys := slices.Collect(maps.Keys(attrs))
 	slices.Sort(keys)
 	for _, key := range keys {
-		b.WriteByte(' ')
-		b.WriteString(escapeHTML(key))
-		b.WriteString(`="`)
-		b.WriteString(escapeAttr(attrs[key]))
-		b.WriteByte('"')
+		b.AppendByte(' ')
+		b.AppendString(escapeHTML(key))
+		b.AppendString(`="`)
+		b.AppendString(escapeAttr(attrs[key]))
+		b.AppendByte('"')
 	}
 
-	b.WriteByte('>')
+	b.AppendByte('>')
 
 	if voidElements[n.tag] {
 		return b.String()
@@ -270,15 +270,15 @@ func (n *elNode) render(ctx *Context, path string) string {
 			continue
 		}
 		if path == "" {
-			b.WriteString(child.Render(ctx))
+			b.AppendString(child.Render(ctx))
 			continue
 		}
-		b.WriteString(renderWithLayoutPath(child, ctx, path+"."+strconv.Itoa(i)))
+		b.AppendString(renderWithLayoutPath(child, ctx, path+"."+strconv.Itoa(i)))
 	}
 
-	b.WriteString("</")
-	b.WriteString(escapeHTML(n.tag))
-	b.WriteByte('>')
+	b.AppendString("</")
+	b.AppendString(escapeHTML(n.tag))
+	b.AppendByte('>')
 
 	return b.String()
 }
@@ -553,7 +553,7 @@ func (n *eachNode[T]) renderWithLayoutPath(ctx *Context, path string) string {
 		if path != "" && (!nodePreservesLayoutPath(child, ctx) || total > 1) {
 			childPath = path + "." + strconv.Itoa(idx)
 		}
-		b.WriteString(renderWithLayoutPath(child, ctx, childPath))
+		b.AppendString(renderWithLayoutPath(child, ctx, childPath))
 	}
 	return b.String()
 }

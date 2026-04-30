@@ -3,8 +3,11 @@
 package api
 
 import (
+	. "dappco.re/go"
 	"net/http"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestNewProvider_Good(t *testing.T) {
@@ -58,4 +61,96 @@ func TestProviderDescribe_Good(t *testing.T) {
 			t.Fatalf("Describe() missing route %s", route)
 		}
 	}
+}
+
+func TestProvider_NewProvider_Good(t *T) {
+	provider := NewProvider()
+	got := provider.Name()
+	AssertEqual(t, "html", got)
+}
+
+func TestProvider_NewProvider_Bad(t *T) {
+	provider := NewProvider()
+	got := provider == nil
+	AssertFalse(t, got)
+}
+
+func TestProvider_NewProvider_Ugly(t *T) {
+	provider := NewProvider()
+	routes := provider.Describe()
+	AssertEqual(t, "/render", routes[0].Path)
+}
+
+func TestProvider_HTMLProvider_Name_Good(t *T) {
+	provider := NewProvider()
+	got := provider.Name()
+	AssertEqual(t, "html", got)
+}
+
+func TestProvider_HTMLProvider_Name_Bad(t *T) {
+	var provider *HTMLProvider
+	got := provider.Name()
+	AssertEqual(t, "html", got)
+}
+
+func TestProvider_HTMLProvider_Name_Ugly(t *T) {
+	provider := &HTMLProvider{}
+	got := provider.Name()
+	AssertEqual(t, "html", got)
+}
+
+func TestProvider_HTMLProvider_BasePath_Good(t *T) {
+	provider := NewProvider()
+	got := provider.BasePath()
+	AssertEqual(t, "/v1/html", got)
+}
+
+func TestProvider_HTMLProvider_BasePath_Bad(t *T) {
+	var provider *HTMLProvider
+	got := provider.BasePath()
+	AssertEqual(t, "/v1/html", got)
+}
+
+func TestProvider_HTMLProvider_BasePath_Ugly(t *T) {
+	provider := &HTMLProvider{}
+	got := provider.BasePath()
+	AssertContains(t, got, "/html")
+}
+
+func TestProvider_HTMLProvider_RegisterRoutes_Good(t *T) {
+	provider := NewProvider()
+	router := gin.New()
+	provider.RegisterRoutes(router.Group(provider.BasePath()))
+	rec := postJSON(t, router, "/v1/html/render", `{"template":"<p>ok</p>"}`)
+	AssertEqual(t, 200, rec.Code)
+}
+
+func TestProvider_HTMLProvider_RegisterRoutes_Bad(t *T) {
+	provider := NewProvider()
+	AssertNotPanics(t, func() { provider.RegisterRoutes(nil) })
+	AssertEqual(t, "html", provider.Name())
+}
+
+func TestProvider_HTMLProvider_RegisterRoutes_Ugly(t *T) {
+	var provider *HTMLProvider
+	AssertNotPanics(t, func() { provider.RegisterRoutes(nil) })
+	AssertEqual(t, "/v1/html", provider.BasePath())
+}
+
+func TestProvider_HTMLProvider_Describe_Good(t *T) {
+	provider := NewProvider()
+	routes := provider.Describe()
+	AssertEqual(t, 2, len(routes))
+}
+
+func TestProvider_HTMLProvider_Describe_Bad(t *T) {
+	var provider *HTMLProvider
+	routes := provider.Describe()
+	AssertEqual(t, 2, len(routes))
+}
+
+func TestProvider_HTMLProvider_Describe_Ugly(t *T) {
+	provider := NewProvider()
+	routes := provider.Describe()
+	AssertEqual(t, "/grammar/check", routes[1].Path)
 }

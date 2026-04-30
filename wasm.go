@@ -29,7 +29,7 @@ func (n wasmFragmentNode) Render(ctx *Context) string {
 		if child == nil {
 			continue
 		}
-		b.WriteString(child.Render(ctx))
+		b.AppendString(child.Render(ctx))
 	}
 	return b.String()
 }

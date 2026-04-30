@@ -1,6 +1,7 @@
 package html
 
 import (
+	core "dappco.re/go"
 	"testing"
 
 	i18n "dappco.re/go/i18n"
@@ -26,7 +27,7 @@ func TestElNode_Render_Good(t *testing.T) {
 	}
 }
 
-func TestElNode_Nested_Good(t *testing.T) {
+func TestElNode_NestedGood(t *testing.T) {
 	ctx := NewContext()
 	node := El("div", El("span", Raw("inner")))
 	got := node.Render(ctx)
@@ -36,7 +37,7 @@ func TestElNode_Nested_Good(t *testing.T) {
 	}
 }
 
-func TestLayout_DirectElementBlockPath_Good(t *testing.T) {
+func TestLayout_DirectElementBlockPathGood(t *testing.T) {
 	ctx := NewContext()
 	got := NewLayout("C").C(El("div", Raw("content"))).Render(ctx)
 
@@ -45,7 +46,7 @@ func TestLayout_DirectElementBlockPath_Good(t *testing.T) {
 	}
 }
 
-func TestLayout_EachElementBlockPaths_Good(t *testing.T) {
+func TestLayout_EachElementBlockPathsGood(t *testing.T) {
 	ctx := NewContext()
 	got := NewLayout("C").C(
 		Each([]string{"a", "b"}, func(item string) Node {
@@ -61,7 +62,7 @@ func TestLayout_EachElementBlockPaths_Good(t *testing.T) {
 	}
 }
 
-func TestElNode_MultipleChildren_Good(t *testing.T) {
+func TestElNode_MultipleChildrenGood(t *testing.T) {
 	ctx := NewContext()
 	node := El("div", Raw("a"), Raw("b"))
 	got := node.Render(ctx)
@@ -71,7 +72,7 @@ func TestElNode_MultipleChildren_Good(t *testing.T) {
 	}
 }
 
-func TestElNode_VoidElement_Good(t *testing.T) {
+func TestElNode_VoidElementGood(t *testing.T) {
 	ctx := NewContext()
 	node := El("br")
 	got := node.Render(ctx)
@@ -90,7 +91,7 @@ func TestTextNode_Render_Good(t *testing.T) {
 	}
 }
 
-func TestTextNode_UsesContextDataForCount_Good(t *testing.T) {
+func TestTextNode_UsesContextDataForCountGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 
@@ -129,7 +130,7 @@ func TestTextNode_UsesContextDataForCount_Good(t *testing.T) {
 	}
 }
 
-func TestTextNode_Escapes_Good(t *testing.T) {
+func TestTextNode_EscapesGood(t *testing.T) {
 	ctx := NewContext()
 	node := Text("<script>alert('xss')</script>")
 	got := node.Render(ctx)
@@ -141,7 +142,7 @@ func TestTextNode_Escapes_Good(t *testing.T) {
 	}
 }
 
-func TestIfNode_True_Good(t *testing.T) {
+func TestIfNode_TrueGood(t *testing.T) {
 	ctx := NewContext()
 	node := If(func(*Context) bool { return true }, Raw("visible"))
 	got := node.Render(ctx)
@@ -150,7 +151,7 @@ func TestIfNode_True_Good(t *testing.T) {
 	}
 }
 
-func TestIfNode_False_Good(t *testing.T) {
+func TestIfNode_FalseGood(t *testing.T) {
 	ctx := NewContext()
 	node := If(func(*Context) bool { return false }, Raw("hidden"))
 	got := node.Render(ctx)
@@ -159,7 +160,7 @@ func TestIfNode_False_Good(t *testing.T) {
 	}
 }
 
-func TestUnlessNode_False_Good(t *testing.T) {
+func TestUnlessNode_FalseGood(t *testing.T) {
 	ctx := NewContext()
 	node := Unless(func(*Context) bool { return false }, Raw("visible"))
 	got := node.Render(ctx)
@@ -168,7 +169,7 @@ func TestUnlessNode_False_Good(t *testing.T) {
 	}
 }
 
-func TestEntitledNode_Granted_Good(t *testing.T) {
+func TestEntitledNode_GrantedGood(t *testing.T) {
 	ctx := NewContext()
 	ctx.Entitlements = func(feature string) bool { return feature == "premium" }
 	node := Entitled("premium", Raw("premium content"))
@@ -178,7 +179,7 @@ func TestEntitledNode_Granted_Good(t *testing.T) {
 	}
 }
 
-func TestEntitledNode_Denied_Bad(t *testing.T) {
+func TestEntitledNode_DeniedBad(t *testing.T) {
 	ctx := NewContext()
 	ctx.Entitlements = func(feature string) bool { return false }
 	node := Entitled("premium", Raw("premium content"))
@@ -188,7 +189,7 @@ func TestEntitledNode_Denied_Bad(t *testing.T) {
 	}
 }
 
-func TestEntitledNode_NoFunc_Bad(t *testing.T) {
+func TestEntitledNode_NoFuncBad(t *testing.T) {
 	ctx := NewContext()
 	node := Entitled("premium", Raw("premium content"))
 	got := node.Render(ctx)
@@ -210,7 +211,7 @@ func TestEachNode_Render_Good(t *testing.T) {
 	}
 }
 
-func TestEachNode_Empty_Good(t *testing.T) {
+func TestEachNode_EmptyGood(t *testing.T) {
 	ctx := NewContext()
 	node := Each([]string{}, func(item string) Node {
 		return El("li", Raw(item))
@@ -221,7 +222,7 @@ func TestEachNode_Empty_Good(t *testing.T) {
 	}
 }
 
-func TestEachNode_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
+func TestEachNode_NestedLayout_PreservesBlockPathGood(t *testing.T) {
 	ctx := NewContext()
 	inner := NewLayout("C").C(Raw("item"))
 	node := Each([]Node{inner}, func(item Node) Node {
@@ -235,7 +236,7 @@ func TestEachNode_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
 	}
 }
 
-func TestEachNode_MultipleLayouts_GetDistinctPaths_Good(t *testing.T) {
+func TestEachNode_MultipleLayouts_GetDistinctPathsGood(t *testing.T) {
 	ctx := NewContext()
 	first := NewLayout("C").C(Raw("one"))
 	second := NewLayout("C").C(Raw("two"))
@@ -253,7 +254,7 @@ func TestEachNode_MultipleLayouts_GetDistinctPaths_Good(t *testing.T) {
 	}
 }
 
-func TestEachSeq_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
+func TestEachSeq_NestedLayout_PreservesBlockPathGood(t *testing.T) {
 	ctx := NewContext()
 	inner := NewLayout("C").C(Raw("item"))
 	node := EachSeq(slices.Values([]Node{inner}), func(item Node) Node {
@@ -267,7 +268,7 @@ func TestEachSeq_NestedLayout_PreservesBlockPath_Good(t *testing.T) {
 	}
 }
 
-func TestEachSeq_MultipleLayouts_GetDistinctPaths_Good(t *testing.T) {
+func TestEachSeq_MultipleLayouts_GetDistinctPathsGood(t *testing.T) {
 	ctx := NewContext()
 	first := NewLayout("C").C(Raw("one"))
 	second := NewLayout("C").C(Raw("two"))
@@ -295,7 +296,7 @@ func TestElNode_Attr_Good(t *testing.T) {
 	}
 }
 
-func TestElNode_AttrRecursiveThroughEachSeq_Good(t *testing.T) {
+func TestElNode_AttrRecursiveThroughEachSeqGood(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(
 		EachSeq(slices.Values([]string{"a", "b"}), func(item string) Node {
@@ -311,7 +312,7 @@ func TestElNode_AttrRecursiveThroughEachSeq_Good(t *testing.T) {
 	}
 }
 
-func TestElNode_AttrRecursiveThroughSwitch_Good(t *testing.T) {
+func TestElNode_AttrRecursiveThroughSwitchGood(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(
 		Switch(
@@ -385,7 +386,7 @@ func TestSwitchNode_Good(t *testing.T) {
 	}
 }
 
-func TestElNode_AttrEscaping_Good(t *testing.T) {
+func TestElNode_AttrEscapingGood(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(El("img"), "alt", `he said "hello"`)
 	got := node.Render(ctx)
@@ -439,7 +440,7 @@ func TestRole_Good(t *testing.T) {
 	}
 }
 
-func TestElNode_MultipleAttrs_Good(t *testing.T) {
+func TestElNode_MultipleAttrsGood(t *testing.T) {
 	ctx := NewContext()
 	node := Attr(Attr(El("a", Raw("link")), "href", "/home"), "class", "nav")
 	got := node.Render(ctx)
@@ -448,7 +449,7 @@ func TestElNode_MultipleAttrs_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_NonElement_Ugly(t *testing.T) {
+func TestAttr_NonElementUgly(t *testing.T) {
 	node := Attr(Raw("text"), "class", "x")
 	got := node.Render(NewContext())
 	if got != "text" {
@@ -456,7 +457,7 @@ func TestAttr_NonElement_Ugly(t *testing.T) {
 	}
 }
 
-func TestAttr_TypedNilWrappers_Ugly(t *testing.T) {
+func TestAttr_TypedNilWrappersUgly(t *testing.T) {
 	tests := []struct {
 		name string
 		node Node
@@ -479,7 +480,7 @@ func TestAttr_TypedNilWrappers_Ugly(t *testing.T) {
 	}
 }
 
-func TestUnlessNode_True_Good(t *testing.T) {
+func TestUnlessNode_TrueGood(t *testing.T) {
 	ctx := NewContext()
 	node := Unless(func(*Context) bool { return true }, Raw("hidden"))
 	got := node.Render(ctx)
@@ -488,7 +489,7 @@ func TestUnlessNode_True_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughIfNode_Good(t *testing.T) {
+func TestAttr_ThroughIfNodeGood(t *testing.T) {
 	ctx := NewContext()
 	inner := El("div", Raw("content"))
 	node := If(func(*Context) bool { return true }, inner)
@@ -500,7 +501,7 @@ func TestAttr_ThroughIfNode_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughUnlessNode_Good(t *testing.T) {
+func TestAttr_ThroughUnlessNodeGood(t *testing.T) {
 	ctx := NewContext()
 	inner := El("div", Raw("content"))
 	node := Unless(func(*Context) bool { return false }, inner)
@@ -512,7 +513,7 @@ func TestAttr_ThroughUnlessNode_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughEntitledNode_Good(t *testing.T) {
+func TestAttr_ThroughEntitledNodeGood(t *testing.T) {
 	ctx := NewContext()
 	ctx.Entitlements = func(string) bool { return true }
 	inner := El("div", Raw("content"))
@@ -525,7 +526,7 @@ func TestAttr_ThroughEntitledNode_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughSwitchNode_Good(t *testing.T) {
+func TestAttr_ThroughSwitchNodeGood(t *testing.T) {
 	ctx := NewContext()
 	inner := El("div", Raw("content"))
 	node := Switch(func(*Context) string { return "match" }, map[string]Node{
@@ -540,7 +541,7 @@ func TestAttr_ThroughSwitchNode_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughLayout_Good(t *testing.T) {
+func TestAttr_ThroughLayoutGood(t *testing.T) {
 	ctx := NewContext()
 	layout := NewLayout("C").C(El("div", Raw("content")))
 	Attr(layout, "class", "page")
@@ -552,7 +553,7 @@ func TestAttr_ThroughLayout_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughResponsive_Good(t *testing.T) {
+func TestAttr_ThroughResponsiveGood(t *testing.T) {
 	ctx := NewContext()
 	resp := NewResponsive().Variant("mobile", NewLayout("C").C(El("div", Raw("content"))))
 	Attr(resp, "data-kind", "page")
@@ -564,7 +565,7 @@ func TestAttr_ThroughResponsive_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughEachNode_Good(t *testing.T) {
+func TestAttr_ThroughEachNodeGood(t *testing.T) {
 	ctx := NewContext()
 	node := Each([]string{"a", "b"}, func(item string) Node {
 		return El("span", Raw(item))
@@ -578,7 +579,7 @@ func TestAttr_ThroughEachNode_Good(t *testing.T) {
 	}
 }
 
-func TestAttr_ThroughEachSeqNode_Good(t *testing.T) {
+func TestAttr_ThroughEachSeqNodeGood(t *testing.T) {
 	ctx := NewContext()
 	node := EachSeq(slices.Values([]string{"a", "b"}), func(item string) Node {
 		return El("span", Raw(item))
@@ -592,7 +593,7 @@ func TestAttr_ThroughEachSeqNode_Good(t *testing.T) {
 	}
 }
 
-func TestTextNode_WithService_Good(t *testing.T) {
+func TestTextNode_WithServiceGood(t *testing.T) {
 	svc, _ := i18n.New()
 	ctx := NewContextWithService(svc)
 	node := Text("hello")
@@ -602,7 +603,7 @@ func TestTextNode_WithService_Good(t *testing.T) {
 	}
 }
 
-func TestSwitchNode_SelectsMatch_Good(t *testing.T) {
+func TestSwitchNode_SelectsMatchGood(t *testing.T) {
 	ctx := NewContext()
 	cases := map[string]Node{
 		"dark":  Raw("dark theme"),
@@ -614,4 +615,274 @@ func TestSwitchNode_SelectsMatch_Good(t *testing.T) {
 	if got != want {
 		t.Errorf("Switch(\"dark\") = %q, want %q", got, want)
 	}
+}
+
+func TestNode_Raw_Good(t *core.T) {
+	node := Raw("<strong>trusted</strong>")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "<strong>trusted</strong>", got)
+}
+
+func TestNode_Raw_Bad(t *core.T) {
+	node := Raw("")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Raw_Ugly(t *core.T) {
+	node := Raw("<script>alert(1)</script>")
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, "<script>")
+}
+
+func TestNode_Node_Render_Good(t *core.T) {
+	var node Node = Text("node")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "node", got)
+}
+
+func TestNode_Node_Render_Bad(t *core.T) {
+	var node Node = (*rawNode)(nil)
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Node_Render_Ugly(t *core.T) {
+	var node Node = emptyNode{}
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_El_Good(t *core.T) {
+	node := El("span", Text("ok"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "<span>ok</span>", got)
+}
+
+func TestNode_El_Bad(t *core.T) {
+	node := El("", Text("ok"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "<>ok</>", got)
+}
+
+func TestNode_El_Ugly(t *core.T) {
+	node := El("br", Text("ignored"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "<br>", got)
+}
+
+func TestNode_Attr_Good(t *core.T) {
+	node := Attr(El("a", Text("Docs")), "href", "/docs")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, `<a href="/docs">Docs</a>`, got)
+}
+
+func TestNode_Attr_Bad(t *core.T) {
+	node := Attr(nil, "href", "/docs")
+	got := Render(node, NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Attr_Ugly(t *core.T) {
+	node := Attr(If(func(*Context) bool { return true }, El("a", Text("Docs"))), "data-x", `"&`)
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, `data-x="&#34;&amp;"`)
+}
+
+func TestNode_AriaLabel_Good(t *core.T) {
+	node := AriaLabel(El("button", Text("Save")), "Save changes")
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, `aria-label="Save changes"`)
+}
+
+func TestNode_AriaLabel_Bad(t *core.T) {
+	node := AriaLabel(nil, "Save changes")
+	got := Render(node, NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_AriaLabel_Ugly(t *core.T) {
+	node := AriaLabel(El("button"), `"save"&`)
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, `aria-label="&#34;save&#34;&amp;"`)
+}
+
+func TestNode_AltText_Good(t *core.T) {
+	node := AltText(El("img"), "Profile photo")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, `<img alt="Profile photo">`, got)
+}
+
+func TestNode_AltText_Bad(t *core.T) {
+	node := AltText(nil, "Profile photo")
+	got := Render(node, NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_AltText_Ugly(t *core.T) {
+	node := AltText(El("img"), `"&<>`)
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, `alt="&#34;&amp;&lt;&gt;"`)
+}
+
+func TestNode_TabIndex_Good(t *core.T) {
+	node := TabIndex(El("button"), 2)
+	got := node.Render(NewContext())
+	core.AssertEqual(t, `<button tabindex="2"></button>`, got)
+}
+
+func TestNode_TabIndex_Bad(t *core.T) {
+	node := TabIndex(nil, 2)
+	got := Render(node, NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_TabIndex_Ugly(t *core.T) {
+	node := TabIndex(El("button"), -1)
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, `tabindex="-1"`)
+}
+
+func TestNode_AutoFocus_Good(t *core.T) {
+	node := AutoFocus(El("input"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, `<input autofocus="autofocus">`, got)
+}
+
+func TestNode_AutoFocus_Bad(t *core.T) {
+	node := AutoFocus(nil)
+	got := Render(node, NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_AutoFocus_Ugly(t *core.T) {
+	node := AutoFocus(If(func(*Context) bool { return true }, El("input")))
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, `autofocus="autofocus"`)
+}
+
+func TestNode_Role_Good(t *core.T) {
+	node := Role(El("nav"), "navigation")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, `<nav role="navigation"></nav>`, got)
+}
+
+func TestNode_Role_Bad(t *core.T) {
+	node := Role(nil, "navigation")
+	got := Render(node, NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Role_Ugly(t *core.T) {
+	node := Role(El("div"), `"role"&`)
+	got := node.Render(NewContext())
+	core.AssertContains(t, got, `role="&#34;role&#34;&amp;"`)
+}
+
+func TestNode_Text_Good(t *core.T) {
+	node := Text("hello")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "hello", got)
+}
+
+func TestNode_Text_Bad(t *core.T) {
+	node := Text("<b>unsafe</b>")
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "&lt;b&gt;unsafe&lt;/b&gt;", got)
+}
+
+func TestNode_Text_Ugly(t *core.T) {
+	node := Text(`"&<>`)
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "&#34;&amp;&lt;&gt;", got)
+}
+
+func TestNode_If_Good(t *core.T) {
+	node := If(func(*Context) bool { return true }, Text("yes"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "yes", got)
+}
+
+func TestNode_If_Bad(t *core.T) {
+	node := If(func(*Context) bool { return false }, Text("no"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_If_Ugly(t *core.T) {
+	node := If(nil, Text("no"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Unless_Good(t *core.T) {
+	node := Unless(func(*Context) bool { return false }, Text("yes"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "yes", got)
+}
+
+func TestNode_Unless_Bad(t *core.T) {
+	node := Unless(func(*Context) bool { return true }, Text("no"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Unless_Ugly(t *core.T) {
+	node := Unless(nil, Text("no"))
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Switch_Good(t *core.T) {
+	node := Switch(func(*Context) string { return "en" }, map[string]Node{"en": Text("hello")})
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "hello", got)
+}
+
+func TestNode_Switch_Bad(t *core.T) {
+	node := Switch(func(*Context) string { return "cy" }, map[string]Node{"en": Text("hello")})
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Switch_Ugly(t *core.T) {
+	node := Switch(nil, map[string]Node{"en": compliancePanicNode{}})
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Each_Good(t *core.T) {
+	node := Each([]string{"a", "b"}, func(v string) Node { return Text(v) })
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "ab", got)
+}
+
+func TestNode_Each_Bad(t *core.T) {
+	node := Each([]string{"a"}, func(string) Node { return nil })
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_Each_Ugly(t *core.T) {
+	node := Each([]int{1, 2, 3}, func(v int) Node { return Text(core.Sprint(v)) })
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "123", got)
+}
+
+func TestNode_EachSeq_Good(t *core.T) {
+	node := EachSeq[string](func(yield func(string) bool) { yield("a"); yield("b") }, func(v string) Node { return Text(v) })
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "ab", got)
+}
+
+func TestNode_EachSeq_Bad(t *core.T) {
+	node := EachSeq[string](nil, func(v string) Node { return Text(v) })
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
+}
+
+func TestNode_EachSeq_Ugly(t *core.T) {
+	node := EachSeq[int](func(yield func(int) bool) { yield(7) }, func(int) Node { return nil })
+	got := node.Render(NewContext())
+	core.AssertEqual(t, "", got)
 }

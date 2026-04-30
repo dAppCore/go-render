@@ -3,12 +3,13 @@
 package html
 
 import (
+	core "dappco.re/go"
 	"testing"
 
 	i18n "dappco.re/go/i18n"
 )
 
-func TestStripTags_Simple_Good(t *testing.T) {
+func TestStripTags_SimpleGood(t *testing.T) {
 	got := StripTags(`<div>hello</div>`)
 	want := "hello"
 	if got != want {
@@ -16,7 +17,7 @@ func TestStripTags_Simple_Good(t *testing.T) {
 	}
 }
 
-func TestStripTags_Nested_Good(t *testing.T) {
+func TestStripTags_NestedGood(t *testing.T) {
 	got := StripTags(`<header role="banner"><h1>Title</h1></header>`)
 	want := "Title"
 	if got != want {
@@ -24,7 +25,7 @@ func TestStripTags_Nested_Good(t *testing.T) {
 	}
 }
 
-func TestStripTags_MultipleRegions_Good(t *testing.T) {
+func TestStripTags_MultipleRegionsGood(t *testing.T) {
 	got := StripTags(`<header>Head</header><main>Body</main><footer>Foot</footer>`)
 	want := "Head Body Foot"
 	if got != want {
@@ -32,21 +33,21 @@ func TestStripTags_MultipleRegions_Good(t *testing.T) {
 	}
 }
 
-func TestStripTags_Empty_Ugly(t *testing.T) {
+func TestStripTags_EmptyUgly(t *testing.T) {
 	got := StripTags("")
 	if got != "" {
 		t.Errorf("StripTags(\"\") = %q, want empty", got)
 	}
 }
 
-func TestStripTags_NoTags_Good(t *testing.T) {
+func TestStripTags_NoTagsGood(t *testing.T) {
 	got := StripTags("plain text")
 	if got != "plain text" {
 		t.Errorf("StripTags(plain) = %q, want %q", got, "plain text")
 	}
 }
 
-func TestStripTags_PreservesComparisonOperators_Good(t *testing.T) {
+func TestStripTags_PreservesComparisonOperatorsGood(t *testing.T) {
 	got := StripTags(`<p>1 < 2 and 3 > 2</p>`)
 	want := "1 < 2 and 3 > 2"
 	if got != want {
@@ -54,7 +55,7 @@ func TestStripTags_PreservesComparisonOperators_Good(t *testing.T) {
 	}
 }
 
-func TestStripTags_LiteralAngleBracket_Good(t *testing.T) {
+func TestStripTags_LiteralAngleBracketGood(t *testing.T) {
 	got := StripTags(`a<b`)
 	want := `a<b`
 	if got != want {
@@ -62,7 +63,7 @@ func TestStripTags_LiteralAngleBracket_Good(t *testing.T) {
 	}
 }
 
-func TestStripTags_Entities_Good(t *testing.T) {
+func TestStripTags_EntitiesGood(t *testing.T) {
 	got := StripTags(`&lt;script&gt;`)
 	want := "&lt;script&gt;"
 	if got != want {
@@ -70,7 +71,7 @@ func TestStripTags_Entities_Good(t *testing.T) {
 	}
 }
 
-func TestStripTags_QuotedAttributes_Good(t *testing.T) {
+func TestStripTags_QuotedAttributesGood(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -98,7 +99,7 @@ func TestStripTags_QuotedAttributes_Good(t *testing.T) {
 	}
 }
 
-func TestImprint_FromNode_Good(t *testing.T) {
+func TestImprint_FromNodeGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -118,7 +119,7 @@ func TestImprint_FromNode_Good(t *testing.T) {
 	}
 }
 
-func TestImprint_SimilarPages_Good(t *testing.T) {
+func TestImprint_SimilarPagesGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -146,7 +147,7 @@ func TestImprint_SimilarPages_Good(t *testing.T) {
 	}
 }
 
-func TestCompareVariants_SameContent_Good(t *testing.T) {
+func TestCompareVariants_SameContentGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -173,7 +174,7 @@ func TestCompareVariants_SameContent_Good(t *testing.T) {
 	}
 }
 
-func TestCompareVariants_KeyOrderDeterministic_Good(t *testing.T) {
+func TestCompareVariants_KeyOrderDeterministicGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -187,4 +188,59 @@ func TestCompareVariants_KeyOrderDeterministic_Good(t *testing.T) {
 	if _, ok := scores["alpha:beta"]; !ok {
 		t.Fatalf("CompareVariants should use deterministic key ordering, got keys: %v", scores)
 	}
+}
+
+func TestPipeline_StripTags_Good(t *core.T) {
+	got := StripTags("<main>Hello <strong>world</strong></main>")
+	want := "Hello world"
+	core.AssertEqual(t, want, got)
+}
+
+func TestPipeline_StripTags_Bad(t *core.T) {
+	got := StripTags("plain text")
+	want := "plain text"
+	core.AssertEqual(t, want, got)
+}
+
+func TestPipeline_StripTags_Ugly(t *core.T) {
+	got := StripTags("1 < 2 and <span title=\"a>b\">ok</span>")
+	want := "1 < 2 and ok"
+	core.AssertEqual(t, want, got)
+}
+
+func TestPipeline_Imprint_Good(t *core.T) {
+	imp := Imprint(Raw("Delete the file"), NewContext())
+	got := imp.TokenCount
+	core.AssertTrue(t, got > 0)
+}
+
+func TestPipeline_Imprint_Bad(t *core.T) {
+	imp := Imprint(nil, NewContext())
+	got := imp.TokenCount
+	core.AssertEqual(t, 0, got)
+}
+
+func TestPipeline_Imprint_Ugly(t *core.T) {
+	imp := Imprint(Raw("Build project"), nil)
+	got := imp.TokenCount
+	core.AssertTrue(t, got > 0)
+}
+
+func TestPipeline_CompareVariants_Good(t *core.T) {
+	r := NewResponsive().Variant("desktop", NewLayout("C").C(Raw("Delete file"))).Variant("mobile", NewLayout("C").C(Raw("Delete file")))
+	scores := CompareVariants(r, NewContext())
+	_, ok := scores["desktop:mobile"]
+	core.AssertTrue(t, ok)
+}
+
+func TestPipeline_CompareVariants_Bad(t *core.T) {
+	scores := CompareVariants(nil, NewContext())
+	got := len(scores)
+	core.AssertEqual(t, 0, got)
+}
+
+func TestPipeline_CompareVariants_Ugly(t *core.T) {
+	r := NewResponsive().Variant("solo", NewLayout("C").C(Raw("Delete file")))
+	scores := CompareVariants(r, nil)
+	core.AssertEqual(t, 0, len(scores))
 }

@@ -1,12 +1,13 @@
 package html
 
 import (
+	core "dappco.re/go"
 	"testing"
 
 	i18n "dappco.re/go/i18n"
 )
 
-func TestRender_FullPage_Good(t *testing.T) {
+func TestRender_FullPageGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -49,7 +50,7 @@ func TestRender_FullPage_Good(t *testing.T) {
 	}
 }
 
-func TestRender_EntitlementGating_Good(t *testing.T) {
+func TestRender_EntitlementGatingGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -77,7 +78,7 @@ func TestRender_EntitlementGating_Good(t *testing.T) {
 	}
 }
 
-func TestRender_XSSPrevention_Good(t *testing.T) {
+func TestRender_XSSPreventionGood(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	ctx := NewContext()
@@ -93,4 +94,22 @@ func TestRender_XSSPrevention_Good(t *testing.T) {
 	if !containsText(got, "&lt;script&gt;") {
 		t.Errorf("XSS prevention: expected escaped script tag, got:\n%s", got)
 	}
+}
+
+func TestRender_Render_Good(t *core.T) {
+	got := Render(El("p", Text("hello")), NewContext())
+	want := "<p>hello</p>"
+	core.AssertEqual(t, want, got)
+}
+
+func TestRender_Render_Bad(t *core.T) {
+	got := Render(nil, NewContext())
+	want := ""
+	core.AssertEqual(t, want, got)
+}
+
+func TestRender_Render_Ugly(t *core.T) {
+	got := Render(Text("nil context"), nil)
+	want := "nil context"
+	core.AssertEqual(t, want, got)
 }

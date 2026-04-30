@@ -1,11 +1,12 @@
 package html
 
 import (
+	core "dappco.re/go"
 	"slices"
 	"testing"
 )
 
-func TestGrammarImprint_KnownTreePathDeterministic_Good(t *testing.T) {
+func TestGrammarImprint_KnownTreePathDeterministicGood(t *testing.T) {
 	ctx := Context{}
 	page := NewLayout("HCF").
 		H(El("h1", Raw("title"))).
@@ -39,7 +40,7 @@ func TestGrammarImprint_KnownTreePathDeterministic_Good(t *testing.T) {
 	}
 }
 
-func TestGrammarImprint_UnsetNode_Bad(t *testing.T) {
+func TestGrammarImprint_UnsetNodeBad(t *testing.T) {
 	var node Node
 
 	got := (&GrammarImprint{}).Imprint(node, Context{})
@@ -49,7 +50,7 @@ func TestGrammarImprint_UnsetNode_Bad(t *testing.T) {
 	}
 }
 
-func TestGrammarImprint_DoesNotRenderContent_Good(t *testing.T) {
+func TestGrammarImprint_DoesNotRenderContentGood(t *testing.T) {
 	got := (&GrammarImprint{}).Imprint(grammarPanicNode{}, Context{})
 
 	if got.Path != "0" {
@@ -63,7 +64,7 @@ func TestGrammarImprint_DoesNotRenderContent_Good(t *testing.T) {
 	}
 }
 
-func TestGrammarImprint_DeepNestedPathBudget_Ugly(t *testing.T) {
+func TestGrammarImprint_DeepNestedPathBudgetUgly(t *testing.T) {
 	var node Node = Raw("leaf")
 	for range defaultGrammarImprintMaxDepth * 3 {
 		node = NewLayout("C").C(node)
@@ -86,4 +87,22 @@ type grammarPanicNode struct{}
 
 func (grammarPanicNode) Render(*Context) string {
 	panic("GrammarImprint must not render nodes")
+}
+
+func TestGrammar_GrammarImprint_Imprint_Good(t *core.T) {
+	stamp := (&GrammarImprint{}).Imprint(El("section", Text("body")), *NewContext())
+	core.AssertEqual(t, "0", stamp.Path)
+	core.AssertEqual(t, []string{"branch"}, stamp.Tags)
+}
+
+func TestGrammar_GrammarImprint_Imprint_Bad(t *core.T) {
+	stamp := (&GrammarImprint{}).Imprint(nil, *NewContext())
+	core.AssertEqual(t, Stamp{}, stamp)
+	core.AssertEqual(t, uint64(0), stamp.Hash)
+}
+
+func TestGrammar_GrammarImprint_Imprint_Ugly(t *core.T) {
+	g := &GrammarImprint{maxDepth: 1}
+	stamp := g.Imprint(NewLayout("C").C(El("p", Text("x"))), *NewContext())
+	core.AssertEqual(t, []string{"branch", "truncated"}, stamp.Tags)
 }

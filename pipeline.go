@@ -3,7 +3,7 @@
 package html
 
 import (
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 
 	"dappco.re/go/i18n/reversal"
 	"unicode/utf8"
@@ -41,7 +41,7 @@ func StripTags(html string) string {
 				prevSpace = true
 			}
 		default:
-			_, _ = b.WriteString(html[i : i+size])
+			b.WriteString(html[i : i+size])
 			prevSpace = false
 		}
 

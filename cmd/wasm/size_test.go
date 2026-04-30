@@ -8,7 +8,7 @@ import (
 	"context"
 	"testing"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 	coreio "dappco.re/go/io"
 	process "dappco.re/go/process"
 )
@@ -18,7 +18,7 @@ const (
 	wasmRawLimit = 3_670_016 // 3.5 MB raw size limit
 )
 
-func TestCmdWasm_WASMBinarySize_Good(t *testing.T) {
+func TestCmdWasm_WASMBinarySizeGood(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping WASM build test in short mode")
 	}

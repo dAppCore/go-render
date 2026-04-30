@@ -3,7 +3,6 @@
 package main
 
 import (
-	"strings"
 	"syscall/js"
 
 	html "dappco.re/go/html"
@@ -69,10 +68,41 @@ func renderTemplateString(template string, data js.Value) string {
 			continue
 		}
 		rendered := html.Render(html.Text(scalarString(value)), ctx)
-		out = strings.ReplaceAll(out, "{{"+key+"}}", rendered)
-		out = strings.ReplaceAll(out, "{{ "+key+" }}", rendered)
+		out = replaceTemplateToken(out, "{{"+key+"}}", rendered)
+		out = replaceTemplateToken(out, "{{ "+key+" }}", rendered)
 	}
 	return out
+}
+
+func replaceTemplateToken(s, old, new string) string {
+	if old == "" {
+		return s
+	}
+
+	out := ""
+	for {
+		i := indexTemplateToken(s, old)
+		if i < 0 {
+			return out + s
+		}
+		out += s[:i] + new
+		s = s[i+len(old):]
+	}
+}
+
+func indexTemplateToken(s, token string) int {
+	if token == "" {
+		return 0
+	}
+	if len(token) > len(s) {
+		return -1
+	}
+	for i := 0; i <= len(s)-len(token); i++ {
+		if s[i:i+len(token)] == token {
+			return i
+		}
+	}
+	return -1
 }
 
 func scalarString(value js.Value) string {

@@ -3,13 +3,11 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
+	core "dappco.re/go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,8 +24,8 @@ func TestRenderRoute_Good(t *testing.T) {
 	}
 
 	var resp renderResponse
-	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal response: %v", err)
+	if result := core.JSONUnmarshal(rec.Body.Bytes(), &resp); !result.OK {
+		t.Fatalf("unmarshal response: %v", result.Value)
 	}
 	if resp.HTML != "<main>Hello</main>" {
 		t.Fatalf("html = %q, want %q", resp.HTML, "<main>Hello</main>")
@@ -43,14 +41,14 @@ func TestRenderRoute_Bad(t *testing.T) {
 	}
 }
 
-func TestRenderRoute_DataBindingNotImplemented_Bad(t *testing.T) {
+func TestRenderRoute_DataBindingNotImplementedBad(t *testing.T) {
 	router := testRouter()
 	rec := postJSON(t, router, "/v1/html/render", `{"template":"<main>{{title}}</main>","data":{"title":"Hello"}}`)
 
 	if rec.Code != http.StatusNotImplemented {
 		t.Fatalf("POST /render data binding status = %d, want %d", rec.Code, http.StatusNotImplemented)
 	}
-	if !strings.Contains(rec.Body.String(), "#731") {
+	if !core.Contains(rec.Body.String(), "#731") {
 		t.Fatalf("POST /render 501 body should point at #731, got %s", rec.Body.String())
 	}
 }
@@ -64,8 +62,8 @@ func TestGrammarCheckRoute_Good(t *testing.T) {
 	}
 
 	var resp grammarCheckResponse
-	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("unmarshal response: %v", err)
+	if result := core.JSONUnmarshal(rec.Body.Bytes(), &resp); !result.OK {
+		t.Fatalf("unmarshal response: %v", result.Value)
 	}
 	if !resp.Valid {
 		t.Fatal("valid = false, want true")
@@ -93,7 +91,7 @@ func testRouter() *gin.Engine {
 
 func postJSON(t *testing.T, router http.Handler, path string, body string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodPost, path, bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPost, path, core.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)

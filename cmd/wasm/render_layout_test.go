@@ -6,7 +6,7 @@ package main
 
 import "testing"
 
-func TestRenderLayout_EmptyStringSlot_Good(t *testing.T) {
+func TestRenderLayout_EmptyStringSlotGood(t *testing.T) {
 	got := renderLayout("C", "en-GB", map[string]string{"C": ""})
 	want := `<main role="main" data-block="C"></main>`
 	if got != want {

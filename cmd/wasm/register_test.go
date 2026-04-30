@@ -3,30 +3,32 @@
 package main
 
 import (
-	"strings"
 	"testing"
+
+	core "dappco.re/go"
 )
 
-func TestBuildComponentJS_ValidJSON_Good(t *testing.T) {
+func TestBuildComponentJS_ValidJSONGood(t *testing.T) {
 	slotsJSON := `{"H":"nav-bar","C":"main-content"}`
-	js, err := buildComponentJS(slotsJSON)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	result := buildComponentJS(slotsJSON)
+	if !result.OK {
+		t.Fatalf("unexpected error: %v", result.Error())
 	}
-	if !strings.Contains(js, "NavBar") {
+	js, _ := result.Value.(string)
+	if !core.Contains(js, "NavBar") {
 		t.Fatal("expected js to contain NavBar")
 	}
-	if !strings.Contains(js, "MainContent") {
+	if !core.Contains(js, "MainContent") {
 		t.Fatal("expected js to contain MainContent")
 	}
-	if !strings.Contains(js, "customElements.define") {
+	if !core.Contains(js, "customElements.define") {
 		t.Fatal("expected js to contain customElements.define")
 	}
 }
 
-func TestBuildComponentJS_InvalidJSON_Bad(t *testing.T) {
-	_, err := buildComponentJS("not json")
-	if err == nil {
-		t.Fatal("expected error, got nil")
+func TestBuildComponentJS_InvalidJSONBad(t *testing.T) {
+	result := buildComponentJS("not json")
+	if result.OK {
+		t.Fatal("expected error result, got OK")
 	}
 }

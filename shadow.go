@@ -1,9 +1,6 @@
 package html
 
-import (
-	"strings"
-	"unicode"
-)
+import "unicode"
 
 // ShadowComponent describes a Web Component class generated from a static
 // go-html node tree.
@@ -30,20 +27,20 @@ func (sc *ShadowComponent) RenderClass() string {
 		body = "<style>" + sc.Style + "</style>" + body
 	}
 
-	var b strings.Builder
-	b.WriteString("class ")
-	b.WriteString(className)
-	b.WriteString(" extends HTMLElement {\n")
-	b.WriteString("  constructor() {\n")
-	b.WriteString("    super();\n")
-	b.WriteString("    const shadow = this.attachShadow({ mode: ")
-	b.WriteString(jsStringLiteral(shadowMode(sc.Mode)))
-	b.WriteString(" });\n")
-	b.WriteString("    shadow.innerHTML = ")
-	b.WriteString(jsStringLiteral(body))
-	b.WriteString(";\n")
-	b.WriteString("  }\n")
-	b.WriteString("}")
+	b := newTextBuilder()
+	b.AppendString("class ")
+	b.AppendString(className)
+	b.AppendString(" extends HTMLElement {\n")
+	b.AppendString("  constructor() {\n")
+	b.AppendString("    super();\n")
+	b.AppendString("    const shadow = this.attachShadow({ mode: ")
+	b.AppendString(jsStringLiteral(shadowMode(sc.Mode)))
+	b.AppendString(" });\n")
+	b.AppendString("    shadow.innerHTML = ")
+	b.AppendString(jsStringLiteral(body))
+	b.AppendString(";\n")
+	b.AppendString("  }\n")
+	b.AppendString("}")
 	return b.String()
 }
 
@@ -81,7 +78,7 @@ func shadowMode(mode string) string {
 }
 
 func pascalCase(s string) string {
-	var b strings.Builder
+	b := newTextBuilder()
 	upperNext := true
 	for _, r := range s {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
@@ -91,7 +88,7 @@ func pascalCase(s string) string {
 		if upperNext && unicode.IsLetter(r) {
 			r = unicode.ToUpper(r)
 		}
-		b.WriteRune(r)
+		b.AppendRune(r)
 		upperNext = false
 	}
 	return b.String()
@@ -108,30 +105,44 @@ const (
 
 func kebabCase(s string) string {
 	runes := []rune(s)
-	var b strings.Builder
+	b := newTextBuilder()
 	lastWasDash := true
 	previous := kebabNone
+	written := false
 
 	for i, r := range runes {
 		kind := classifyKebabRune(r)
 		if kind == kebabNone {
-			if b.Len() > 0 && !lastWasDash {
-				b.WriteByte('-')
+			if written && !lastWasDash {
+				b.AppendByte('-')
 				lastWasDash = true
 			}
 			previous = kebabNone
 			continue
 		}
 
-		if b.Len() > 0 && !lastWasDash && shouldInsertKebabDash(previous, kind, runes, i) {
-			b.WriteByte('-')
+		if written && !lastWasDash && shouldInsertKebabDash(previous, kind, runes, i) {
+			b.AppendByte('-')
 		}
-		b.WriteRune(unicode.ToLower(r))
+		b.AppendRune(unicode.ToLower(r))
 		lastWasDash = false
 		previous = kind
+		written = true
 	}
 
-	return strings.Trim(b.String(), "-")
+	return trimDashes(b.String())
+}
+
+func trimDashes(s string) string {
+	start := 0
+	for start < len(s) && s[start] == '-' {
+		start++
+	}
+	end := len(s)
+	for end > start && s[end-1] == '-' {
+		end--
+	}
+	return s[start:end]
 }
 
 func classifyKebabRune(r rune) kebabRuneKind {
@@ -165,34 +176,34 @@ func nextKebabRuneKind(runes []rune, index int) kebabRuneKind {
 }
 
 func jsStringLiteral(s string) string {
-	var b strings.Builder
-	b.WriteByte('"')
-	appendJSStringLiteral(&b, s)
-	b.WriteByte('"')
+	b := newTextBuilder()
+	b.AppendByte('"')
+	appendJSStringLiteral(b, s)
+	b.AppendByte('"')
 	return b.String()
 }
 
-func appendJSStringLiteral(b *strings.Builder, s string) {
+func appendJSStringLiteral(b *textBuilder, s string) {
 	for _, r := range s {
 		switch r {
 		case '\\':
-			b.WriteString(`\\`)
+			b.AppendString(`\\`)
 		case '"':
-			b.WriteString(`\"`)
+			b.AppendString(`\"`)
 		case '\b':
-			b.WriteString(`\b`)
+			b.AppendString(`\b`)
 		case '\f':
-			b.WriteString(`\f`)
+			b.AppendString(`\f`)
 		case '\n':
-			b.WriteString(`\n`)
+			b.AppendString(`\n`)
 		case '\r':
-			b.WriteString(`\r`)
+			b.AppendString(`\r`)
 		case '\t':
-			b.WriteString(`\t`)
+			b.AppendString(`\t`)
 		case 0x2028:
-			b.WriteString(`\u2028`)
+			b.AppendString(`\u2028`)
 		case 0x2029:
-			b.WriteString(`\u2029`)
+			b.AppendString(`\u2029`)
 		default:
 			if r < 0x20 {
 				appendUnicodeEscape(b, r)
@@ -204,16 +215,16 @@ func appendJSStringLiteral(b *strings.Builder, s string) {
 				appendUnicodeEscape(b, rune(0xDC00+(rr&0x3FF)))
 				continue
 			}
-			b.WriteRune(r)
+			b.AppendRune(r)
 		}
 	}
 }
 
-func appendUnicodeEscape(b *strings.Builder, r rune) {
+func appendUnicodeEscape(b *textBuilder, r rune) {
 	const hex = "0123456789ABCDEF"
-	b.WriteString(`\u`)
-	b.WriteByte(hex[(r>>12)&0xF])
-	b.WriteByte(hex[(r>>8)&0xF])
-	b.WriteByte(hex[(r>>4)&0xF])
-	b.WriteByte(hex[r&0xF])
+	b.AppendString(`\u`)
+	b.AppendByte(hex[(r>>12)&0xF])
+	b.AppendByte(hex[(r>>8)&0xF])
+	b.AppendByte(hex[(r>>4)&0xF])
+	b.AppendByte(hex[r&0xF])
 }

@@ -8,14 +8,13 @@ package html
 
 import (
 	"strconv"
-	"strings"
 )
 
 func translationArgs(ctx *Context, key string, args []any) []any {
 	if ctx == nil {
 		return args
 	}
-	if !strings.HasPrefix(key, "i18n.count.") {
+	if !hasTextPrefix(key, "i18n.count.") {
 		return args
 	}
 
@@ -92,7 +91,7 @@ func countInt(v any) (int, bool) {
 	case float64:
 		return int(n), true
 	case string:
-		n = strings.TrimSpace(n)
+		n = trimTextSpace(n)
 		if n == "" {
 			return 0, false
 		}
@@ -106,4 +105,29 @@ func countInt(v any) (int, bool) {
 func isCountLike(v any) bool {
 	_, ok := countInt(v)
 	return ok
+}
+
+func hasTextPrefix(s, prefix string) bool {
+	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
+}
+
+func trimTextSpace(s string) string {
+	start := 0
+	for start < len(s) && isTextSpace(s[start]) {
+		start++
+	}
+	end := len(s)
+	for end > start && isTextSpace(s[end-1]) {
+		end--
+	}
+	return s[start:end]
+}
+
+func isTextSpace(c byte) bool {
+	switch c {
+	case ' ', '\t', '\n', '\r', '\v', '\f':
+		return true
+	default:
+		return false
+	}
 }

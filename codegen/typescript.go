@@ -7,7 +7,7 @@ package codegen
 import (
 	"sort"
 
-	core "dappco.re/go/core"
+	core "dappco.re/go"
 )
 
 // GenerateTypeScriptDefinitions produces ambient TypeScript declarations for
