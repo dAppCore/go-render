@@ -9,7 +9,6 @@ import (
 	"unicode/utf8"
 
 	core "dappco.re/go"
-	log "dappco.re/go/log"
 )
 
 var reservedCustomElementNames = map[string]struct{}{
@@ -141,7 +140,7 @@ var wcTemplate = template.Must(template.New("wc").Parse(`class {{.ClassName}} ex
 // Usage example: result := GenerateClass("nav-bar", "H")
 func GenerateClass(tag, slot string) core.Result {
 	if !isValidCustomElementTag(tag) {
-		return core.Fail(log.E("codegen.GenerateClass", "custom element tag must be a lowercase hyphenated name: "+tag, nil))
+		return core.Fail(core.E("codegen.GenerateClass", "custom element tag must be a lowercase hyphenated name: "+tag, nil))
 	}
 	b := core.NewBuilder()
 	tagLiteral := escapeJSStringLiteral(tag)
@@ -154,7 +153,7 @@ func GenerateClass(tag, slot string) core.Result {
 		SlotLiteral: slotLiteral,
 	})
 	if err != nil {
-		return core.Fail(log.E("codegen.GenerateClass", "template exec", err))
+		return core.Fail(core.E("codegen.GenerateClass", "template exec", err))
 	}
 	return core.Ok(b.String())
 }
@@ -214,7 +213,7 @@ func GenerateBundle(slots map[string]string) core.Result {
 			if value, ok := clsResult.Value.(error); ok {
 				err = value
 			}
-			return core.Fail(log.E("codegen.GenerateBundle", "generate class for tag "+tag, err))
+			return core.Fail(core.E("codegen.GenerateBundle", "generate class for tag "+tag, err))
 		}
 		cls, _ := clsResult.Value.(string)
 		b.WriteString(cls)

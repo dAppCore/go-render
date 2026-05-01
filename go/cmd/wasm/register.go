@@ -6,7 +6,6 @@ import (
 	core "dappco.re/go"
 
 	"dappco.re/go/html/codegen"
-	log "dappco.re/go/log"
 )
 
 // buildComponentJS takes a JSON slot map and returns the WC bundle JS result.
@@ -17,11 +16,11 @@ func buildComponentJS(slotsJSON string) core.Result {
 	var slots map[string]string
 	if result := core.JSONUnmarshalString(slotsJSON, &slots); !result.OK {
 		err, _ := result.Value.(error)
-		return core.Fail(log.E("buildComponentJS", "unmarshal JSON", err))
+		return core.Fail(core.E("buildComponentJS", "unmarshal JSON", err))
 	}
 	return codegen.GenerateBundle(slots)
 }
 
 func main() {
-	log.Info("go-html WASM module — build with GOOS=js GOARCH=wasm")
+	core.Info("go-html WASM module — build with GOOS=js GOARCH=wasm")
 }

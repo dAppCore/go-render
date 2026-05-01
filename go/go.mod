@@ -5,13 +5,13 @@ go 1.26.2
 require (
 	dappco.re/go/i18n v0.8.0-alpha.1
 	dappco.re/go/io v0.8.0-alpha.1
-	dappco.re/go/log v0.8.0-alpha.1
 	dappco.re/go/process v0.8.0-alpha.1
 	github.com/gin-gonic/gin v1.12.0
 )
 
 require (
 	dappco.re/go/core v0.8.0-alpha.1 // indirect
+	dappco.re/go/log v0.8.0-alpha.1 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
