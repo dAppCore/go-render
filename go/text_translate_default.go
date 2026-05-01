@@ -9,5 +9,10 @@ import (
 )
 
 func translateDefault(key string, args ...any) string {
-	return i18n.T(key, args...)
+	result := i18n.Translate(key, args...)
+	if result.OK {
+		value, _ := result.Value.(string)
+		return value
+	}
+	return key
 }

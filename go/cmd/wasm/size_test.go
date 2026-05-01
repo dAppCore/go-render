@@ -26,18 +26,7 @@ func TestCmdWasm_WASMBinarySizeGood(t *testing.T) {
 	dir := t.TempDir()
 	out := core.Path(dir, "gohtml.wasm")
 
-	factory := process.NewService(process.Options{})
-	serviceValue, err := factory(core.New())
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	svc, ok := serviceValue.(*process.Service)
-	if !ok {
-		t.Fatalf("process service factory returned %T", serviceValue)
-	}
-
-	output, err := svc.RunWithOptions(context.Background(), process.RunOptions{
+	output, err := process.RunWithOptions(context.Background(), process.RunOptions{
 		Command: "go",
 		Args:    []string{"build", "-ldflags=-s -w", "-o", out, "."},
 		Dir:     ".",

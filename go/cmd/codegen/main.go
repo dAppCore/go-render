@@ -17,7 +17,6 @@ import (
 	core "dappco.re/go"
 	"dappco.re/go/html/codegen"
 	coreio "dappco.re/go/io"
-	log "dappco.re/go/log"
 )
 
 const defaultPollInterval = 250 * time.Millisecond
@@ -28,7 +27,7 @@ func generate(data []byte, emitTypes bool) core.Result {
 	var slots map[string]string
 	if result := core.JSONUnmarshal(data, &slots); !result.OK {
 		err, _ := result.Value.(error)
-		return core.Fail(log.E("codegen", "invalid JSON", err))
+		return core.Fail(core.E("codegen", "invalid JSON", err))
 	}
 
 	if emitTypes {
@@ -89,10 +88,10 @@ func writeOutput(output any, content string) core.Result {
 
 func runDaemon(ctx context.Context, inputPath, outputPath string, emitTypes bool, pollInterval time.Duration) core.Result {
 	if inputPath == "" {
-		return core.Fail(log.E("codegen", "watch mode requires -input", nil))
+		return core.Fail(core.E("codegen", "watch mode requires -input", nil))
 	}
 	if outputPath == "" {
-		return core.Fail(log.E("codegen", "watch mode requires -output", nil))
+		return core.Fail(core.E("codegen", "watch mode requires -output", nil))
 	}
 	if pollInterval <= 0 {
 		pollInterval = defaultPollInterval
@@ -308,19 +307,19 @@ func pollIntervalFromOptions(opts core.Options) core.Result {
 
 	pollInterval, err := time.ParseDuration(raw)
 	if err != nil {
-		return core.Fail(log.E("codegen", "invalid poll interval", err))
+		return core.Fail(core.E("codegen", "invalid poll interval", err))
 	}
 	return core.Ok(pollInterval)
 }
 
 func runCodegenApp(c *core.Core) core.Result {
 	if c == nil {
-		return core.Fail(log.E("codegen.main", "core app is required", nil))
+		return core.Fail(core.E("codegen.main", "core app is required", nil))
 	}
 
 	defer func() {
 		if result := c.ServiceShutdown(context.Background()); !result.OK {
-			log.Warn("codegen shutdown failed", "scope", "codegen.main", "err", result.Error())
+			core.Warn("codegen shutdown failed", "scope", "codegen.main", "err", result.Error())
 		}
 	}()
 
@@ -356,14 +355,14 @@ func resultError(op, msg string, result core.Result) core.Result {
 		return core.Ok(nil)
 	}
 	if err, ok := result.Value.(error); ok && err != nil {
-		return core.Fail(log.E(op, msg, err))
+		return core.Fail(core.E(op, msg, err))
 	}
-	return core.Fail(log.E(op, msg, nil))
+	return core.Fail(core.E(op, msg, nil))
 }
 
 func main() {
 	c := newCodegenApp()
 	if result := runCodegenApp(c); !result.OK {
-		log.Error("codegen failed", "scope", "codegen.main", "err", result.Error())
+		core.Error("codegen failed", "scope", "codegen.main", "err", result.Error())
 	}
 }

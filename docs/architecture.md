@@ -67,7 +67,7 @@ Two constructors are provided:
 
 `Data` and `Metadata` point at the same backing map when the context is created through `NewContext()`. Use whichever name is clearer in the calling code. `SetLocale()` and `SetService()` keep the active translator in sync when either value changes.
 
-The `service` field is intentionally unexported. When nil, server builds fall back to the global `i18n.T()` default while JS builds render the key unchanged. This prevents callers from setting the service inconsistently after construction while keeping the WASM import graph lean.
+The `service` field is intentionally unexported. When nil, server builds fall back to Core's i18n translator while JS builds render the key unchanged. This prevents callers from setting the service inconsistently after construction while keeping the WASM import graph lean.
 
 ## HLCRF Layout
 
