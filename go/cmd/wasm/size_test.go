@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	core "dappco.re/go"
+	corepkg "dappco.re/go/core"
 	coreio "dappco.re/go/io"
 	process "dappco.re/go/process"
 )
@@ -21,6 +22,10 @@ const (
 func TestCmdWasm_WASMBinarySizeGood(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping WASM build test in short mode")
+	}
+
+	if err := process.Init(corepkg.New()); err != nil {
+		t.Fatalf("process.Init: %v", err)
 	}
 
 	dir := t.TempDir()
