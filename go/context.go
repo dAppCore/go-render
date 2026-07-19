@@ -27,16 +27,31 @@ type Context struct {
 	service      Translator
 }
 
+// applyLocaleFallback bridges translators whose SetLanguage doesn't return a
+// plain error — e.g. dappco.re/go/i18n's Service, whose SetLanguage returns
+// core.Result. A plain interface assertion can't do this: Go requires a
+// method's return type to match an interface's declared return type exactly
+// (no covariance), so interface{ SetLanguage(string) error } below stops
+// matching the moment a translator's SetLanguage returns something else —
+// silently, with no compile error. The real bridge lives in
+// context_locale_default.go (!js) / context_locale_js.go (js), split the
+// same way translateDefault is in text_translate_default.go /
+// text_translate_js.go, so this WASM-linked file never has to import
+// dappco.re/go/i18n (and transitively dappco.re/go) merely to name
+// core.Result.
 func applyLocaleToService(svc Translator, locale string) {
 	if svc == nil || locale == "" {
 		return
 	}
 
+	resolved := serviceLocale(svc, locale)
+
 	if setter, ok := svc.(interface{ SetLanguage(string) error }); ok {
-		if err := setter.SetLanguage(serviceLocale(svc, locale)); err != nil {
-			return
-		}
+		setter.SetLanguage(resolved)
+		return
 	}
+
+	applyLocaleFallback(svc, resolved)
 }
 
 func serviceLocale(svc Translator, locale string) string {

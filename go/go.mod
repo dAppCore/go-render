@@ -3,9 +3,9 @@ module dappco.re/go/html
 go 1.26.2
 
 require (
-	dappco.re/go/core v0.8.0-alpha.1
-	dappco.re/go/i18n v0.8.0-alpha.1
-	dappco.re/go/process v0.8.0-alpha.1
+	dappco.re/go/i18n v0.12.1
+	dappco.re/go/io v0.15.1
+	dappco.re/go/process v0.16.1
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/muesli/termenv v0.16.0
@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	dappco.re/go/log v0.8.0-alpha.1 // indirect
+	dappco.re/go/log v0.13.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
@@ -44,6 +44,7 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
@@ -57,7 +58,6 @@ require (
 )
 
 require (
-	dappco.re/go v0.10.4
-	dappco.re/go/inference v0.8.0-alpha.1 // indirect
+	dappco.re/go v0.12.0
 	golang.org/x/text v0.36.0 // indirect
 )

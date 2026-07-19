@@ -42,7 +42,7 @@ func TestNewContext_OptionalLocaleGood(t *testing.T) {
 }
 
 func TestNewContextWithService_OptionalLocaleGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	ctx := NewContextWithService(svc, "fr-FR")
 
 	if ctx == nil {
@@ -57,7 +57,7 @@ func TestNewContextWithService_OptionalLocaleGood(t *testing.T) {
 }
 
 func TestNewContextWithService_AppliesLocaleToServiceGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	ctx := NewContextWithService(svc, "fr-FR")
 
 	got := Text("prompt.yes").Render(ctx)
@@ -79,7 +79,7 @@ func TestNewContextWithService_ForwardsFullLocaleToTranslatorGood(t *testing.T) 
 }
 
 func TestTextNode_UsesMetadataAliasWhenDataNilGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 
 	ctx := &Context{
@@ -128,7 +128,7 @@ func TestTextNode_NonCountKey_DoesNotInjectCountGood(t *testing.T) {
 }
 
 func TestContext_SetService_AppliesLocale_Good(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	ctx := NewContext("fr-FR")
 
 	if got := ctx.SetService(svc); got != ctx {
@@ -149,7 +149,7 @@ func TestContext_SetService_NilContext_Ugly(t *testing.T) {
 }
 
 func TestContext_SetLocale_AppliesLocale_Good(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	ctx := NewContextWithService(svc)
 
 	if got := ctx.SetLocale("fr-FR"); got != ctx {

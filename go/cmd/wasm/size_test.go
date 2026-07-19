@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	core "dappco.re/go"
-	corepkg "dappco.re/go/core"
 	coreio "dappco.re/go/io"
 	process "dappco.re/go/process"
 )
@@ -24,21 +23,21 @@ func TestCmdWasm_WASMBinarySizeGood(t *testing.T) {
 		t.Skip("skipping WASM build test in short mode")
 	}
 
-	if err := process.Init(corepkg.New()); err != nil {
-		t.Fatalf("process.Init: %v", err)
+	if result := process.Init(core.New()); !result.OK {
+		t.Fatalf("process.Init: %v", result.Error())
 	}
 
 	dir := t.TempDir()
 	out := core.Path(dir, "gohtml.wasm")
 
-	output, err := process.RunWithOptions(context.Background(), process.RunOptions{
+	result := process.RunWithOptions(context.Background(), process.RunOptions{
 		Command: "go",
 		Args:    []string{"build", "-ldflags=-s -w", "-o", out, "."},
 		Dir:     ".",
 		Env:     []string{"GOOS=js", "GOARCH=wasm"},
 	})
-	if err != nil {
-		t.Fatalf("WASM build failed: %v: %s", err, output)
+	if !result.OK {
+		t.Fatalf("WASM build failed: %v", result.Error())
 	}
 
 	rawStr, err := coreio.Local.Read(out)
