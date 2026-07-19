@@ -28,6 +28,24 @@ page := html.NewLayout("HCF").
 rendered := page.Render(html.NewContext("en-GB"))
 ```
 
+## Terminal renderer
+
+The same node trees render styled ANSI for a terminal — go-html is the
+application layer, and HTML output is one renderer of it. `RenderTerm` walks
+El/Text/If/Each/Switch/Entitled with identical i18n and entitlement semantics,
+and `Layout.RenderTerm` composes the HLCRF frame for a CLI: `H` as a top band,
+`L | C | R` side by side (stacking below 80 columns), `F` as a status band.
+Headings, lists, tables, code blocks, progress bars, links (OSC 8 hyperlinks),
+and class tokens (`ok`, `warn`, `error`, `muted`, `accent`, `card`) style
+through a dark-first adaptive `TermTheme`. Server/CLI only (`//go:build !js`) —
+the WASM module never links it.
+
+```go
+out := page.RenderTerm(html.NewContext("en-GB"), html.TermOptions{Width: 120})
+```
+
+Try it: `cd go && go run ./cmd/termdemo/ -w 110`
+
 ## Documentation
 
 - [Architecture](docs/architecture.md) — node interface, HLCRF layout, responsive compositor, grammar pipeline, WASM module, codegen CLI

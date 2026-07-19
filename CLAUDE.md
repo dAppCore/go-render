@@ -34,6 +34,7 @@ See `docs/architecture.md` for full detail. Summary:
 Files guarded with `//go:build !js` are excluded from WASM:
 
 - `pipeline.go` — Imprint/CompareVariants use `go-i18n/reversal` (server-side only)
+- `term.go`, `term_theme.go`, `term_layout.go` — the terminal renderer (lipgloss); ANSI output for CLIs, never WASM-linked
 - `cmd/wasm/register.go` — encoding/json + codegen (replaced by `cmd/codegen/` CLI)
 
 **Critical WASM constraint**: Never import `encoding/json`, `text/template`, or `fmt` in WASM-linked code (files without a `!js` build tag). Use string concatenation instead of `fmt.Sprintf` in `layout.go`, `node.go`, `responsive.go`, `render.go`, `path.go`, and `context.go`. The `fmt` package alone adds ~500 KB to the WASM binary.
