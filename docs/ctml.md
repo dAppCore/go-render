@@ -30,10 +30,10 @@ content    := (element | CharData)*
 
 Two content rules apply uniformly, with no special-casing per tag:
 
-- **A run of `CharData`** (trimmed; dropped entirely if it trims to empty -- this is how indentation whitespace between sibling elements disappears) becomes a `Text(trimmed)` node, in document order, *except* inside `<raw>` (S:S6.2) where all content is preserved verbatim and unescaped, and inside `<each>` bodies where an entire run consisting of exactly one `{{path}}` token is a binding reference (S:S8.3), not a literal key.
-- **A child element** becomes its own node, in document order, interleaved with any `Text` nodes from adjacent `CharData` runs.
+- **A run of `CharData`** that is *entirely* whitespace is dropped -- this is how the indentation between pretty-printed sibling elements disappears. A run that has any non-whitespace content becomes a `Text(text)` node, in document order, where `text` is the run with its leading/trailing edge trimmed *only when that edge contains a newline* -- source-formatting indentation is stripped, but a plain inline space at the edge (as in `"Hello "` immediately before a following element) is significant text-flow spacing and survives untouched. The exceptions: inside `<raw>` (S:S6.2), all content is preserved verbatim and unescaped with no whitespace handling at all; inside `<each>` bodies, a run whose entirety (after the same edge rule) is exactly one `{{path}}` token is a binding reference (S:S8.3), not a literal key.
+- **A child element** becomes its own node, in document order, interleaved with any `Text`/bind nodes from adjacent `CharData` runs.
 
-This is why `<p>Hello <strong>world</strong>!</p>` needs no special mixed-content handling: it is `El("p", Text("Hello"), El("strong", Text("world")), Text("!"))` by the same two rules applied three times.
+This is why `<p>Hello <strong>world</strong>!</p>` needs no special mixed-content handling: it is `El("p", Text("Hello "), El("strong", Text("world")), Text("!"))` by the same two rules applied three times -- note the space kept on `"Hello "`.
 
 ## 3. Element to node mapping
 
