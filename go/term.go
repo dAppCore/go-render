@@ -77,6 +77,7 @@ func termContext(ctx *Context) *Context {
 type termRenderer struct {
 	ctx   *Context
 	theme *TermTheme
+	rec   *termBoxRecorder // nil unless rendering via RenderTermBoxes
 }
 
 // termExpandable is satisfied by eachNode[T]; it expands the sequence into
@@ -193,7 +194,13 @@ func (r *termRenderer) blocks(nodes []Node, width int) []string {
 				continue
 			}
 			flush()
-			out = append(out, r.block(n, width)...)
+			startRow := len(out)
+			var lines []string
+			r.withOrigin(r.originRow()+startRow, r.originCol(), func() {
+				lines = r.block(n, width)
+			})
+			r.recordElBox(n, startRow, width, lines)
+			out = append(out, lines...)
 		}
 	}
 	flush()

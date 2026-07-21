@@ -42,6 +42,12 @@ func (l *Layout) renderTermFrame(r *termRenderer, width int) string {
 	if l == nil {
 		return ""
 	}
+	// framePrefix must be claimed once per frame, before any nested frame
+	// (reached via a Layout inside one of this frame's own slots) can
+	// claim its own -- see framePrefix's doc comment.
+	prefix := r.framePrefix()
+	baseRow, baseCol := r.originRow(), r.originCol()
+
 	seen := make(map[byte]bool)
 	var order []byte
 	for i := range len(l.variant) {
@@ -57,27 +63,40 @@ func (l *Layout) renderTermFrame(r *termRenderer, width int) string {
 	}
 
 	var sections []string
+	row := 0
 
 	if seen['H'] && len(l.slots['H']) > 0 {
-		content := strings.Join(r.blocks(l.slots['H'], width-2), "\n")
-		sections = append(sections, r.theme.Header.Width(width).Render(content))
+		var content string
+		r.withOrigin(baseRow, baseCol, func() {
+			content = strings.Join(r.blocks(l.slots['H'], width-2), "\n")
+		})
+		rendered := r.theme.Header.Width(width).Render(content)
+		sections = append(sections, rendered)
+		r.rec.record(prefix+"H", baseRow+row, baseCol, width, termLineCount(rendered), l)
+		row += termLineCount(rendered)
 	}
 
-	middle := l.renderTermMiddle(r, width, seen)
+	middle := l.renderTermMiddle(r, width, seen, prefix, baseRow+row, baseCol)
 	if middle != "" {
 		sections = append(sections, middle)
+		row += termLineCount(middle)
 	}
 
 	if seen['F'] && len(l.slots['F']) > 0 {
-		content := strings.Join(r.blocks(l.slots['F'], width-2), "\n")
-		sections = append(sections, r.theme.Footer.Width(width).Render(content))
+		var content string
+		r.withOrigin(baseRow+row, baseCol, func() {
+			content = strings.Join(r.blocks(l.slots['F'], width-2), "\n")
+		})
+		rendered := r.theme.Footer.Width(width).Render(content)
+		sections = append(sections, rendered)
+		r.rec.record(prefix+"F", baseRow+row, baseCol, width, termLineCount(rendered), l)
 	}
 
 	_ = order
 	return strings.Join(sections, "\n")
 }
 
-func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool) string {
+func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool, prefix string, baseRow, baseCol int) string {
 	hasL := seen['L'] && len(l.slots['L']) > 0
 	hasC := seen['C'] && len(l.slots['C']) > 0
 	hasR := seen['R'] && len(l.slots['R']) > 0
@@ -87,14 +106,26 @@ func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool
 
 	if width < termStackThreshold {
 		var stacked []string
+		row := baseRow
 		if hasL {
-			stacked = append(stacked, l.renderTermBox(r, 'L', width, r.theme.Sidebar))
+			var box string
+			r.withOrigin(row, baseCol, func() { box = l.renderTermBox(r, 'L', width, r.theme.Sidebar) })
+			r.rec.record(prefix+"L", row, baseCol, width, termLineCount(box), l)
+			stacked = append(stacked, box)
+			row += termLineCount(box)
 		}
 		if hasC {
-			stacked = append(stacked, l.renderTermContent(r, width))
+			var box string
+			r.withOrigin(row, baseCol, func() { box = l.renderTermContent(r, width) })
+			r.rec.record(prefix+"C", row, baseCol, width, termLineCount(box), l)
+			stacked = append(stacked, box)
+			row += termLineCount(box)
 		}
 		if hasR {
-			stacked = append(stacked, l.renderTermBox(r, 'R', width, r.theme.Aside))
+			var box string
+			r.withOrigin(row, baseCol, func() { box = l.renderTermBox(r, 'R', width, r.theme.Aside) })
+			r.rec.record(prefix+"R", row, baseCol, width, termLineCount(box), l)
+			stacked = append(stacked, box)
 		}
 		return strings.Join(stacked, "\n")
 	}
@@ -115,17 +146,51 @@ func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool
 		contentWidth = termMinWidth
 	}
 
+	// pos walks the same column layout the append sequence below builds,
+	// so cCol/rCol land exactly where JoinHorizontal actually places them
+	// (including the always-inserted single-space gaps either side of C).
+	pos := baseCol
+	var lBox, cBox, rBox string
+	if hasL {
+		r.withOrigin(baseRow, pos, func() { lBox = l.renderTermBox(r, 'L', sidebarWidth, r.theme.Sidebar) })
+		pos += sidebarWidth + 1
+	}
+	cCol := pos
+	if hasC {
+		r.withOrigin(baseRow, cCol, func() { cBox = l.renderTermContent(r, contentWidth) })
+		pos += contentWidth
+	}
+	rCol := pos + 1
+	if hasR {
+		r.withOrigin(baseRow, rCol, func() { rBox = l.renderTermBox(r, 'R', asideWidth, r.theme.Aside) })
+	}
+
 	var columns []string
 	if hasL {
-		columns = append(columns, l.renderTermBox(r, 'L', sidebarWidth, r.theme.Sidebar), " ")
+		columns = append(columns, lBox, " ")
 	}
 	if hasC {
-		columns = append(columns, l.renderTermContent(r, contentWidth))
+		columns = append(columns, cBox)
 	}
 	if hasR {
-		columns = append(columns, " ", l.renderTermBox(r, 'R', asideWidth, r.theme.Aside))
+		columns = append(columns, " ", rBox)
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, columns...)
+	joined := lipgloss.JoinHorizontal(lipgloss.Top, columns...)
+
+	// All three columns share one height: JoinHorizontal pads every
+	// shorter column to the tallest, so the padded blank rows are still
+	// legitimately part of that column's rendered box.
+	height := termLineCount(joined)
+	if hasL {
+		r.rec.record(prefix+"L", baseRow, baseCol, sidebarWidth, height, l)
+	}
+	if hasC {
+		r.rec.record(prefix+"C", baseRow, cCol, contentWidth, height, l)
+	}
+	if hasR {
+		r.rec.record(prefix+"R", baseRow, rCol, asideWidth, height, l)
+	}
+	return joined
 }
 
 func (l *Layout) renderTermBox(r *termRenderer, slot byte, width int, style lipgloss.Style) string {

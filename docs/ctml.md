@@ -294,6 +294,38 @@ html.El("div",
 
 This is structurally identical to `cmd/termdemo`'s hand-built page (`go run ./cmd/termdemo/ -w 110`) minus its table/progress-bar detail -- `NewLayout("HLCRF").H(...).L(...).C(...).R(...).F(...)`, rendering through both `Render` and `RenderTerm` unchanged, with `<entitled feature="ops">` gating exactly like `Entitled("ops", ...)` does today.
 
-<!-- box-map-section -->
+## 14. Box map and mouse resolution
+
+`RenderTermBoxes(n, ctx, opts...)` (and `Layout.RenderTermBoxes`, `Responsive.RenderTermBoxes`) render exactly like `RenderTerm`, plus a `BoxMap` recording the terminal rectangle of every identified block:
+
+```go
+type Box struct {
+	Row, Col      int
+	Width, Height int
+	Node          Node
+}
+type BoxMap map[string]Box
+```
+
+**Identification reuses two existing addressing schemes rather than inventing a third.** A Layout slot (H/L/C/R/F) is keyed by the same `blockID` string the HTML renderer already writes to its `data-block` attribute -- `"H"`, `"C"`, or `"C.1"` for a second top-level Content slot. An arbitrary element is keyed by its own `id` attribute, when set -- `id` already passes through to `Attr` as an ordinary HTML attribute (S:S5), so this is additive: setting it changes nothing about how an element renders, it just makes that element's rendered rectangle appear in the box map too.
+
+**Nested layouts get a disambiguating prefix.** The HTML renderer's `data-block` scheme threads a `Layout.path` string through clone-on-render specifically to keep nested slot IDs unique; the terminal renderer has no equivalent mechanism (it never clones a `Layout` with a path). Reusing bare `"H"`/`"C"`/etc for a nested layout's own slots would collide with the outer layout's. Rather than re-deriving the HTML side's path machinery, the box map disambiguates locally: the outermost layout in a render keeps the clean, `data-block`-matching keys; any layout nested inside a slot gets an `L<n>.` prefix (`"L1.H"`, `"L1.C"`), where `n` is a simple per-render counter. A click resolver only ever needs the prefix to tell two blocks apart, not to reconstruct a path.
+
+**Box positions are computed alongside the existing width/column arithmetic, not by re-parsing the rendered string.** `term_layout.go`'s frame assembly already computes each band's line count and each column's width (`sidebarWidth`, `contentWidth`, `asideWidth`) to lay the page out; box recording reads those same values as they're computed. Recording is opt-in and zero-cost on the existing paths: the renderer carries an optional recorder field, `nil` on `RenderTerm`/`Layout.RenderTerm`/`Responsive.RenderTerm`, and every new code path is guarded on it -- confirmed by running the full existing terminal-render test suite unchanged after this addition (byte-identical output).
+
+**Element-id boxes inside a themed slot (Header/Sidebar/Aside/Footer/Card) approximate their origin from that slot's own outer box.** A slot's border and padding shift its content in by a cell or two; the box map does not walk lipgloss's own layout maths to correct for that, so an id'd element a few rows into a bordered sidebar may be off by a cell versus its exact rendered position. The slot's own box is always exact. This is a deliberate scope cut, not an oversight -- pixel-perfect accounting would have to track every themed style's border/padding independently and re-derive it whenever `term_theme.go` changes.
+
+### Mouse resolution
+
+`go/teabox` resolves a coordinate against a `BoxMap` with no dependency on `bubbletea` -- `go.mod` does not carry it, and the resolver only needs two integers, not the `tea.MouseMsg` type itself:
+
+```go
+func Resolve(boxes html.BoxMap, x, y int) (Hit, bool)
+func ResolveNode(boxes html.BoxMap, x, y int) (html.Node, bool)
+```
+
+A caller wires a real `tea.MouseMsg` at the one line that needs the type, in their own code: `teabox.Resolve(boxes, int(msg.X), int(msg.Y))`. When boxes overlap -- a nested layout's slot always renders inside its enclosing slot's rectangle -- the smallest-area match wins, so a click on a card inside a content slot resolves to the card, not the whole page; an exact-area tie resolves to the lexicographically smaller block ID, so the result is deterministic rather than dependent on Go's random map iteration order.
+
+## 15. CoreCommand-derived default TUI (exploratory)
 
 <!-- corecommand-section -->
