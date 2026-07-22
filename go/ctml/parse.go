@@ -237,24 +237,44 @@ func (p *parser) parseContent(startName xml.Name) ([]astNode, error) {
 			if strings.TrimSpace(raw) == "" {
 				continue // pure structural whitespace between siblings
 			}
-			nodes = append(nodes, p.charDataNode(normaliseRun(raw)))
+			nodes = append(nodes, splitRun(normaliseRun(raw))...)
 		case xml.Comment, xml.ProcInst, xml.Directive:
 			continue
 		}
 	}
 }
 
-// charDataNode turns a whole CharData run into either a {{path}} binding
-// reference or a literal i18n key. A binding resolves at materialise time
-// against the nearest enclosing <each> row whose as-name it names, or
-// against Bindings.Values at document scope; either way a miss renders as
-// empty text, so a run is always accepted -- there is no unbound-reference
-// parse error now that Values is a document-wide scope (docs/ctml.md S:S8.3).
-func (p *parser) charDataNode(text string) astNode {
-	if path, ok := matchBindToken(text); ok {
-		return &astBind{Path: path}
+// splitRun turns one CharData run (already edge-normalised, S:S2) into the
+// interleaved Text and bind nodes it denotes. Each {{path}} token within the
+// run becomes an astBind resolved at materialise time (against the enclosing
+// <each> row or Bindings.Values, S:S8.3); the literal text between tokens
+// becomes astText. The whitespace edge rule is applied to the run as a whole
+// before this split (the caller passes normaliseRun's output), not per
+// segment, and empty text segments are dropped -- so "○ {{tab.label}}"
+// becomes Text("○ ") + bind, and a whole-run "{{x}}" becomes a lone bind.
+// A "{{" that opens no valid {{path}} token stays literal text (S:S8.4): the
+// closed vocabulary makes a well-formed {{path}} always a lookup, so there is
+// no escape syntax to invent.
+func splitRun(run string) []astNode {
+	var nodes []astNode
+	segStart, i := 0, 0
+	for i < len(run) {
+		if run[i] == '{' && i+1 < len(run) && run[i+1] == '{' {
+			if path, end, ok := scanBindToken(run, i); ok {
+				if seg := run[segStart:i]; seg != "" {
+					nodes = append(nodes, &astText{Key: seg})
+				}
+				nodes = append(nodes, &astBind{Path: path})
+				i, segStart = end, end
+				continue
+			}
+		}
+		i++
 	}
-	return &astText{Key: text}
+	if seg := run[segStart:]; seg != "" {
+		nodes = append(nodes, &astText{Key: seg})
+	}
+	return nodes
 }
 
 // normaliseRun strips a CharData run's leading/trailing whitespace only
@@ -586,6 +606,25 @@ func matchBindToken(s string) (string, bool) {
 		return "", false
 	}
 	return inner, true
+}
+
+// scanBindToken tries to read one {{path}} token beginning at run[i], where
+// run[i:i+2] is "{{". On success it returns the trimmed inner path and the
+// index just past the closing "}}"; on failure -- no closing "}}", or an
+// inner that is not a valid path -- ok is false and splitRun treats the "{{"
+// as literal text (S:S8.4). The first "}}" closes the token, so one token
+// never spans another.
+func scanBindToken(run string, i int) (path string, end int, ok bool) {
+	rest := run[i+2:]
+	j := strings.Index(rest, "}}")
+	if j < 0 {
+		return "", 0, false
+	}
+	inner := strings.TrimSpace(rest[:j])
+	if !isValidPath(inner) {
+		return "", 0, false
+	}
+	return inner, i + 2 + j + 2, true
 }
 
 func isValidPath(s string) bool {

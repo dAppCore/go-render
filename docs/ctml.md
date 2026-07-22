@@ -30,7 +30,7 @@ content    := (element | CharData)*
 
 Two content rules apply uniformly, with no special-casing per tag:
 
-- **A run of `CharData`** that is *entirely* whitespace is dropped -- this is how the indentation between pretty-printed sibling elements disappears. A run that has any non-whitespace content becomes a `Text(text)` node, in document order, where `text` is the run with its leading/trailing edge trimmed *only when that edge contains a newline* -- source-formatting indentation is stripped, but a plain inline space at the edge (as in `"Hello "` immediately before a following element) is significant text-flow spacing and survives untouched. The exceptions: inside `<raw>` (S:S6.2), all content is preserved verbatim and unescaped with no whitespace handling at all; a run whose entirety (after the same edge rule) is exactly one `{{path}}` token is a binding reference (S:S8.3) -- resolved against the enclosing `<each>` row inside an each body, or against `Bindings.Values` at document scope outside one -- not a literal key.
+- **A run of `CharData`** that is *entirely* whitespace is dropped -- this is how the indentation between pretty-printed sibling elements disappears. A run that has any non-whitespace content becomes a `Text(text)` node, in document order, where `text` is the run with its leading/trailing edge trimmed *only when that edge contains a newline* -- source-formatting indentation is stripped, but a plain inline space at the edge (as in `"Hello "` immediately before a following element) is significant text-flow spacing and survives untouched. The exceptions: inside `<raw>` (S:S6.2), all content is preserved verbatim and unescaped with no whitespace handling at all; and any `{{path}}` token within a run is a binding reference (S:S8.3), splitting the run into interleaved bind nodes and literal-text `Text` nodes -- so `○ {{tab.label}}` becomes `Text("○ ")` then the bind, and a run that is exactly one token becomes a lone bind. The edge rule is applied to the whole run before this split, not per segment, and empty text segments are dropped. Each bind resolves against the enclosing `<each>` row inside an each body, or against `Bindings.Values` at document scope outside one.
 - **A child element** becomes its own node, in document order, interleaved with any `Text`/bind nodes from adjacent `CharData` runs.
 
 This is why `<p>Hello <strong>world</strong>!</p>` needs no special mixed-content handling: it is `El("p", Text("Hello "), El("strong", Text("world")), Text("!"))` by the same two rules applied three times -- note the space kept on `"Hello "`.
@@ -151,7 +151,7 @@ Because `fn` is a closure stored on the returned `*eachNode[map[string]any]` and
 
 ### 8.3 `{{path}}` binding references
 
-A `{{path}}` token is recognised in two places: as the entire trimmed content of a text run (S:S2), or as one comma-separated token inside an `args=` attribute (S:S6.4). `path` is an identifier followed by zero or more dotted field steps (`greeting`, `row.name`, `user.address.city`), each step indexing one level into a `map[string]any` (or a nested map found there). There is no other operator -- no filters, no arithmetic, no comparisons.
+A `{{path}}` token is recognised in two places: as one or more tokens within a text run (S:S2, interleaved with literal text), or as one comma-separated token inside an `args=` attribute (S:S6.4). `path` is an identifier followed by zero or more dotted field steps (`greeting`, `row.name`, `user.address.city`), each step indexing one level into a `map[string]any` (or a nested map found there). There is no other operator -- no filters, no arithmetic, no comparisons.
 
 Resolution is by scope, innermost first: if `path`'s root identifier names an enclosing `<each as="...">`, the token resolves against that row (the nearest such each wins, so nested loops stay unambiguous); otherwise it resolves against `Bindings.Values` at document scope (S:S8.5). Row scope always wins over `Values` -- a `Values` key never shadows a row name.
 
@@ -162,7 +162,9 @@ Every miss renders as the empty string -- an absent field, an absent `Values` ke
 
 ### 8.4 What `{{path}}` deliberately does not do
 
-Mixed static-and-dynamic text in one run (`Cost: {{row.amount}}`) is not supported as a single token; wrap the dynamic part in its own element (`Cost: <b>{{row.amount}}</b>`) or use `args` with a catalogue message (`<span args="{{row.amount}}">cost.line</span>`, catalogue entry `"Cost: {0}"`). This keeps word order translator-controlled rather than baked into the markup, and keeps the token grammar to "the whole run or nothing" -- no partial-run scanning to specify.
+Mixed static-and-dynamic text in one run *is* supported: `Cost: {{row.amount}}` splits into `Text("Cost: ")` and the bind (S:S2), and `○ {{tab.label}}` into `Text("○ ")` and the bind. What a `{{path}}` still does not do is compute: it is a named lookup and nothing else -- no filters, no arithmetic, no comparisons, no function calls. For a *translated* message, still prefer `args` with a catalogue entry (`<span args="{{row.amount}}">cost.line</span>`, catalogue `"Cost: {0}"`) over interpolating mid-sentence, so word order stays translator-controlled rather than baked into the markup.
+
+There is also no escape syntax for a literal `{{`. Because the vocabulary is closed, a *well-formed* `{{path}}` is always a lookup -- there is no way to write one that renders as literal braces. A `{{` that does not open a valid path token (`{{oops!}}`, `{{not a path}}`) is not a token at all and stays literal text; content that genuinely needs literal `{{ident}}` braces belongs in `<raw>`.
 
 ### 8.5 Scalar values: `{{path}}` outside an `<each>`
 

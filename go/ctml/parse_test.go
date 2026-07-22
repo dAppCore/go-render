@@ -120,16 +120,16 @@ func TestParse_Good(t *testing.T) {
 			ctx: html.NewContext(),
 		},
 		{
-			// Two valid {{}} tokens glued in one run are not "the entire
-			// trimmed content is exactly one token" (S:S8.3), so the whole
-			// run stays literal text rather than partially resolving.
-			name: "good: two bind tokens glued in one run stay literal, not partially resolved",
+			// A run with multiple {{path}} tokens splits into interleaved
+			// bind and literal-text nodes (S:S2, S:S8.4): the "/" between the
+			// two tokens becomes its own Text node, each token its own bind.
+			name: "good: multiple bind tokens in one run interpolate with literal text between",
 			src:  `<each items="repos" as="row"><li>{{row.name}}/{{row.status}}</li></each>`,
 			bnd: []Bindings{{Sequences: map[string][]map[string]any{
 				"repos": {{"name": "go-html", "status": "green"}},
 			}}},
 			want: html.Each([]map[string]any{{"name": "go-html", "status": "green"}}, func(row map[string]any) html.Node {
-				return html.El("li", html.Text("{{row.name}}/{{row.status}}"))
+				return html.El("li", html.Text(row["name"].(string)), html.Text("/"), html.Text(row["status"].(string)))
 			}),
 			ctx: html.NewContext(),
 		},
@@ -151,9 +151,8 @@ func TestParse_Good(t *testing.T) {
 			ctx:  html.NewContext(),
 		},
 		{
-			// {{g.name}}/{{r.n}} glued in one run is deliberately NOT a
-			// binding (S:S8.4 -- a run is the whole token or nothing), so
-			// each field gets its own element to stay a whole-run bind.
+			// Nested <each> scopes resolve independently: {{g.name}} binds to
+			// the outer row and {{r.n}} to the inner, each its own text run.
 			name: "good: nested each resolves both outer and inner fields",
 			src:  `<each items="groups" as="g"><div>{{g.name}}<each items="repos" as="r"><span>{{r.n}}</span></each></div></each>`,
 			bnd: []Bindings{{Sequences: map[string][]map[string]any{
@@ -413,6 +412,60 @@ func TestParse_Values_Bad_MissingKeyRendersEmpty(t *testing.T) {
 	got, err := Parse([]byte(`<p>{{absent}}</p>`), Bindings{Values: map[string]any{"present": "x"}})
 	require.NoError(t, err, "a Values miss parses -- absence is not a parse error")
 	assert.Equal(t, "<p></p>", html.Render(got, html.NewContext()), "a missing Values key renders as empty text")
+}
+
+func TestParse_MixedInterpolation(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		bnd  []Bindings
+		want html.Node
+	}{
+		{
+			// The tab-strip friction: a marker glued to a bind in one run.
+			// The run splits into Text("○ ") + bind, rather than staying a
+			// single literal key. The bind resolves against Values here.
+			name: "good: text before a bind splits (tab-strip shape)",
+			src:  `<span>○ {{tab.label}}</span>`,
+			bnd:  []Bindings{{Values: map[string]any{"tab": map[string]any{"label": "Editor"}}}},
+			want: html.El("span", html.Text("○ "), html.Text("Editor")),
+		},
+		{
+			// Text before, between and after several tokens all survive as
+			// their own Text nodes; every token is resolved against the row.
+			name: "good: text around multiple bind tokens all survives",
+			src:  `<each items="rows" as="row"><li>id-{{row.id}}: {{row.name}}!</li></each>`,
+			bnd: []Bindings{{Sequences: map[string][]map[string]any{
+				"rows": {{"id": "7", "name": "go-html"}},
+			}}},
+			want: html.Each([]map[string]any{{"id": "7", "name": "go-html"}}, func(row map[string]any) html.Node {
+				return html.El("li",
+					html.Text("id-"), html.Text(row["id"].(string)),
+					html.Text(": "), html.Text(row["name"].(string)), html.Text("!"))
+			}),
+		},
+		{
+			// A "{{" that opens no valid path token is literal text: no
+			// escape is invented (S:S8.4), the closed vocabulary means a
+			// well-formed {{path}} is always a lookup and nothing else is.
+			name: "bad: an invalid {{ token }} stays literal, no escape invented",
+			src:  `<p>a {{not a path}} b</p>`,
+			want: html.El("p", html.Text("a {{not a path}} b")),
+		},
+		{
+			// A valid bind and an invalid brace-run coexist in one run: the
+			// valid token interpolates, the invalid one stays literal text.
+			name: "ugly: a valid bind and an invalid brace-run coexist in one run",
+			src:  `<p>{{greeting}} {{nope!}}</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"greeting": "Hi"}}},
+			want: html.El("p", html.Text("Hi"), html.Text(" {{nope!}}")),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertSameRender(t, tc.src, tc.bnd, tc.want, html.NewContext())
+		})
+	}
 }
 
 func TestParse_Values_Ugly_RowWinsOverValuesInsideEach(t *testing.T) {
