@@ -92,7 +92,7 @@ func TestTextNode_Render_Good(t *testing.T) {
 }
 
 func TestTextNode_UsesContextDataForCountGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 
 	tests := []struct {
@@ -594,7 +594,7 @@ func TestAttr_ThroughEachSeqNodeGood(t *testing.T) {
 }
 
 func TestTextNode_WithServiceGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	ctx := NewContextWithService(svc)
 	node := Text("hello")
 	got := node.Render(ctx)

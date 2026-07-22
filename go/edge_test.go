@@ -3,13 +3,14 @@ package html
 import (
 	"testing"
 
+	core "dappco.re/go"
 	i18n "dappco.re/go/i18n"
 )
 
 // --- Unicode / RTL edge cases ---
 
 func TestText_Emoji_Ugly(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -50,7 +51,7 @@ func TestEl_EmojiUgly(t *testing.T) {
 }
 
 func TestText_RTL_Ugly(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -87,7 +88,7 @@ func TestEl_RTL_Ugly(t *testing.T) {
 }
 
 func TestText_ZeroWidthUgly(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -113,7 +114,7 @@ func TestText_ZeroWidthUgly(t *testing.T) {
 }
 
 func TestText_MixedScriptsUgly(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -534,7 +535,7 @@ func TestRender_NilContextUgly(t *testing.T) {
 }
 
 func TestImprint_NilContextUgly(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 
 	node := NewLayout("C").C(El("p", Text("Building project")))
@@ -546,7 +547,7 @@ func TestImprint_NilContextUgly(t *testing.T) {
 }
 
 func TestCompareVariants_NilContextUgly(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 
 	r := NewResponsive().
@@ -560,7 +561,7 @@ func TestCompareVariants_NilContextUgly(t *testing.T) {
 }
 
 func TestCompareVariants_SingleVariantUgly(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 
 	r := NewResponsive().

@@ -100,7 +100,7 @@ func TestStripTags_QuotedAttributesGood(t *testing.T) {
 }
 
 func TestImprint_FromNodeGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -120,7 +120,7 @@ func TestImprint_FromNodeGood(t *testing.T) {
 }
 
 func TestImprint_SimilarPagesGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -148,7 +148,7 @@ func TestImprint_SimilarPagesGood(t *testing.T) {
 }
 
 func TestCompareVariants_SameContentGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -175,7 +175,7 @@ func TestCompareVariants_SameContentGood(t *testing.T) {
 }
 
 func TestCompareVariants_KeyOrderDeterministicGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 

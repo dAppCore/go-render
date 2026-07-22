@@ -197,7 +197,11 @@ func runStdio(emitTypes bool) core.Result {
 }
 
 func newCodegenApp() *core.Core {
-	c := core.New(core.WithOption("name", "codegen"))
+	// core.WithCli() is required from dappco.re/go v0.12.0 onward — the CLI
+	// command framework became an opt-in service instead of a default one,
+	// and codegen's -watch/-types dispatch (registerCodegenCommands below)
+	// depends on it being present.
+	c := core.New(core.WithOption("name", "codegen"), core.WithCli())
 	if cli := c.Cli(); cli != nil {
 		cli.SetOutput(core.Discard)
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 func TestRender_FullPageGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 
@@ -51,7 +51,7 @@ func TestRender_FullPageGood(t *testing.T) {
 }
 
 func TestRender_EntitlementGatingGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 	ctx.Entitlements = func(f string) bool { return f == "admin" }
@@ -79,7 +79,7 @@ func TestRender_EntitlementGatingGood(t *testing.T) {
 }
 
 func TestRender_XSSPreventionGood(t *testing.T) {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 	ctx := NewContext()
 

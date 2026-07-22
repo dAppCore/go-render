@@ -1,0 +1,155 @@
+//go:build !js
+
+// SPDX-Licence-Identifier: EUPL-1.2
+
+package html
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func termTestPage() *Layout {
+	return NewLayout("HLCRF").
+		H(Text("head")).
+		L(El("ul", El("li", Text("navA")), El("li", Text("navB")))).
+		C(El("h2", Text("title")), El("p", Text("body"))).
+		R(El("p", Text("aside"))).
+		F(Text("foot"))
+}
+
+func termTestPageContext() *Context {
+	return termTestContext(map[string]string{
+		"head": "Header band", "navA": "Overview", "navB": "Settings",
+		"title": "Content title", "body": "Content body copy.",
+		"aside": "Side detail", "foot": "Footer status",
+	})
+}
+
+func TestTermLayout_RenderTerm(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	tests := []struct {
+		name     string
+		layout   *Layout
+		width    int
+		contains []string
+		absent   []string
+	}{
+		{
+			name:   "good: full frame renders every slot wide",
+			layout: termTestPage(),
+			width:  120,
+			contains: []string{
+				"Header band", "Overview", "Settings",
+				"Content title", "Content body copy.", "Side detail", "Footer status",
+				"╭", "╰", "─",
+			},
+		},
+		{
+			name:     "good: HCF variant skips sides",
+			layout:   NewLayout("HCF").H(Text("head")).C(El("p", Text("body"))).F(Text("foot")),
+			width:    100,
+			contains: []string{"Header band", "Content body copy.", "Footer status"},
+			absent:   []string{"╭"},
+		},
+		{
+			name:     "good: empty slots render no bands",
+			layout:   NewLayout("HLCRF").C(El("p", Text("body"))),
+			width:    100,
+			contains: []string{"Content body copy."},
+			absent:   []string{"╭"},
+		},
+		{
+			name:     "bad: unknown variant characters are ignored",
+			layout:   NewLayout("HXC").C(El("p", Text("body"))),
+			width:    100,
+			contains: []string{"Content body copy."},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			out := tc.layout.RenderTerm(termTestPageContext(), TermOptions{Width: tc.width})
+			for _, want := range tc.contains {
+				assert.Contains(t, out, want)
+			}
+			for _, unwanted := range tc.absent {
+				assert.NotContains(t, out, unwanted)
+			}
+		})
+	}
+}
+
+func TestTermLayout_RenderTerm_SideBySide(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	out := termTestPage().RenderTerm(termTestPageContext(), TermOptions{Width: 120})
+	lines := strings.Split(out, "\n")
+
+	titleLine := ""
+	for _, line := range lines {
+		if strings.Contains(line, "Content title") {
+			titleLine = line
+			break
+		}
+	}
+	require.NotEmpty(t, titleLine, "content title line present")
+	assert.Contains(t, titleLine, "╭", "sidebar top border shares the content title row at 120 columns")
+	assert.Equal(t, 2, strings.Count(titleLine, "╭"), "left and right boxes open on the same row")
+}
+
+func TestTermLayout_RenderTerm_NarrowStacks(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	out := termTestPage().RenderTerm(termTestPageContext(), TermOptions{Width: 60})
+	lines := strings.Split(out, "\n")
+
+	for _, line := range lines {
+		if strings.Contains(line, "Overview") {
+			assert.NotContains(t, line, "Content", "below 80 columns the frame stacks vertically")
+		}
+	}
+	assert.Contains(t, out, "Content body copy.")
+	assert.Contains(t, out, "Side detail")
+}
+
+func TestTermLayout_Responsive_RenderTerm(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	wide := NewLayout("C").C(El("p", Text("wide")))
+	narrow := NewLayout("C").C(El("p", Text("narrow")))
+	resp := NewResponsive().
+		Variant("desktop", wide).
+		Variant("mobile", narrow)
+	ctx := termTestContext(map[string]string{"wide": "wide copy", "narrow": "narrow copy"})
+
+	tests := []struct {
+		name   string
+		width  int
+		want   string
+		unwant string
+	}{
+		{name: "good: desktop at 120", width: 120, want: "wide copy", unwant: "narrow copy"},
+		{name: "good: mobile below 80", width: 60, want: "narrow copy", unwant: "wide copy"},
+		{name: "good: tablet falls back to desktop", width: 100, want: "wide copy", unwant: "narrow copy"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			out := resp.RenderTerm(ctx, TermOptions{Width: tc.width})
+			assert.Contains(t, out, tc.want)
+			assert.NotContains(t, out, tc.unwant)
+		})
+	}
+
+	t.Run("ugly: empty responsive renders empty", func(t *testing.T) {
+		assert.Equal(t, "", NewResponsive().RenderTerm(ctx))
+	})
+}

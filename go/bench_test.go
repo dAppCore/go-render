@@ -3,11 +3,12 @@ package html
 import (
 	"testing"
 
+	core "dappco.re/go"
 	i18n "dappco.re/go/i18n"
 )
 
 func init() {
-	svc, _ := i18n.New()
+	svc, _ := core.Cast[*i18n.Service](i18n.New())
 	i18n.SetDefault(svc)
 }
 

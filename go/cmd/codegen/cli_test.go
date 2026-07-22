@@ -207,7 +207,9 @@ func TestNewCodegenApp_Good(t *testing.T) {
 
 // TestRegisterCodegenCommands_Good — registration is idempotent on a bare core.
 func TestRegisterCodegenCommands_Good(t *testing.T) {
-	c := core.New(core.WithOption("name", "codegen"))
+	// core.WithCli() opts into the CLI service (default since dappco.re/go
+	// v0.12.0 removed the previously-unconditional CLI registration).
+	c := core.New(core.WithOption("name", "codegen"), core.WithCli())
 	registerCodegenCommands(c)
 	if c.Cli() == nil {
 		t.Fatal("expected a CLI after registration")
