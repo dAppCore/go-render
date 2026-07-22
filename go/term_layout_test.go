@@ -143,6 +143,54 @@ func TestTermLayout_RenderTerm_FitSlots(t *testing.T) {
 	assert.Equal(t, fixed, page.RenderTerm(ctx, TermOptions{Width: 100}), "default render is unchanged")
 }
 
+func TestTermLayout_SlotWidthOverride(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// S:S15.1: TermOptions.SidebarWidth/AsideWidth override the fixed L/R budgets
+	// in the wide side-by-side band. A wider R shrinks C by exactly the extra
+	// columns; an unset (zero/negative) budget keeps the fixed default; a budget so
+	// wide it would starve C floors C at the minimum and overflows the frame sanely.
+	page := termTestPage()
+	ctx := termTestPageContext()
+
+	t.Run("good: requested aside width is honoured and C absorbs the difference", func(t *testing.T) {
+		_, base := page.RenderTermBoxes(ctx, TermOptions{Width: 120})
+		_, wide := page.RenderTermBoxes(ctx, TermOptions{Width: 120, AsideWidth: 32})
+
+		assert.Equal(t, termAsideWidth, base["R"].Width, "default R is the fixed 28 budget")
+		assert.Equal(t, 32, wide["R"].Width, "requested R budget is honoured")
+		assert.Equal(t, termSidebarWidth, wide["L"].Width, "L is untouched by an aside request")
+		assert.Equal(t, base["C"].Width-(32-termAsideWidth), wide["C"].Width, "C narrows by exactly the aside's extra columns")
+	})
+
+	t.Run("good: requested sidebar width is honoured independently of aside", func(t *testing.T) {
+		_, wide := page.RenderTermBoxes(ctx, TermOptions{Width: 120, SidebarWidth: 30})
+		assert.Equal(t, 30, wide["L"].Width, "requested L budget is honoured")
+		assert.Equal(t, termAsideWidth, wide["R"].Width, "R is untouched by a sidebar request")
+	})
+
+	t.Run("bad: a zero override keeps the fixed budget byte-identical to no option", func(t *testing.T) {
+		assert.Equal(t,
+			page.RenderTerm(ctx, TermOptions{Width: 120}),
+			page.RenderTerm(ctx, TermOptions{Width: 120, SidebarWidth: 0, AsideWidth: 0}),
+			"an unset override is byte-identical to no option",
+		)
+	})
+
+	t.Run("ugly: a negative override falls back to the fixed default", func(t *testing.T) {
+		_, neg := page.RenderTermBoxes(ctx, TermOptions{Width: 120, SidebarWidth: -5, AsideWidth: -1})
+		assert.Equal(t, termSidebarWidth, neg["L"].Width, "a negative sidebar budget is treated as unset")
+		assert.Equal(t, termAsideWidth, neg["R"].Width, "a negative aside budget is treated as unset")
+	})
+
+	t.Run("ugly: an over-wide aside floors C at the minimum without panicking", func(t *testing.T) {
+		_, boxes := page.RenderTermBoxes(ctx, TermOptions{Width: 100, AsideWidth: 200})
+		assert.Equal(t, 200, boxes["R"].Width, "the over-wide budget is honoured literally")
+		assert.GreaterOrEqual(t, boxes["C"].Width, termMinWidth, "C floors at the minimum content width")
+	})
+}
+
 func TestTermLayout_RegionInnerContentWidth(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()

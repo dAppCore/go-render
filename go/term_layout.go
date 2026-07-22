@@ -15,8 +15,10 @@ import (
 // side by side (stacking vertically under 80 columns), F as a status band.
 // Example: NewLayout("HCF").H(Text("nav.title")).C(body).F(status).RenderTerm(ctx)
 
-// termSidebarWidth and termAsideWidth are the L and R column budgets at full
-// width, borders included.
+// termSidebarWidth and termAsideWidth are the default L and R column budgets at
+// full width, borders included. TermOptions.SidebarWidth/AsideWidth override
+// them per render for a wider (or narrower) side slot (S:S15.1); an unset option
+// keeps these defaults so every existing render stays byte-identical.
 const (
 	termSidebarWidth   = 24
 	termAsideWidth     = 28
@@ -33,9 +35,9 @@ func (l *Layout) RenderTerm(ctx *Context, opts ...TermOptions) string {
 	if l == nil {
 		return ""
 	}
-	width, theme, fit := resolveTermOptions(opts)
-	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit}
-	return l.renderTermFrame(r, width)
+	cfg := resolveTermOptions(opts)
+	r := &termRenderer{ctx: termContext(ctx), theme: cfg.theme, fit: cfg.fit, sidebarW: cfg.sidebarW, asideW: cfg.asideW}
+	return l.renderTermFrame(r, cfg.width)
 }
 
 func (l *Layout) renderTermFrame(r *termRenderer, width int) string {
@@ -139,10 +141,16 @@ func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool
 	gaps := 0
 	if hasL {
 		sidebarWidth = termSidebarWidth
+		if r.sidebarW > 0 {
+			sidebarWidth = r.sidebarW
+		}
 		gaps++
 	}
 	if hasR {
 		asideWidth = termAsideWidth
+		if r.asideW > 0 {
+			asideWidth = r.asideW
+		}
 		gaps++
 	}
 	contentWidth := width - sidebarWidth - asideWidth - gaps
@@ -338,9 +346,9 @@ func (resp *Responsive) RenderTerm(ctx *Context, opts ...TermOptions) string {
 	if resp == nil || len(resp.variants) == 0 {
 		return ""
 	}
-	width, theme, fit := resolveTermOptions(opts)
-	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit}
-	return resp.renderTermPick(r, width)
+	cfg := resolveTermOptions(opts)
+	r := &termRenderer{ctx: termContext(ctx), theme: cfg.theme, fit: cfg.fit, sidebarW: cfg.sidebarW, asideW: cfg.asideW}
+	return resp.renderTermPick(r, cfg.width)
 }
 
 func (resp *Responsive) renderTermPick(r *termRenderer, width int) string {
