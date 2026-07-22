@@ -29,6 +29,19 @@ import (
 type TermOptions struct {
 	Width int
 	Theme *TermTheme
+
+	// FitSlots sizes a Layout's L/C/R middle-band slots to their own rendered
+	// content width instead of the fixed column budgets (termSidebarWidth=24,
+	// termAsideWidth=28, C fills the rest), and packs them edge-to-edge on one
+	// row without the default inter-slot gutter or the narrow-width stacking.
+	// It is the mode for a content-packed strip -- a brand plus a few short
+	// cells that must ride layout slots as one tight row. Default false leaves
+	// every existing render untouched. The recorded slot boxes (S:S14) tile the
+	// row at the true content-sized origins/widths, so mouse resolution stays
+	// exact. The caller owns keeping content narrow enough for the target width,
+	// the same way it owns id uniqueness -- fit slots size to content and can
+	// exceed the frame if content is wide.
+	FitSlots bool
 }
 
 const termDefaultWidth = 100
@@ -36,14 +49,16 @@ const termDefaultWidth = 100
 // termMinWidth keeps degenerate widths renderable rather than panicking lipgloss.
 const termMinWidth = 8
 
-func resolveTermOptions(opts []TermOptions) (int, *TermTheme) {
+func resolveTermOptions(opts []TermOptions) (int, *TermTheme, bool) {
 	width := termDefaultWidth
 	var theme *TermTheme
+	fit := false
 	if len(opts) > 0 {
 		if opts[0].Width > 0 {
 			width = opts[0].Width
 		}
 		theme = opts[0].Theme
+		fit = opts[0].FitSlots
 	}
 	if width < termMinWidth {
 		width = termMinWidth
@@ -51,7 +66,7 @@ func resolveTermOptions(opts []TermOptions) (int, *TermTheme) {
 	if theme == nil {
 		theme = DefaultTermTheme()
 	}
-	return width, theme
+	return width, theme, fit
 }
 
 // term.go: RenderTerm renders any node tree as styled terminal output.
@@ -60,8 +75,8 @@ func RenderTerm(n Node, ctx *Context, opts ...TermOptions) string {
 	if n == nil {
 		return ""
 	}
-	width, theme := resolveTermOptions(opts)
-	r := &termRenderer{ctx: termContext(ctx), theme: theme}
+	width, theme, fit := resolveTermOptions(opts)
+	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit}
 	return strings.TrimRight(strings.Join(r.blocks([]Node{n}, width), "\n"), "\n")
 }
 
@@ -77,6 +92,7 @@ func termContext(ctx *Context) *Context {
 type termRenderer struct {
 	ctx   *Context
 	theme *TermTheme
+	fit   bool             // FitSlots: content-size a Layout's L/C/R slots
 	rec   *termBoxRecorder // nil unless rendering via RenderTermBoxes
 }
 

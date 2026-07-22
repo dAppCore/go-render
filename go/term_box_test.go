@@ -130,6 +130,63 @@ func TestLayout_RenderTermBoxes_Nested(t *testing.T) {
 	assert.Same(t, inner, innerH.Node)
 }
 
+func TestLayout_RenderTermBoxes_FitSlots(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// Friction 1 residual: a content-packed strip rides L/C/R slots. FitSlots
+	// sizes each slot to its own content and packs them edge-to-edge, so the
+	// recorded boxes tile the row exactly rather than sitting in the fixed
+	// 24/28 budgets with C filling a huge middle.
+	page := NewLayout("LCR").L(Text("brand")).C(Text("mid")).R(Text("tail"))
+	ctx := termTestContext(map[string]string{"brand": "Brand", "mid": "Mid", "tail": "Tail"})
+
+	_, boxes := page.RenderTermBoxes(ctx, TermOptions{Width: 100, FitSlots: true})
+	l, c, r := boxes["L"], boxes["C"], boxes["R"]
+	require.NotZero(t, l.Width)
+	require.NotZero(t, c.Width)
+	require.NotZero(t, r.Width)
+
+	assert.Equal(t, 0, l.Col, "L opens at the left edge")
+	assert.Equal(t, l.Col+l.Width, c.Col, "C abuts L exactly -- fit mode drops the inter-slot gutter")
+	assert.Equal(t, c.Col+c.Width, r.Col, "R abuts C exactly, so the three boxes tile the row")
+	assert.Equal(t, l.Row, c.Row, "the strip is a single row")
+	assert.Equal(t, c.Row, r.Row)
+
+	assert.Less(t, l.Width, termSidebarWidth, "L is content-sized, narrower than the fixed L budget")
+	assert.Less(t, r.Width, termAsideWidth, "R is content-sized, narrower than the fixed R budget")
+	assert.Less(t, r.Col+r.Width, 100, "the packed strip does not fill the frame")
+
+	for _, box := range boxes {
+		assert.Same(t, page, box.Node)
+	}
+
+	// Default (no FitSlots) keeps the fixed budgets and the inter-slot gutter,
+	// unchanged by the new option.
+	_, fixed := page.RenderTermBoxes(ctx, TermOptions{Width: 100})
+	assert.Equal(t, termSidebarWidth, fixed["L"].Width, "default L keeps the fixed budget")
+	assert.Equal(t, termAsideWidth, fixed["R"].Width, "default R keeps the fixed budget")
+	assert.Less(t, fixed["L"].Col+fixed["L"].Width, fixed["C"].Col, "default keeps a gutter between L and C")
+}
+
+func TestLayout_RenderTermBoxes_FitSlots_OneRowBelowStackThreshold(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// FitSlots is meant for a strip that rides one row whatever the width, so it
+	// bypasses the narrow-width stacking the default middle band applies below 80
+	// columns.
+	page := NewLayout("LCR").L(Text("a")).C(Text("b")).R(Text("c"))
+	ctx := termTestContext(map[string]string{"a": "A", "b": "B", "c": "C"})
+
+	_, boxes := page.RenderTermBoxes(ctx, TermOptions{Width: 60, FitSlots: true})
+	l, c, r := boxes["L"], boxes["C"], boxes["R"]
+	assert.Equal(t, l.Row, c.Row, "fit mode stays one row below the stack threshold")
+	assert.Equal(t, c.Row, r.Row)
+	assert.Equal(t, l.Col+l.Width, c.Col, "boxes still tile edge-to-edge")
+	assert.Equal(t, c.Col+c.Width, r.Col)
+}
+
 func TestRenderTermBoxes_ElementID(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()

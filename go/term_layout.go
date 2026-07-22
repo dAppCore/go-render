@@ -33,8 +33,8 @@ func (l *Layout) RenderTerm(ctx *Context, opts ...TermOptions) string {
 	if l == nil {
 		return ""
 	}
-	width, theme := resolveTermOptions(opts)
-	r := &termRenderer{ctx: termContext(ctx), theme: theme}
+	width, theme, fit := resolveTermOptions(opts)
+	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit}
 	return l.renderTermFrame(r, width)
 }
 
@@ -102,6 +102,10 @@ func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool
 	hasR := seen['R'] && len(l.slots['R']) > 0
 	if !hasL && !hasC && !hasR {
 		return ""
+	}
+
+	if r.fit {
+		return l.renderTermMiddleFit(r, width, hasL, hasC, hasR, prefix, baseRow, baseCol)
 	}
 
 	if width < termStackThreshold {
@@ -205,6 +209,99 @@ func (l *Layout) renderTermContent(r *termRenderer, width int) string {
 	return lipgloss.NewStyle().Padding(0, 1).Width(width).Render(content)
 }
 
+// renderTermMiddleFit lays the L/C/R middle band out content-sized (FitSlots):
+// each present slot is measured to its own rendered content width, packed
+// edge-to-edge left to right with no inter-slot gutter, and recorded at that
+// true origin/width so the boxes tile the row exactly. It bypasses the
+// narrow-width stacking on purpose -- a content-packed strip is meant to ride
+// one row whatever the terminal width. Slot chrome overhead is fixed: a bordered
+// L/R box adds 4 columns (rounded border + (0,1) padding), the C content adds 2
+// (its (0,1) alignment gutter, S:S15).
+func (l *Layout) renderTermMiddleFit(r *termRenderer, width int, hasL, hasC, hasR bool, prefix string, baseRow, baseCol int) string {
+	maxInner := max(termMinWidth, width)
+
+	var lWidth, cWidth, rWidth int
+	if hasL {
+		lWidth = l.fitContentWidth(r, 'L', maxInner) + 4
+	}
+	if hasC {
+		cWidth = l.fitContentWidth(r, 'C', maxInner) + 2
+	}
+	if hasR {
+		rWidth = l.fitContentWidth(r, 'R', maxInner) + 4
+	}
+
+	pos := baseCol
+	var lBox, cBox, rBox string
+	var lCol, cCol, rCol int
+	if hasL {
+		lCol = pos
+		r.withOrigin(baseRow, lCol, func() { lBox = l.renderTermBox(r, 'L', lWidth, r.theme.Sidebar) })
+		pos += lWidth
+	}
+	if hasC {
+		cCol = pos
+		r.withOrigin(baseRow, cCol, func() { cBox = l.renderTermContent(r, cWidth) })
+		pos += cWidth
+	}
+	if hasR {
+		rCol = pos
+		r.withOrigin(baseRow, rCol, func() { rBox = l.renderTermBox(r, 'R', rWidth, r.theme.Aside) })
+	}
+
+	var columns []string
+	if hasL {
+		columns = append(columns, lBox)
+	}
+	if hasC {
+		columns = append(columns, cBox)
+	}
+	if hasR {
+		columns = append(columns, rBox)
+	}
+	joined := lipgloss.JoinHorizontal(lipgloss.Top, columns...)
+
+	height := termLineCount(joined)
+	if hasL {
+		r.rec.record(prefix+"L", baseRow, lCol, lWidth, height, l)
+	}
+	if hasC {
+		r.rec.record(prefix+"C", baseRow, cCol, cWidth, height, l)
+	}
+	if hasR {
+		r.rec.record(prefix+"R", baseRow, rCol, rWidth, height, l)
+	}
+	return joined
+}
+
+// fitContentWidth measures a slot's natural rendered content width -- the widest
+// line once source padding and styling are discounted -- by rendering its blocks
+// at a generous upper bound with box recording suppressed, so the measure pass
+// never records into the box map. FitSlots (renderTermMiddleFit) adds the slot's
+// fixed chrome overhead to this to size the slot to its content.
+func (l *Layout) fitContentWidth(r *termRenderer, slot byte, maxInner int) int {
+	saved := r.rec
+	r.rec = nil
+	lines := r.blocks(l.slots[slot], maxInner)
+	r.rec = saved
+	return termNaturalWidth(strings.Join(lines, "\n"))
+}
+
+// termNaturalWidth returns the widest display width across a rendered block's
+// lines after discarding ANSI styling and the trailing space padding lipgloss
+// adds to fill a fixed width -- i.e. the content's own width, not the width it
+// was rendered into.
+func termNaturalWidth(s string) int {
+	widest := 0
+	for _, line := range strings.Split(s, "\n") {
+		w := lipgloss.Width(strings.TrimRight(termStripANSI(line), " "))
+		if w > widest {
+			widest = w
+		}
+	}
+	return widest
+}
+
 // term_layout.go: RenderTerm picks one responsive variant by terminal width and
 // renders it. The convention maps names to breakpoints: "desktop" at 120
 // columns and above, "tablet" from 80, "mobile" below 80; when the named
@@ -215,8 +312,8 @@ func (resp *Responsive) RenderTerm(ctx *Context, opts ...TermOptions) string {
 	if resp == nil || len(resp.variants) == 0 {
 		return ""
 	}
-	width, theme := resolveTermOptions(opts)
-	r := &termRenderer{ctx: termContext(ctx), theme: theme}
+	width, theme, fit := resolveTermOptions(opts)
+	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit}
 	return resp.renderTermPick(r, width)
 }
 

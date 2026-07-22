@@ -378,7 +378,19 @@ func ResolveNode(boxes html.BoxMap, x, y int) (html.Node, bool)
 
 A caller wires a real `tea.MouseMsg` at the one line that needs the type, in their own code: `teabox.Resolve(boxes, int(msg.X), int(msg.Y))`. When boxes overlap -- a nested layout's slot always renders inside its enclosing slot's rectangle -- the smallest-area match wins, so a click on a card inside a content slot resolves to the card, not the whole page; an exact-area tie resolves to the lexicographically smaller block ID, so the result is deterministic rather than dependent on Go's random map iteration order.
 
-## 15. CoreCommand-derived default TUI (exploratory)
+## 15. Terminal layout geometry
+
+The terminal renderer (`term.go`, `term_layout.go`) composes an HLCRF `Layout` into a styled ANSI frame. A handful of its geometry decisions are load-bearing for a downstream TUI and are specified here so a caller can rely on them.
+
+### 15.1 Fixed and content-sized slot widths
+
+By default the wide (>= 80 column) middle band gives L a fixed 24-column budget and R a fixed 28, with C filling the remainder and a single-space gutter either side of C; below 80 columns the three stack vertically at full width. This is the right default for a page -- a sidebar wants a stable width -- but it cannot express a *content-packed strip*: a brand plus a few short cells that should ride L/C/R as one tight row rather than being flung to the far edges of a wide frame.
+
+`TermOptions.FitSlots` is the opt-in for that strip. When set, each present L/C/R slot is measured to its own rendered content width (the widest line once padding and styling are discounted) and the slots are packed **edge-to-edge, left to right, with no inter-slot gutter**, on **one row whatever the terminal width** (the narrow-width stacking is bypassed -- a strip is meant to stay a strip). Slot chrome overhead is fixed and predictable: a bordered L/R box adds 4 columns (rounded border + `(0,1)` padding), the C content adds 2 (its `(0,1)` alignment gutter). The recorded slot boxes (S:S14) tile the row at these true content-sized origins and widths -- `C.Col == L.Col + L.Width`, `R.Col == C.Col + C.Width` -- so mouse resolution stays exact.
+
+`FitSlots` is `false` by default and changes nothing about any existing render. It is a terminal-render option, so it rides `TermOptions` (as `Width` and `Theme` do); it is not stored on the shared `Layout`, which is also the WASM-linked HTML compositor. The caller owns keeping content narrow enough for the target width -- fit slots size to their content and can, with wide content, exceed the frame -- the same ownership boundary as `id` uniqueness (S:S5).
+
+## 16. CoreCommand-derived default TUI (exploratory)
 
 `CoreCommand` (`dappco.re/go`, the `core` module already in `go.mod`) is a declarative command tree: `Command{Name, Description, Path, Action CommandAction, Managed string, Flags Options, Hidden bool}`, `CommandAction = func(Options) Result`, registered and fetched via `(*Core).Command(path string, command ...Command) Result` (zero variadic args = lookup), listed flat via `(*Core).Commands() []string` in registration order. There is no separate subcommand-tree type: the flat, path-keyed registry *is* the tree (`"deploy/to/homelab"`), and registering a nested path auto-creates placeholder ancestor entries so the tree is always walkable from any leaf.
 

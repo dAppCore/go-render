@@ -11,7 +11,7 @@ import (
 
 // SubcommandList generates a <ul> of a CoreCommand path's direct
 // subcommands -- the well-founded half of the exploratory
-// CoreCommand-derived default TUI; see docs/ctml.md S:S15 for why the
+// CoreCommand-derived default TUI; see docs/ctml.md S:S16 for why the
 // other half (flags -> input chips) is a design write-up, not code, in
 // this pass. A Hidden command is skipped, matching Command.Hidden's own
 // meaning elsewhere in dappco.re/go.
