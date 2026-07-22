@@ -390,6 +390,10 @@ By default the wide (>= 80 column) middle band gives L a fixed 24-column budget 
 
 `FitSlots` is `false` by default and changes nothing about any existing render. It is a terminal-render option, so it rides `TermOptions` (as `Width` and `Theme` do); it is not stored on the shared `Layout`, which is also the WASM-linked HTML compositor. The caller owns keeping content narrow enough for the target width -- fit slots size to their content and can, with wide content, exceed the frame -- the same ownership boundary as `id` uniqueness (S:S5).
 
+### 15.2 The content gutter and band alignment
+
+`renderTermContent` renders the C slot inside `(0,1)` padding -- one column of gutter to the left and right. This is deliberate alignment, not an artefact. The Header and Footer band styles (`term_theme.go`) already carry the same `(0,1)` padding, so H and F text sit one column in from the frame edge; the C gutter puts C content on that same column, so a page's header, body, and footer text line up vertically down the left margin. Removing the C padding would pull C content alone to column 0 -- one column left of every band, a worse misalignment, not a fix. The gutter has been part of the renderer since its first commit, alongside the band padding it matches; it is also the `+2` chrome overhead a content-sized C slot carries (S:S15.1).
+
 ## 16. CoreCommand-derived default TUI (exploratory)
 
 `CoreCommand` (`dappco.re/go`, the `core` module already in `go.mod`) is a declarative command tree: `Command{Name, Description, Path, Action CommandAction, Managed string, Flags Options, Hidden bool}`, `CommandAction = func(Options) Result`, registered and fetched via `(*Core).Command(path string, command ...Command) Result` (zero variadic args = lookup), listed flat via `(*Core).Commands() []string` in registration order. There is no separate subcommand-tree type: the flat, path-keyed registry *is* the tree (`"deploy/to/homelab"`), and registering a nested path auto-creates placeholder ancestor entries so the tree is always walkable from any leaf.
