@@ -56,6 +56,18 @@ type TermTheme struct {
 
 	// ListBullet is the <ul> item marker, e.g. "•".
 	ListBullet string
+
+	// GutterRule is the glyph painted in the single-column gap either side of C in
+	// the wide (>= 80 column) side-by-side middle band. Empty (the default) leaves
+	// the gap a blank space, byte-identical to before the field; a set glyph --
+	// "│" for a vertical rule between C and its L/R neighbours -- is painted the
+	// full height of the band in the Rule style. It is paint, not layout: the gap
+	// stays exactly one column whatever the glyph, so a multi-column string is the
+	// caller's to keep to one display cell (the same caller-owns boundary as
+	// content width). FitSlots packs slots edge-to-edge with no gap, and below the
+	// stack threshold the slots stack with no horizontal gutter -- neither paints
+	// a rule.
+	GutterRule string
 }
 
 // term_theme.go: DefaultTermTheme returns the house terminal theme: a muted,

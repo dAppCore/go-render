@@ -450,6 +450,19 @@ No helper is exported for the subtraction: a region's chrome is a property of th
 
 The **outer** width is exposed the same way, so it too needs no accessor. A consumer pre-sizing content already renders through `RenderTermBoxes` for mouse resolution (S:S14); the returned `BoxMap` records each slot's rendered rectangle -- `boxes["L"].Width` is L's outer width, `boxes["C"].Width` C's, `boxes["R"].Width` R's -- measured at the real terminal width, whether the slot took its fixed budget (`24`/`28`), stacked at full width, or was content-sized under FitSlots. So a downstream reads the true slot width from the box it already holds and applies the chrome rule above for the inner width, rather than hardcoding the `termSidebarWidth`/`termAsideWidth` budgets (which stay unexported: the box map is the render-time source of truth, and duplicating them as constants would drift from the layout arithmetic that actually sizes a slot).
 
+### 15.6 The junction gutter rule
+
+The wide side-by-side band always inserts a single-column gap either side of C (S:S15.1) -- a blank space by default, the frame's own breathing room between regions. A downstream that draws its own `│` rule between main and inspector loses that column to the blank gap, because the column is the frame's, not the content's.
+
+`TermTheme.GutterRule` is the paint hook for it. Empty (the default) leaves the gap a blank space, byte-identical to before the field. A set glyph -- `theme.GutterRule = "│"` -- is painted in that gap in the theme's `Rule` style (so a `│` matches the adjacent box borders' colour by default), stacked the **full height of the band**, so the rule runs the whole junction rather than a single row. It is **paint, not layout**: the gap stays exactly one column whatever the glyph, and box recording is unchanged (the gutter was already budgeted one column wide in the geometry, S:S14). A multi-column string is the caller's to keep to a single display cell -- the same caller-owns-content boundary as slot width and id uniqueness -- since the layout budgets exactly one column for the gap.
+
+The rule paints **only in the wide side-by-side band**, the one place a junction gutter exists:
+
+- **FitSlots** packs slots edge-to-edge with no inter-slot gutter (S:S15.1), so there is no column to paint -- `GutterRule` has no effect under FitSlots. A content-packed strip that wants a separator puts it in a slot's own content or border, not the (absent) gutter.
+- **Below the 80-column stack threshold** the slots stack vertically at full width with no horizontal gutter, so again there is nothing to paint; a horizontal rule between stacked regions is a themed band border (S:S15.3), not a gutter glyph.
+
+So the rule is the wide-band answer specifically; the two content-packed and narrow modes reach their separators the way those modes already draw chrome.
+
 ## 16. CoreCommand-derived default TUI (exploratory)
 
 `CoreCommand` (`dappco.re/go`, the `core` module already in `go.mod`) is a declarative command tree: `Command{Name, Description, Path, Action CommandAction, Managed string, Flags Options, Hidden bool}`, `CommandAction = func(Options) Result`, registered and fetched via `(*Core).Command(path string, command ...Command) Result` (zero variadic args = lookup), listed flat via `(*Core).Commands() []string` in registration order. There is no separate subcommand-tree type: the flat, path-keyed registry *is* the tree (`"deploy/to/homelab"`), and registering a nested path auto-creates placeholder ancestor entries so the tree is always walkable from any leaf.

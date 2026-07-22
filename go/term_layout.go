@@ -177,22 +177,33 @@ func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool
 		r.withOrigin(baseRow, rCol, func() { rBox = l.renderTermBox(r, 'R', asideWidth, r.theme.Aside) })
 	}
 
+	// All present columns share one height: JoinHorizontal pads every shorter
+	// column to the tallest, so the padded blank rows are still legitimately part
+	// of that column's rendered box. The band height is that tallest box; compute
+	// it up front so a set GutterRule can paint its glyph the full band height.
+	height := 0
+	if hasL {
+		height = max(height, termLineCount(lBox))
+	}
+	if hasC {
+		height = max(height, termLineCount(cBox))
+	}
+	if hasR {
+		height = max(height, termLineCount(rBox))
+	}
+	gutter := r.termGutter(height)
+
 	var columns []string
 	if hasL {
-		columns = append(columns, lBox, " ")
+		columns = append(columns, lBox, gutter)
 	}
 	if hasC {
 		columns = append(columns, cBox)
 	}
 	if hasR {
-		columns = append(columns, " ", rBox)
+		columns = append(columns, gutter, rBox)
 	}
 	joined := lipgloss.JoinHorizontal(lipgloss.Top, columns...)
-
-	// All three columns share one height: JoinHorizontal pads every
-	// shorter column to the tallest, so the padded blank rows are still
-	// legitimately part of that column's rendered box.
-	height := termLineCount(joined)
 	if hasL {
 		r.rec.record(prefix+"L", baseRow, baseCol, sidebarWidth, height, l)
 	}
@@ -203,6 +214,23 @@ func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool
 		r.rec.record(prefix+"R", baseRow, rCol, asideWidth, height, l)
 	}
 	return joined
+}
+
+// termGutter builds the one-column gap between C and a side slot in the wide
+// middle band. With no GutterRule set it is a single space (JoinHorizontal pads
+// it up to the band height), byte-identical to the renderer before the field;
+// with a rule glyph set it is that glyph in the theme's Rule style, stacked the
+// full band height so the rule runs the whole junction (S:S15.6).
+func (r *termRenderer) termGutter(height int) string {
+	if r.theme.GutterRule == "" || height <= 0 {
+		return " "
+	}
+	cell := r.theme.Rule.Render(r.theme.GutterRule)
+	lines := make([]string, height)
+	for i := range lines {
+		lines[i] = cell
+	}
+	return strings.Join(lines, "\n")
 }
 
 // termChrome is the horizontal chrome a slot style adds around its content --
