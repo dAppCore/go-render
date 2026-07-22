@@ -118,7 +118,29 @@ ctml.Parse(src, ctml.Bindings{Values: map[string]any{
 }})
 ```
 
-`value="key"` names a `Bindings.Values` entry that must be present and a `string`; an absent key or a non-string value is a position-accurate parse error (S:S9). The element is empty (self-closing, or open/close with no content) -- any child element or non-whitespace text is a parse error. It maps to the exported `Verbatim` node in package `html`:
+`value` takes one of two forms, and which one is used decides when the content binds:
+
+- **A plain key** -- `value="rendered"` -- names a `Bindings.Values` entry that must be present and a `string`; it resolves **at parse time**, and an absent key or a non-string value is a position-accurate parse error (S:S9). This is the document-scope form for a single pre-styled blob supplied up front.
+- **A whole `{{path}}` token** -- `value="{{msg.body}}"` -- **defers** to materialise time, resolving against the active scope exactly as a text-run `{{path}}` does (S:S8.3): the enclosing `<each as="...">` row when the path's root names it, otherwise `Bindings.Values` at document scope. This is what makes **per-row pre-styled content** expressible -- an `<each>` over a chat transcript, each row a turn's Glamour-rendered ANSI:
+
+```xml
+<each items="messages" as="msg">
+  <verbatim value="{{msg.body}}"/>
+</each>
+```
+
+```go
+ctml.Parse(src, ctml.Bindings{Sequences: map[string][]map[string]any{
+	"messages": {
+		{"body": glamourRender(turn1)}, // each row's own pre-styled ANSI
+		{"body": glamourRender(turn2)},
+	},
+}})
+```
+
+Because a row field exists only at bind time, a `{{path}}` miss **cannot** be a parse error the way a plain key's is; instead it **renders empty** -- a `Verbatim` of `""` -- the same miss-is-empty rule every other `{{path}}` follows (S:S8.3), so row-scoped verbatim is consistent with the row-scoped `id`/`class`/text binds beside it. (Mixed literal-and-brace values like `value="pre {{x}}"` are not a whole token, so they fall to the plain-key branch and, absent such a `Values` key, are a parse error -- verbatim binds one clean field, it does not interpolate.) The element is empty in both forms (self-closing, or open/close with no content) -- any child element or non-whitespace text is a parse error.
+
+It maps to the exported `Verbatim` node in package `html` either way -- only *where* the bytes bind changes, never how they render:
 
 - **Terminal render**: the content is emitted exactly as-is -- no `StripTags`, no whitespace normalisation, no width wrapping. The caller owns fitting the bytes to the target width.
 - **HTML render**: the content is HTML-escaped as ordinary text -- a safe default, since raw ANSI/control bytes are meaningless (and unescaped markup would be unsafe) in an HTML sink. Use `<raw>` for trusted HTML.

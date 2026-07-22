@@ -502,15 +502,24 @@ func (p *parser) parseRaw(start xml.StartElement) (astNode, error) {
 	}
 }
 
-// parseVerbatim reads <verbatim value="key"/>, resolving its content from
-// Bindings.Values[key] at parse time (S:S6.5). Pre-styled ANSI/control bytes
-// cannot live in XML markup, so the content is supplied through the binding
-// rather than as element children: an absent key, or a non-string value, is
-// a position-accurate parse error, and any child content is rejected.
+// parseVerbatim reads <verbatim value="..."/>. A whole {{path}} token defers
+// resolution to materialise time, binding against the enclosing <each> row (or
+// Bindings.Values at document scope), a miss rendering empty -- exactly like a
+// row-scoped {{path}} bind (S:S8.3), so an <each> can carry per-row pre-styled
+// content. Any other value is a plain Bindings.Values key resolved at parse time
+// (S:S6.5): an absent key, or a non-string value, is a position-accurate parse
+// error. Pre-styled ANSI/control bytes cannot live in XML markup, so the content
+// arrives through the binding either way, and any child content is rejected.
 func (p *parser) parseVerbatim(start xml.StartElement) (astNode, error) {
 	key, ok := attrValue(start, "value")
 	if !ok {
 		return nil, p.errAt("<verbatim> requires a value attribute")
+	}
+	if path, isBind := matchBindToken(key); isBind {
+		if err := p.expectEmptyElement(start.Name); err != nil {
+			return nil, err
+		}
+		return &astVerbatim{Path: path}, nil
 	}
 	raw, ok := p.bnd.Values[key]
 	if !ok {

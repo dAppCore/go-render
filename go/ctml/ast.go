@@ -60,9 +60,17 @@ type astBind struct {
 
 type astRaw struct{ Content string }
 
-// astVerbatim carries pre-styled terminal bytes resolved from
-// Bindings.Values at parse time (S:S6.5); it materialises to html.Verbatim.
-type astVerbatim struct{ Content string }
+// astVerbatim carries pre-styled terminal bytes. A document-level
+// <verbatim value="key"/> resolves Content from Bindings.Values at parse time
+// (S:S6.5); a <verbatim value="{{path}}"/> defers to materialise time, binding
+// Path against the enclosing <each> row (or Bindings.Values at document scope),
+// a miss rendering empty -- exactly like a row-scoped {{path}} bind (S:S8.3), so
+// an <each> can carry per-row pre-styled content. It materialises to
+// html.Verbatim either way; the terminal renderer emits the bytes unchanged.
+type astVerbatim struct {
+	Content string // parse-time-resolved literal content (plain value="key")
+	Path    string // non-empty: a {{path}} bind resolved at materialise time
+}
 
 type astIf struct {
 	CondKey string
@@ -185,6 +193,14 @@ func materialise(n astNode, resolve resolver, bnd Bindings) html.Node {
 	case *astRaw:
 		return html.Raw(t.Content)
 	case *astVerbatim:
+		// A row-scoped (or document-scoped) {{path}} binds at materialise time
+		// via the active resolver -- the enclosing <each> row, else Values -- a
+		// miss stringifying to "" exactly like an astBind (S:S8.3). A plain
+		// value="key" carries its parse-time-resolved Content straight through.
+		if t.Path != "" {
+			v, _ := resolve(t.Path)
+			return html.Verbatim(stringOf(v))
+		}
 		return html.Verbatim(t.Content)
 	case *astIf:
 		return html.If(dataTruthyFunc(t.CondKey), materialise(t.Child, resolve, bnd))
