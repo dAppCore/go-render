@@ -118,7 +118,29 @@ ctml.Parse(src, ctml.Bindings{Values: map[string]any{
 }})
 ```
 
-`value="key"` names a `Bindings.Values` entry that must be present and a `string`; an absent key or a non-string value is a position-accurate parse error (S:S9). The element is empty (self-closing, or open/close with no content) -- any child element or non-whitespace text is a parse error. It maps to the exported `Verbatim` node in package `html`:
+`value` takes one of two forms, and which one is used decides when the content binds:
+
+- **A plain key** -- `value="rendered"` -- names a `Bindings.Values` entry that must be present and a `string`; it resolves **at parse time**, and an absent key or a non-string value is a position-accurate parse error (S:S9). This is the document-scope form for a single pre-styled blob supplied up front.
+- **A whole `{{path}}` token** -- `value="{{msg.body}}"` -- **defers** to materialise time, resolving against the active scope exactly as a text-run `{{path}}` does (S:S8.3): the enclosing `<each as="...">` row when the path's root names it, otherwise `Bindings.Values` at document scope. This is what makes **per-row pre-styled content** expressible -- an `<each>` over a chat transcript, each row a turn's Glamour-rendered ANSI:
+
+```xml
+<each items="messages" as="msg">
+  <verbatim value="{{msg.body}}"/>
+</each>
+```
+
+```go
+ctml.Parse(src, ctml.Bindings{Sequences: map[string][]map[string]any{
+	"messages": {
+		{"body": glamourRender(turn1)}, // each row's own pre-styled ANSI
+		{"body": glamourRender(turn2)},
+	},
+}})
+```
+
+Because a row field exists only at bind time, a `{{path}}` miss **cannot** be a parse error the way a plain key's is; instead it **renders empty** -- a `Verbatim` of `""` -- the same miss-is-empty rule every other `{{path}}` follows (S:S8.3), so row-scoped verbatim is consistent with the row-scoped `id`/`class`/text binds beside it. (Mixed literal-and-brace values like `value="pre {{x}}"` are not a whole token, so they fall to the plain-key branch and, absent such a `Values` key, are a parse error -- verbatim binds one clean field, it does not interpolate.) The element is empty in both forms (self-closing, or open/close with no content) -- any child element or non-whitespace text is a parse error.
+
+It maps to the exported `Verbatim` node in package `html` either way -- only *where* the bytes bind changes, never how they render:
 
 - **Terminal render**: the content is emitted exactly as-is -- no `StripTags`, no whitespace normalisation, no width wrapping. The caller owns fitting the bytes to the target width.
 - **HTML render**: the content is HTML-escaped as ordinary text -- a safe default, since raw ANSI/control bytes are meaningless (and unescaped markup would be unsafe) in an HTML sink. Use `<raw>` for trusted HTML.
@@ -386,13 +408,15 @@ The terminal renderer (`term.go`, `term_layout.go`) composes an HLCRF `Layout` i
 
 By default the wide (>= 80 column) middle band gives L a fixed 24-column budget and R a fixed 28, with C filling the remainder and a single-space gutter either side of C; below 80 columns the three stack vertically at full width. This is the right default for a page -- a sidebar wants a stable width -- but it cannot express a *content-packed strip*: a brand plus a few short cells that should ride L/C/R as one tight row rather than being flung to the far edges of a wide frame.
 
-`TermOptions.FitSlots` is the opt-in for that strip. When set, each present L/C/R slot is measured to its own rendered content width (the widest line once padding and styling are discounted) and the slots are packed **edge-to-edge, left to right, with no inter-slot gutter**, on **one row whatever the terminal width** (the narrow-width stacking is bypassed -- a strip is meant to stay a strip). Slot chrome overhead is **measured from the active theme's slot style**, not assumed: an L/R box adds its `Sidebar`/`Aside` style's border and padding columns, and the C content adds its own structural `(0,1)` gutter (S:S15.2, which is not themed). For the default theme that measures to 4 columns for a bordered L/R box (rounded border 2 + `(0,1)` padding 2) and 2 for C. Measuring rather than assuming a fixed 4 is what lets a **stripped (borderless) or space-glyph slot theme record boxes that tile the visible glyphs exactly** -- a borderless theme whose chrome is 0, or a space-glyph left/right border with `(0,1)` padding whose chrome is still 4, both land their boxes on the rendered strip rather than a column or two wide of it. The recorded slot boxes (S:S14) tile the row at these true content-sized origins and widths -- `C.Col == L.Col + L.Width`, `R.Col == C.Col + C.Width` -- so mouse resolution stays exact whatever border and padding the active theme's slots carry.
+`TermOptions.FitSlots` is the opt-in for that strip. When set, each present L/C/R slot is measured to its own rendered content width (the widest line once padding and styling are discounted) and the slots are packed **edge-to-edge, left to right, with no inter-slot gutter**, on **one row whatever the terminal width** (the narrow-width stacking is bypassed -- a strip is meant to stay a strip). Slot chrome overhead is **measured from the active theme's slot style**, not assumed: an L/R box adds its `Sidebar`/`Aside` style's border and padding columns, and the C content adds its `Content` style's `(0,1)` gutter (S:S15.2). For the default theme that measures to 4 columns for a bordered L/R box (rounded border 2 + `(0,1)` padding 2) and 2 for C. Measuring rather than assuming a fixed 4 is what lets a **stripped (borderless) or space-glyph slot theme record boxes that tile the visible glyphs exactly** -- a borderless theme whose chrome is 0, or a space-glyph left/right border with `(0,1)` padding whose chrome is still 4, both land their boxes on the rendered strip rather than a column or two wide of it. The recorded slot boxes (S:S14) tile the row at these true content-sized origins and widths -- `C.Col == L.Col + L.Width`, `R.Col == C.Col + C.Width` -- so mouse resolution stays exact whatever border and padding the active theme's slots carry.
 
 `FitSlots` is `false` by default and changes nothing about any existing render. It is a terminal-render option, so it rides `TermOptions` (as `Width` and `Theme` do); it is not stored on the shared `Layout`, which is also the WASM-linked HTML compositor. The caller owns keeping content narrow enough for the target width -- fit slots size to their content and can, with wide content, exceed the frame -- the same ownership boundary as `id` uniqueness (S:S5).
 
 ### 15.2 The content gutter and band alignment
 
-`renderTermContent` renders the C slot inside `(0,1)` padding -- one column of gutter to the left and right. This is deliberate alignment, not an artefact. The Header and Footer band styles (`term_theme.go`) already carry the same `(0,1)` padding, so H and F text sit one column in from the frame edge; the C gutter puts C content on that same column, so a page's header, body, and footer text line up vertically down the left margin. Removing the C padding would pull C content alone to column 0 -- one column left of every band, a worse misalignment, not a fix. The gutter has been part of the renderer since its first commit, alongside the band padding it matches; it is also the `+2` chrome overhead a content-sized C slot carries (S:S15.1).
+`renderTermContent` renders the C slot inside the theme's `Content` style, which defaults to `(0,1)` padding -- one column of gutter to the left and right. This is deliberate alignment, not an artefact. The Header and Footer band styles (`term_theme.go`) already carry the same `(0,1)` padding, so H and F text sit one column in from the frame edge; the default C gutter puts C content on that same column, so a page's header, body, and footer text line up vertically down the left margin. Dropping the C padding would pull C content alone to column 0 -- one column left of every band -- so the default keeps it; the gutter has been part of the renderer since its first commit, alongside the band padding it matches, and is also the `+2` chrome overhead a content-sized C slot carries (S:S15.1).
+
+`Content` is a `TermTheme` field like every other band (`Header`, `Footer`, `Sidebar`, `Aside`), so a downstream composing its own chrome -- pre-fitted panel bodies that carry their own borders and want to pass through the C slot byte-exact at its full width -- can set `theme.Content = lipgloss.NewStyle()` for a zero-chrome content slot. Doing so owns the band-alignment trade the paragraph above describes, exactly as re-padding `Header`/`Footer` already does; the shipped `DefaultTermTheme` keeps the aligning `(0,1)`, so its output is byte-identical to before the field existed. Zeroing C's chrome does not collapse the middle band's slot junctions: the wide side-by-side layout always inserts a single-space gutter either side of C (S:S15.1), and FitSlots packs slots edge-to-edge by its own contract whatever the C style -- so a zero-chrome C touches its neighbours only under FitSlots, where the caller has already opted into edge-to-edge packing.
 
 ### 15.3 Slot-junction trimming
 
@@ -411,15 +435,18 @@ A downstream doing row-budget maths -- how many columns a region gives before te
 | Region | Inner content width | Where the chrome comes from |
 |---|---|---|
 | H, F bands | `W - 2` | the band's `(0,1)` horizontal padding gutter (S:S15.2) -- one column each side |
-| C content | `W - 2` | its structural `(0,1)` gutter (S:S15.2), the same alignment gutter, not themed |
+| C content | `W - 2` | its `Content` style's `(0,1)` alignment gutter (S:S15.2), themeable, default `(0,1)` |
 | L, R boxed slots | `W - 4` | the default rounded border (2) + `(0,1)` padding (2) |
 
-The general rule is one line: **inner content width = region width − the region's horizontal chrome (border + padding)** -- the same `termChrome` FitSlots measures for L/R (S:S15.1). For the default theme that is `2` for the full-width bands (H/C/F -- padding only, no left/right border) and `4` for the bordered L/R boxes. Two consequences worth stating outright:
+The general rule is one line: **inner content width = region width − the region's horizontal chrome (border + padding)** -- the same `termChrome` FitSlots measures for every slot (S:S15.1). For the default theme that is `2` for the full-width bands (H/C/F -- padding only, no left/right border) and `4` for the bordered L/R boxes. Two consequences worth stating outright:
 
-- The C gutter is **structural and fixed at 2** whatever the `TermTheme` is, because C's `(0,1)` alignment gutter is not a theme field (S:S15.2). The `- 4` for L/R is **theme-dependent**: a theme whose `Sidebar`/`Aside` style drops the border, or widens the padding, changes their inner width by exactly that much -- and FitSlots already tiles their boxes to that measured chrome (S:S15.1). The H/F bands render at a fixed `W - 2` matching the default band gutter; a theme that re-pads a band away from `(0,1)` owns keeping its content-width expectation in step, the same caller-owns-content boundary as FitSlots.
+- Every middle-band and boxed slot's chrome is **theme-dependent** and measured, not assumed. The `- 4` for L/R is the `Sidebar`/`Aside` style's border + padding: a theme that drops the border or widens the padding changes their inner width by exactly that much. The `- 2` for C is the `Content` style's `(0,1)` gutter (S:S15.2, themeable since round 4): a theme that zeroes `Content` renders C at the full `W`, one whose `Content` widens the padding narrows it. FitSlots already tiles every slot's box to its measured chrome (S:S15.1). The H/F bands render at a fixed `W - 2` matching the default band gutter; a theme that re-pads any band away from `(0,1)` owns keeping its content-width expectation in step, the same caller-owns-content boundary as FitSlots.
+- **Verbatim (pre-styled ANSI) is bound by exactly this contract.** A `Verbatim` node is not width-wrapped by the renderer, but the enclosing slot style's `Width()` reflows it, so a pre-styled line the host fitted to the region's **inner** width (`W −` chrome above) passes through byte-exact on one row, while the same line fitted to the region's **outer** width `W` lands `chrome` columns over budget and the slot's `Width()` word-wraps it onto a spurious second row -- splitting the ANSI. Fit pre-styled bytes to the inner width, not the slot's nominal width.
 - The `W` a slot is handed is itself the layout's arithmetic, not the terminal width: at `>= 80` columns L is a fixed `24` and R a fixed `28` (so inner `20` and `24`), C fills the remainder; below 80 the slots stack at full width; under FitSlots each slot is content-sized (S:S15.1). Compose the two -- outer width from the layout, minus the chrome above -- to get the wrap width for a region.
 
 No helper is exported for the subtraction: a region's chrome is a property of the `TermTheme` the caller already holds, the default contract above (`- 2` for bands, `- 4` for L/R) is stable for the shipped theme, and a single documented rule is a steadier thing to depend on than one more one-line accessor (S:S1 keeps the surface closed).
+
+The **outer** width is exposed the same way, so it too needs no accessor. A consumer pre-sizing content already renders through `RenderTermBoxes` for mouse resolution (S:S14); the returned `BoxMap` records each slot's rendered rectangle -- `boxes["L"].Width` is L's outer width, `boxes["C"].Width` C's, `boxes["R"].Width` R's -- measured at the real terminal width, whether the slot took its fixed budget (`24`/`28`), stacked at full width, or was content-sized under FitSlots. So a downstream reads the true slot width from the box it already holds and applies the chrome rule above for the inner width, rather than hardcoding the `termSidebarWidth`/`termAsideWidth` budgets (which stay unexported: the box map is the render-time source of truth, and duplicating them as constants would drift from the layout arithmetic that actually sizes a slot).
 
 ## 16. CoreCommand-derived default TUI (exploratory)
 

@@ -614,3 +614,71 @@ func TestParse_Verbatim_Bad(t *testing.T) {
 		})
 	}
 }
+
+func TestParse_Verbatim_RowScoped_Good(t *testing.T) {
+	// Round 4: inside an <each>, <verbatim value="{{turn.body}}"/> binds per row at
+	// materialise time -- mirroring how id="row-{{row.id}}" resolves per row (S:S5)
+	// -- so a chat transcript, each turn's pre-styled ANSI as a row, is expressible.
+	// Before this the parse-time closure returned one fixed value for every row.
+	turn0 := "\x1b[1mAda\x1b[0m: hello"
+	turn1 := "\x1b[1mGrace\x1b[0m: hi there"
+	src := `<div><each items="turns" as="turn"><verbatim value="{{turn.body}}"/></each></div>`
+	bnd := []Bindings{{Sequences: map[string][]map[string]any{
+		"turns": {{"body": turn0}, {"body": turn1}},
+	}}}
+	want := html.El("div", html.Each(
+		[]map[string]any{{"body": turn0}, {"body": turn1}},
+		func(row map[string]any) html.Node { return html.Verbatim(row["body"].(string)) },
+	))
+	got := assertSameRender(t, src, bnd, want, html.NewContext())
+
+	// Each row reached output with its OWN pre-styled bytes, byte-for-byte.
+	out := html.RenderTerm(got, html.NewContext())
+	assert.Contains(t, out, turn0)
+	assert.Contains(t, out, turn1)
+}
+
+func TestParse_Verbatim_BracedBinding(t *testing.T) {
+	// A whole {{path}} value defers to materialise time (S:S6.5): it resolves
+	// against the enclosing <each> row or Values, and -- unlike a plain key, which
+	// errors at parse (TestParse_Verbatim_Bad) -- a miss renders an empty Verbatim,
+	// the same miss-is-empty rule every other {{path}} follows (S:S8.3), because the
+	// target may only exist at bind time.
+	ansi := "\x1b[1mbanner\x1b[0m"
+	tests := []struct {
+		name string
+		src  string
+		bnd  []Bindings
+		want html.Node
+	}{
+		{
+			name: "good: document-scope braced value resolves against Values",
+			src:  `<verbatim value="{{banner}}"/>`,
+			bnd:  []Bindings{{Values: map[string]any{"banner": ansi}}},
+			want: html.Verbatim(ansi),
+		},
+		{
+			name: "good: a missing braced key renders empty, not a parse error",
+			src:  `<verbatim value="{{absent}}"/>`,
+			bnd:  []Bindings{{Values: map[string]any{"present": ansi}}},
+			want: html.Verbatim(""),
+		},
+		{
+			name: "good: a missing row field renders an empty verbatim",
+			src:  `<each items="turns" as="turn"><verbatim value="{{turn.body}}"/></each>`,
+			bnd:  []Bindings{{Sequences: map[string][]map[string]any{"turns": {{"other": "x"}}}}},
+			want: html.Each([]map[string]any{{"other": "x"}}, func(_ map[string]any) html.Node { return html.Verbatim("") }),
+		},
+		{
+			name: "ugly: a nested-map value renders empty (stringOf has no representation)",
+			src:  `<verbatim value="{{obj}}"/>`,
+			bnd:  []Bindings{{Values: map[string]any{"obj": map[string]any{"k": "v"}}}},
+			want: html.Verbatim(""),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertSameRender(t, tc.src, tc.bnd, tc.want, html.NewContext())
+		})
+	}
+}

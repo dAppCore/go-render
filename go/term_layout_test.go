@@ -209,6 +209,64 @@ func TestTermLayout_RegionInnerContentWidth(t *testing.T) {
 	}
 }
 
+func TestTermLayout_FitToInner_ByteExactVerbatim(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// Friction-4 re-probe, pinned. On this base (measured chrome from round 3 +
+	// the S:S15.5 inner-width contract) the original ANSI corruption is closed: a
+	// pre-styled Verbatim line the host fitted to a slot's INNER width (outer -
+	// chrome) passes through byte-exact on one row for C, L and R alike. One
+	// column wider trips the slot's Width() word-wrap onto a second row, splitting
+	// the ANSI -- so the corruption the reporter saw on v0.13.0 was a host fitting
+	// to the slot's nominal width, not a renderer defect. Fit to inner, bytes live.
+	theme := DefaultTermTheme()
+	ansiOf := func(n int) string { return "\x1b[1m" + strings.Repeat("A", n) + "\x1b[0m" }
+	rows := func(out string) int {
+		n := 0
+		for _, ln := range strings.Split(strings.TrimRight(out, "\n"), "\n") {
+			if strings.Contains(termStripANSI(ln), "A") {
+				n++
+			}
+		}
+		return n
+	}
+
+	tests := []struct {
+		name  string
+		outer int
+		inner int
+		build func(body Node) *Layout
+	}{
+		{
+			name:  "good: C content passes byte-exact at its inner width",
+			outer: 40, inner: 40 - termChrome(theme.Content),
+			build: func(body Node) *Layout { return NewLayout("C").C(body) },
+		},
+		{
+			name:  "good: L boxed slot passes byte-exact at its inner width",
+			outer: 100, inner: termSidebarWidth - termChrome(theme.Sidebar),
+			build: func(body Node) *Layout { return NewLayout("LC").L(body).C(Text("c")) },
+		},
+		{
+			name:  "good: R boxed slot passes byte-exact at its inner width",
+			outer: 100, inner: termAsideWidth - termChrome(theme.Aside),
+			build: func(body Node) *Layout { return NewLayout("CR").C(Text("c")).R(body) },
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := termTestContext(map[string]string{"c": "c"})
+			fit := tc.build(Verbatim(ansiOf(tc.inner))).RenderTerm(ctx, TermOptions{Width: tc.outer})
+			over := tc.build(Verbatim(ansiOf(tc.inner + 1))).RenderTerm(ctx, TermOptions{Width: tc.outer})
+
+			assert.Equal(t, 1, rows(fit), "a line fitted to the inner width rides one row")
+			assert.Contains(t, fit, ansiOf(tc.inner), "the pre-styled ANSI survives byte-exact at the inner width")
+			assert.Equal(t, 2, rows(over), "one column over the inner width word-wraps to a second row")
+		})
+	}
+}
+
 func TestTermChrome(t *testing.T) {
 	// termChrome measures the horizontal columns a slot style spends on border and
 	// padding -- what FitSlots adds to a slot's content width so its recorded box
@@ -260,6 +318,89 @@ func TestTermChrome(t *testing.T) {
 			assert.Equal(t, tc.want, termChrome(tc.style))
 		})
 	}
+}
+
+func TestTermLayout_ContentSlotChrome(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// Round 4: the C slot's alignment gutter is the themeable Content style
+	// (S:S15.2), symmetric with the Sidebar/Aside/Header/Footer band styles. The
+	// default keeps the (0,1) gutter that aligns C with the H/F bands; a theme may
+	// zero or widen it, and renderTermContent picks the themed style up so the
+	// content lands at exactly that gutter column.
+	tests := []struct {
+		name       string
+		content    lipgloss.Style
+		wantColumn int
+	}{
+		{"good: default (0,1) gutter aligns C content one column in", DefaultTermTheme().Content, 1},
+		{"good: a zero Content style renders C content at column 0", lipgloss.NewStyle(), 0},
+		{"good: a wider Content padding pushes C content further in", lipgloss.NewStyle().Padding(0, 3), 3},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			theme := DefaultTermTheme()
+			theme.Content = tc.content
+			page := NewLayout("C").C(El("p", Text("mark")))
+			ctx := termTestContext(map[string]string{"mark": "MARK"})
+			out := page.RenderTerm(ctx, TermOptions{Width: 40, Theme: theme})
+			col, ok := glyphColumn(strings.Split(out, "\n"), "MARK")
+			require.True(t, ok, "content is rendered")
+			assert.Equal(t, tc.wantColumn, col, "C content sits at the themed gutter column")
+		})
+	}
+}
+
+func TestTermLayout_ContentSlotChrome_ByteExactVerbatim(t *testing.T) {
+	// The downstream's ask: a zero-chrome Content slot passes a pre-styled ANSI
+	// panel body byte-exact at the slot's full width. With the default (0,1)
+	// gutter the same full-width line lands two columns over budget and the slot's
+	// Width() word-wraps it, splitting the ANSI -- which is exactly why the lever
+	// is needed for a host that pre-fits to the slot's nominal width (S:S15.5). No
+	// asciiProfile here: the verbatim ANSI must reach output to be asserted intact.
+	ansi := "\x1b[1m" + strings.Repeat("A", 40) + "\x1b[0m"
+	rows := func(out string) int {
+		n := 0
+		for _, ln := range strings.Split(strings.TrimRight(out, "\n"), "\n") {
+			if strings.Contains(termStripANSI(ln), "A") {
+				n++
+			}
+		}
+		return n
+	}
+	page := NewLayout("C").C(Verbatim(ansi))
+
+	zero := DefaultTermTheme()
+	zero.Content = lipgloss.NewStyle()
+	fit := page.RenderTerm(NewContext(), TermOptions{Width: 40, Theme: zero})
+	assert.Equal(t, 1, rows(fit), "zero-chrome C passes a full-width pre-styled line on one row")
+	assert.Contains(t, fit, ansi, "the pre-styled ANSI survives byte-exact")
+
+	wrapped := page.RenderTerm(NewContext(), TermOptions{Width: 40})
+	assert.Equal(t, 2, rows(wrapped), "the default (0,1) gutter word-wraps a full-width line")
+}
+
+func TestTermTheme_Content_DefaultByteIdentity(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// Regression pin (round 4): making the C gutter a theme field must not change
+	// the shipped theme's output. The default Content is exactly (0,1), so its
+	// measured chrome stays the documented 2 (S:S15.5) and a full HLCRF frame under
+	// DefaultTermTheme is byte-identical to one whose Content is an explicit (0,1).
+	assert.Equal(t, 2, termChrome(DefaultTermTheme().Content), "default C chrome is the documented 2")
+
+	page := termTestPage()
+	ctx := termTestPageContext()
+	explicit := DefaultTermTheme()
+	explicit.Content = lipgloss.NewStyle().Padding(0, 1)
+
+	assert.Equal(t,
+		page.RenderTerm(ctx, TermOptions{Width: 100}),
+		page.RenderTerm(ctx, TermOptions{Width: 100, Theme: explicit}),
+		"default-theme frame is byte-identical to an explicit (0,1) Content",
+	)
 }
 
 func TestTermLayout_Responsive_RenderTerm(t *testing.T) {
