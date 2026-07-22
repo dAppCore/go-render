@@ -33,6 +33,7 @@ type TermTheme struct {
 	Footer    lipgloss.Style // layout F band
 	Sidebar   lipgloss.Style // layout L box
 	Aside     lipgloss.Style // layout R box
+	Content   lipgloss.Style // layout C slot -- its alignment gutter (default (0,1))
 	Card      lipgloss.Style // class "card" container
 
 	TableBorder lipgloss.Style // table frame
@@ -111,6 +112,13 @@ func DefaultTermTheme() *TermTheme {
 			Padding(0, 1).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(border),
+		// Content is the C slot's alignment gutter: a one-column gutter each side
+		// ((0,1) padding), matching the H/F band padding so C content lines up
+		// down the frame's left margin (S:S15.2). Themeable like every other band
+		// so a downstream composing its own chrome can zero it for a byte-exact
+		// full-width content slot; the default keeps the aligning gutter, so the
+		// shipped theme's C output is byte-identical to the pre-field renderer.
+		Content: lipgloss.NewStyle().Padding(0, 1),
 		Card: lipgloss.NewStyle().
 			Padding(0, 1).
 			Border(lipgloss.RoundedBorder()).
