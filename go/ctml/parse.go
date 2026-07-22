@@ -156,7 +156,7 @@ func (p *parser) parseEl(start xml.StartElement) (astNode, error) {
 			argsAttr, hasArgs = a.Value, true
 			continue
 		}
-		attrs = append(attrs, astAttr{Key: a.Name.Local, Value: a.Value})
+		attrs = append(attrs, astAttr{Key: a.Name.Local, Value: a.Value, Parts: splitAttrValue(a.Value)})
 	}
 
 	children, err := p.parseContent(start.Name)
@@ -280,6 +280,44 @@ func splitRun(run string) []astNode {
 		nodes = append(nodes, &astText{Key: seg})
 	}
 	return nodes
+}
+
+// splitAttrValue splits an attribute value into the literal/bind segments a
+// {{path}} interpolation denotes, using the same token recognition splitRun
+// applies to text runs (S:S8.3) -- but producing raw string segments, because
+// an attribute value is a class/id/href and never an i18n key, so a bind
+// resolves straight to its string form at materialise time. It returns nil
+// when the value carries no valid {{path}} token, so a static attribute keeps
+// its literal fast path with no per-render work -- the overwhelmingly common
+// case. The row scope this resolves against is what lets an <each> row carry a
+// row-scoped class or id (S:S5); a "{{" that opens no valid path token stays
+// literal, exactly as in a text run (S:S8.4).
+func splitAttrValue(value string) []attrSeg {
+	if !strings.Contains(value, "{{") {
+		return nil
+	}
+	var segs []attrSeg
+	segStart, i := 0, 0
+	for i < len(value) {
+		if value[i] == '{' && i+1 < len(value) && value[i+1] == '{' {
+			if path, end, ok := scanBindToken(value, i); ok {
+				if seg := value[segStart:i]; seg != "" {
+					segs = append(segs, attrSeg{Lit: seg})
+				}
+				segs = append(segs, attrSeg{Path: path, IsPath: true})
+				i, segStart = end, end
+				continue
+			}
+		}
+		i++
+	}
+	if len(segs) == 0 {
+		return nil // "{{" present but no valid token -- keep the literal fast path
+	}
+	if seg := value[segStart:]; seg != "" {
+		segs = append(segs, attrSeg{Lit: seg})
+	}
+	return segs
 }
 
 // normaliseRun strips a CharData run's leading/trailing whitespace only

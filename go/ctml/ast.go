@@ -23,7 +23,28 @@ type astEl struct {
 	Children []astNode
 }
 
-type astAttr struct{ Key, Value string }
+// astAttr is one element attribute (S:S5). Value is the literal attribute
+// string for the common static case; when the source value carries {{path}}
+// tokens (S:S8.3) Parts holds the interleaved literal/bind segments, resolved
+// per row at materialise time so an <each> row can carry a row-scoped class or
+// id without any expression language -- every token is a named lookup, exactly
+// like a text-run bind. The attribute stays static per constructed node: Each
+// builds a fresh node per row, so each row's node has one fixed attribute
+// value, and nothing re-evaluates an attribute per Render call (S:S1.3).
+type astAttr struct {
+	Key   string
+	Value string    // literal fast path -- used when Parts == nil
+	Parts []attrSeg // non-nil only when Value carried {{path}} tokens
+}
+
+// attrSeg is one segment of an interpolated attribute value: literal text
+// (Lit), or a {{path}} reference (Path) resolved against the active each row /
+// Bindings.Values scope at materialise time, a miss rendering empty (S:S8.3).
+type attrSeg struct {
+	Lit    string
+	Path   string
+	IsPath bool
+}
 
 // astText is a literal i18n key (S:S6.1); astBind is a {{path}} value
 // reference (S:S8.3). Both may carry args (S:S6.4).
@@ -153,7 +174,7 @@ func materialise(n astNode, resolve resolver, bnd Bindings) html.Node {
 	case *astEl:
 		node := html.El(t.Tag, materialiseAll(t.Children, resolve, bnd)...)
 		for _, a := range t.Attrs {
-			node = html.Attr(node, a.Key, a.Value)
+			node = html.Attr(node, a.Key, resolveAttr(a, resolve))
 		}
 		return node
 	case *astText:
@@ -225,6 +246,31 @@ func materialiseResponsive(t *astResponsive, resolve resolver, bnd Bindings) *ht
 		r = r.Add(v.Name, layout)
 	}
 	return r
+}
+
+// resolveAttr renders an attribute's value for the current scope: the literal
+// string for a static attribute (Parts == nil), or the {{path}} template
+// resolved segment by segment -- each bind via the active resolver (the
+// enclosing <each> row, else Bindings.Values), a miss rendering empty, exactly
+// like an astBind (S:S8.3). The result is a plain static string handed to
+// html.Attr, so the constructed node's attribute is fixed; an <each> gains
+// per-row attribute values only because Each constructs a fresh node per row
+// (S:S5). Values are stringified with stringOf, not translated -- an attribute
+// is a class/id/href, never an i18n key.
+func resolveAttr(a astAttr, resolve resolver) string {
+	if a.Parts == nil {
+		return a.Value
+	}
+	var b strings.Builder
+	for _, seg := range a.Parts {
+		if !seg.IsPath {
+			b.WriteString(seg.Lit)
+			continue
+		}
+		v, _ := resolve(seg.Path)
+		b.WriteString(stringOf(v))
+	}
+	return b.String()
 }
 
 func resolveArgs(args []argToken, resolve resolver) []any {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -118,6 +119,28 @@ func TestTermLayout_RenderTerm_NarrowStacks(t *testing.T) {
 	}
 	assert.Contains(t, out, "Content body copy.")
 	assert.Contains(t, out, "Side detail")
+}
+
+func TestTermLayout_RenderTerm_FitSlots(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	page := NewLayout("LCR").L(Text("brand")).C(Text("mid")).R(Text("tail"))
+	ctx := termTestContext(map[string]string{"brand": "Brand", "mid": "Mid", "tail": "Tail"})
+
+	fixed := page.RenderTerm(ctx, TermOptions{Width: 100})
+	fit := page.RenderTerm(ctx, TermOptions{Width: 100, FitSlots: true})
+
+	// Both carry all the content; fit packs it into far fewer columns than the
+	// fixed 24 + gutter + C + gutter + 28 frame.
+	for _, want := range []string{"Brand", "Mid", "Tail"} {
+		assert.Contains(t, fit, want)
+	}
+	assert.Less(t, lipgloss.Width(fit), lipgloss.Width(fixed), "fit output is content-width, not frame-width")
+
+	// FitSlots is opt-in: the default render is exactly what it was before the
+	// option existed.
+	assert.Equal(t, fixed, page.RenderTerm(ctx, TermOptions{Width: 100}), "default render is unchanged")
 }
 
 func TestTermLayout_Responsive_RenderTerm(t *testing.T) {

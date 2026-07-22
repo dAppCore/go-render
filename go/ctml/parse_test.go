@@ -468,6 +468,99 @@ func TestParse_MixedInterpolation(t *testing.T) {
 	}
 }
 
+func TestParse_Each_RowScopedAttributes(t *testing.T) {
+	// Friction 2+8: a picker-style <each> where the active row carries a
+	// different class AND every row records its own terminal box. class/id
+	// values interpolate {{path}} per row (S:S5): a pure-bind class="{{row.cls}}"
+	// and a mixed id="row-{{row.id}}" both resolve against the row, so the
+	// downstream no longer needs a three-sequence rowsBefore/rowsActive/rowsAfter
+	// split, and each row's distinct id lets its rendered rectangle record in
+	// the box map (S:S14) instead of three rows colliding on one static id.
+	src := `<layout variant="C"><c><each items="rows" as="row">` +
+		`<div id="row-{{row.id}}" class="{{row.cls}}">{{row.label}}</div>` +
+		`</each></c></layout>`
+	bnd := Bindings{Sequences: map[string][]map[string]any{
+		"rows": {
+			{"id": "0", "cls": "nav-item", "label": "Alpha"},
+			{"id": "1", "cls": "nav-item active", "label": "Beta"},
+			{"id": "2", "cls": "nav-item", "label": "Gamma"},
+		},
+	}}
+	layout, err := ParseLayout([]byte(src), bnd)
+	require.NoError(t, err)
+
+	// HTML render: the active row alone carries the active class, and every
+	// row's id interpolated its own row value.
+	out := html.Render(layout, html.NewContext())
+	assert.Equal(t, 1, strings.Count(out, `class="nav-item active"`), "only the active row is styled active")
+	assert.Equal(t, 2, strings.Count(out, `class="nav-item"`), "the two inactive rows keep the base class")
+	for _, id := range []string{`id="row-0"`, `id="row-1"`, `id="row-2"`} {
+		assert.Contains(t, out, id, "each row interpolated its own id")
+	}
+
+	// Terminal box map: each row records its own box under its distinct id,
+	// stacked top to bottom -- no collision on a shared static id.
+	_, boxes := layout.RenderTermBoxes(html.NewContext(), html.TermOptions{Width: 40})
+	require.Contains(t, boxes, "row-0")
+	require.Contains(t, boxes, "row-1")
+	require.Contains(t, boxes, "row-2")
+	assert.Less(t, boxes["row-0"].Row, boxes["row-1"].Row, "rows stack top to bottom in the box map")
+	assert.Less(t, boxes["row-1"].Row, boxes["row-2"].Row)
+	for _, id := range []string{"row-0", "row-1", "row-2"} {
+		assert.Greater(t, boxes[id].Height, 0, "%s recorded a positive height", id)
+	}
+}
+
+func TestParse_AttrInterpolation_StaticUnchanged(t *testing.T) {
+	// A static attribute (no {{path}}) keeps the literal fast path: parsing it
+	// is byte-identical to the hand-built Attr chain, so the interpolation seam
+	// adds nothing to the common case (S:S5).
+	src := `<a href="/docs" class="link" id="docs-link">docs.label</a>`
+	want := html.Attr(html.Attr(html.Attr(html.El("a", html.Text("docs.label")), "href", "/docs"), "class", "link"), "id", "docs-link")
+	assertSameRender(t, src, nil, want, html.NewContext())
+}
+
+func TestParse_AttrInterpolation_Values(t *testing.T) {
+	// Outside an <each> an interpolated attribute resolves against Values, the
+	// same document scope a lone {{path}} text token uses (S:S8.5); a missing
+	// key renders empty, and a "{{" opening no valid token stays literal.
+	tests := []struct {
+		name string
+		src  string
+		bnd  []Bindings
+		want html.Node
+	}{
+		{
+			name: "good: whole-value bind resolves against Values",
+			src:  `<a href="{{link}}">go</a>`,
+			bnd:  []Bindings{{Values: map[string]any{"link": "/repos"}}},
+			want: html.Attr(html.El("a", html.Text("go")), "href", "/repos"),
+		},
+		{
+			name: "good: mixed literal-and-bind attribute value",
+			src:  `<div class="card {{tone}}">x</div>`,
+			bnd:  []Bindings{{Values: map[string]any{"tone": "ok"}}},
+			want: html.Attr(html.El("div", html.Text("x")), "class", "card ok"),
+		},
+		{
+			name: "bad: a missing Values key renders the bind as empty",
+			src:  `<div class="card {{absent}}">x</div>`,
+			bnd:  []Bindings{{Values: map[string]any{"present": "x"}}},
+			want: html.Attr(html.El("div", html.Text("x")), "class", "card "),
+		},
+		{
+			name: "ugly: a near-miss brace token stays literal in the attribute",
+			src:  `<div data-tpl="{{not a path}}">x</div>`,
+			want: html.Attr(html.El("div", html.Text("x")), "data-tpl", "{{not a path}}"),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertSameRender(t, tc.src, tc.bnd, tc.want, html.NewContext())
+		})
+	}
+}
+
 func TestParse_Values_Ugly_RowWinsOverValuesInsideEach(t *testing.T) {
 	// Inside an <each> body a row-prefixed {{path}} resolves to the row even
 	// when Values also carries that root name -- Values does not shadow rows.
