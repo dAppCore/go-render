@@ -42,6 +42,21 @@ type TermOptions struct {
 	// the same way it owns id uniqueness -- fit slots size to content and can
 	// exceed the frame if content is wide.
 	FitSlots bool
+
+	// SidebarWidth and AsideWidth override the fixed L and R outer column budgets
+	// (termSidebarWidth=24, termAsideWidth=28) in the wide (>= 80 column)
+	// side-by-side middle band, so a downstream wanting a wider inspector pane can
+	// request it: AsideWidth: 32 renders R 32 columns wide and shrinks C by the
+	// difference. A zero (or negative) value keeps the fixed budget, so an omitted
+	// option leaves every existing render byte-identical. Width is layout, not
+	// paint, so the override rides TermOptions (like Width and FitSlots) rather
+	// than the theme. It applies only to the wide side-by-side band: below the
+	// 80-column stack threshold the slots stack at full width, and under FitSlots
+	// each slot is content-sized -- neither path reads these budgets. A request so
+	// wide it would starve C floors C at the minimum width and lets the frame
+	// exceed the nominal width, the same caller-owns-content boundary as FitSlots.
+	SidebarWidth int
+	AsideWidth   int
 }
 
 const termDefaultWidth = 100
@@ -49,24 +64,37 @@ const termDefaultWidth = 100
 // termMinWidth keeps degenerate widths renderable rather than panicking lipgloss.
 const termMinWidth = 8
 
-func resolveTermOptions(opts []TermOptions) (int, *TermTheme, bool) {
-	width := termDefaultWidth
-	var theme *TermTheme
-	fit := false
+// termConfig is the resolved, normalised render configuration a TermOptions
+// slice reduces to: width (floored at termMinWidth), theme (defaulted), and the
+// layout levers the renderer threads down the frame -- FitSlots and the L/R slot
+// width overrides. Resolving once keeps every RenderTerm entry point (node,
+// Layout, Responsive; plain and box-recording) reading its options identically.
+type termConfig struct {
+	width    int
+	theme    *TermTheme
+	fit      bool
+	sidebarW int // 0 = the fixed termSidebarWidth budget; > 0 overrides it
+	asideW   int // 0 = the fixed termAsideWidth budget; > 0 overrides it
+}
+
+func resolveTermOptions(opts []TermOptions) termConfig {
+	cfg := termConfig{width: termDefaultWidth}
 	if len(opts) > 0 {
 		if opts[0].Width > 0 {
-			width = opts[0].Width
+			cfg.width = opts[0].Width
 		}
-		theme = opts[0].Theme
-		fit = opts[0].FitSlots
+		cfg.theme = opts[0].Theme
+		cfg.fit = opts[0].FitSlots
+		cfg.sidebarW = opts[0].SidebarWidth
+		cfg.asideW = opts[0].AsideWidth
 	}
-	if width < termMinWidth {
-		width = termMinWidth
+	if cfg.width < termMinWidth {
+		cfg.width = termMinWidth
 	}
-	if theme == nil {
-		theme = DefaultTermTheme()
+	if cfg.theme == nil {
+		cfg.theme = DefaultTermTheme()
 	}
-	return width, theme, fit
+	return cfg
 }
 
 // term.go: RenderTerm renders any node tree as styled terminal output.
@@ -75,9 +103,9 @@ func RenderTerm(n Node, ctx *Context, opts ...TermOptions) string {
 	if n == nil {
 		return ""
 	}
-	width, theme, fit := resolveTermOptions(opts)
-	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit}
-	return strings.TrimRight(strings.Join(r.blocks([]Node{n}, width), "\n"), "\n")
+	cfg := resolveTermOptions(opts)
+	r := &termRenderer{ctx: termContext(ctx), theme: cfg.theme, fit: cfg.fit, sidebarW: cfg.sidebarW, asideW: cfg.asideW}
+	return strings.TrimRight(strings.Join(r.blocks([]Node{n}, cfg.width), "\n"), "\n")
 }
 
 // termContext mirrors the render paths' nil tolerance: a nil context becomes
@@ -90,10 +118,12 @@ func termContext(ctx *Context) *Context {
 }
 
 type termRenderer struct {
-	ctx   *Context
-	theme *TermTheme
-	fit   bool             // FitSlots: content-size a Layout's L/C/R slots
-	rec   *termBoxRecorder // nil unless rendering via RenderTermBoxes
+	ctx      *Context
+	theme    *TermTheme
+	fit      bool             // FitSlots: content-size a Layout's L/C/R slots
+	sidebarW int              // > 0 overrides the fixed L budget (wide side-by-side band)
+	asideW   int              // > 0 overrides the fixed R budget (wide side-by-side band)
+	rec      *termBoxRecorder // nil unless rendering via RenderTermBoxes
 }
 
 // termExpandable is satisfied by eachNode[T]; it expands the sequence into
