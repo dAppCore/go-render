@@ -143,6 +143,125 @@ func TestTermLayout_RenderTerm_FitSlots(t *testing.T) {
 	assert.Equal(t, fixed, page.RenderTerm(ctx, TermOptions{Width: 100}), "default render is unchanged")
 }
 
+func TestTermLayout_RegionInnerContentWidth(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// S:S15.5: each region renders content into (region width - its horizontal
+	// chrome). A full-width band (H/C/F) reserves its (0,1) gutter -> width-2; a
+	// bordered L/R box reserves the default rounded border + (0,1) padding ->
+	// width-4. Pin the boundary with an unbreakable token: exactly the inner width
+	// fits one line, one column wider wraps to a second.
+	countTokenLines := func(out, token string) int {
+		n := 0
+		for _, ln := range strings.Split(out, "\n") {
+			if strings.Contains(ln, token) {
+				n++
+			}
+		}
+		return n
+	}
+
+	tests := []struct {
+		name  string
+		outer int
+		inner int
+		build func() *Layout
+	}{
+		{
+			name:  "good: H band inner content width is band width minus 2",
+			outer: 40, inner: 38,
+			build: func() *Layout { return NewLayout("H").H(El("p", Text("x"))) },
+		},
+		{
+			name:  "good: C content inner width is band width minus 2",
+			outer: 40, inner: 38,
+			build: func() *Layout { return NewLayout("C").C(El("p", Text("x"))) },
+		},
+		{
+			name:  "good: F band inner content width is band width minus 2",
+			outer: 40, inner: 38,
+			build: func() *Layout { return NewLayout("F").F(El("p", Text("x"))) },
+		},
+		{
+			name:  "good: L boxed slot inner width is the fixed sidebar budget minus 4",
+			outer: 100, inner: termSidebarWidth - 4,
+			build: func() *Layout { return NewLayout("LC").L(El("p", Text("x"))).C(Text("c")) },
+		},
+		{
+			name:  "good: R boxed slot inner width is the fixed aside budget minus 4",
+			outer: 100, inner: termAsideWidth - 4,
+			build: func() *Layout { return NewLayout("CR").C(Text("c")).R(El("p", Text("x"))) },
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctxFit := termTestContext(map[string]string{"x": strings.Repeat("x", tc.inner), "c": "c"})
+			ctxOver := termTestContext(map[string]string{"x": strings.Repeat("x", tc.inner+1), "c": "c"})
+
+			fit := termStripANSI(tc.build().RenderTerm(ctxFit, TermOptions{Width: tc.outer}))
+			over := termStripANSI(tc.build().RenderTerm(ctxOver, TermOptions{Width: tc.outer}))
+
+			assert.Equal(t, 1, countTokenLines(fit, "x"), "a token exactly the inner width fits one line")
+			assert.Equal(t, 2, countTokenLines(over, "x"), "one column wider wraps to a second line")
+		})
+	}
+}
+
+func TestTermChrome(t *testing.T) {
+	// termChrome measures the horizontal columns a slot style spends on border and
+	// padding -- what FitSlots adds to a slot's content width so its recorded box
+	// spans the rendered glyphs. The default rounded, (0,1)-padded slot is 4; a
+	// stripped theme is less, and the measurement is what keeps its boxes exact.
+	tests := []struct {
+		name  string
+		style lipgloss.Style
+		want  int
+	}{
+		{
+			name:  "good: rounded border with (0,1) padding is 4 (the default slot)",
+			style: lipgloss.NewStyle().Padding(0, 1).Border(lipgloss.RoundedBorder()),
+			want:  4,
+		},
+		{
+			name:  "good: borderless and unpadded is 0",
+			style: lipgloss.NewStyle(),
+			want:  0,
+		},
+		{
+			name:  "good: space-glyph left/right border with padding still counts the border",
+			style: lipgloss.NewStyle().Padding(0, 1).Border(lipgloss.Border{Left: " ", Right: " "}, false, true, false, true),
+			want:  4,
+		},
+		{
+			name:  "bad: padding only, no border",
+			style: lipgloss.NewStyle().Padding(0, 2),
+			want:  4,
+		},
+		{
+			name:  "bad: full border only, no padding",
+			style: lipgloss.NewStyle().Border(lipgloss.NormalBorder()),
+			want:  2,
+		},
+		{
+			name:  "ugly: a hidden border still occupies its columns",
+			style: lipgloss.NewStyle().Border(lipgloss.HiddenBorder()),
+			want:  2,
+		},
+		{
+			name:  "ugly: a single left border is one column",
+			style: lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, false, true),
+			want:  1,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, termChrome(tc.style))
+		})
+	}
+}
+
 func TestTermLayout_Responsive_RenderTerm(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()

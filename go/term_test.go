@@ -233,6 +233,63 @@ func TestTerm_Verbatim_InsideComposedChrome(t *testing.T) {
 	assert.Contains(t, out, "Section", "sibling chrome still renders")
 }
 
+func TestTerm_ParagraphLeadingWhitespaceAsymmetry(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// The paragraph flush runs strings.TrimSpace over the whole flattened run
+	// (blockEl's "p"/"address" case, and the blocks() inline flush), which by
+	// definition only bites the run's outer edge. So a block-open leading gutter
+	// collapses -- HTML-faithful, a block strips its own leading whitespace --
+	// while a line after an interior <br> is a continuation line whose leading
+	// whitespace survives untouched. Round 2's S:S15.4 "nothing survives" holds
+	// only for the block-open line; this pins the first-line-vs-continuation
+	// asymmetry precisely.
+	// A flushed paragraph line is padded to the render width with trailing spaces
+	// (lipgloss Width); trailing padding is irrelevant to the leading-gutter point,
+	// so compare on the trimmed-right content and measure the leading edge directly.
+	leading := func(s string) int { return len(s) - len(strings.TrimLeft(s, " ")) }
+	content := func(s string) string { return strings.TrimRight(s, " ") }
+
+	t.Run("good: the block-open first line's leading gutter collapses", func(t *testing.T) {
+		out := termStripANSI(RenderTerm(El("p", Raw("  first line")), termTestContext(nil), TermOptions{Width: 40}))
+		lines := strings.Split(out, "\n")
+		require.Len(t, lines, 1)
+		assert.Equal(t, "first line", content(lines[0]), "block-open leading whitespace is trimmed")
+		assert.Zero(t, leading(lines[0]))
+	})
+
+	t.Run("good: a continuation line after <br> keeps its leading gutter", func(t *testing.T) {
+		out := termStripANSI(RenderTerm(El("p", Raw("head"), El("br"), Raw("  tail")), termTestContext(nil), TermOptions{Width: 40}))
+		lines := strings.Split(out, "\n")
+		require.Len(t, lines, 2)
+		assert.Equal(t, "head", content(lines[0]))
+		assert.Equal(t, 2, leading(lines[1]), "post-<br> leading whitespace survives the flush")
+		assert.Equal(t, "  tail", content(lines[1]))
+	})
+
+	t.Run("good: within one paragraph only the first line collapses", func(t *testing.T) {
+		// Both source lines carry the same 2-space gutter; only the block-open
+		// one loses it.
+		out := termStripANSI(RenderTerm(El("p", Raw("  first"), El("br"), Raw("  second")), termTestContext(nil), TermOptions{Width: 40}))
+		lines := strings.Split(out, "\n")
+		require.Len(t, lines, 2)
+		assert.Equal(t, 0, leading(lines[0]), "first line: block-open trim")
+		assert.Equal(t, 2, leading(lines[1]), "continuation line: gutter kept")
+	})
+
+	t.Run("good: a marker glyph is needed only at the block-open row", func(t *testing.T) {
+		// The blessed idiom (S:S15.4): a non-space leading marker survives the
+		// block-open trim, giving the opening row its visible gutter -- while the
+		// continuation line needs no marker, its plain-space gutter already rides.
+		out := termStripANSI(RenderTerm(El("p", Raw("○ first"), El("br"), Raw("  second")), termTestContext(nil), TermOptions{Width: 40}))
+		lines := strings.Split(out, "\n")
+		require.Len(t, lines, 2)
+		assert.Equal(t, "○ first", content(lines[0]), "the marker glyph survives the block-open trim")
+		assert.Equal(t, "  second", content(lines[1]), "the continuation gutter needs no marker")
+	})
+}
+
 func TestTerm_RenderTerm_Table(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()
