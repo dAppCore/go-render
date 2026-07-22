@@ -197,13 +197,6 @@ func (l *Layout) renderTermMiddle(r *termRenderer, width int, seen map[byte]bool
 	return joined
 }
 
-// termContentStyle is the C slot's own chrome: a one-column alignment gutter
-// each side ((0,1) padding), matching the H/F band padding so C content lines
-// up down the frame's left margin (S:S15.2). It is structural, not themed --
-// the gutter is the same whatever TermTheme is active, so it is measured here
-// rather than read from a theme field.
-var termContentStyle = lipgloss.NewStyle().Padding(0, 1)
-
 // termChrome is the horizontal chrome a slot style adds around its content --
 // its border columns plus its padding columns. A slot sizes to its content plus
 // this, and records a box that wide, so the recorded rectangle spans exactly the
@@ -226,10 +219,17 @@ func (l *Layout) renderTermBox(r *termRenderer, slot byte, width int, style lipg
 	return style.Width(width - style.GetHorizontalBorderSize()).Render(content)
 }
 
+// renderTermContent renders the C slot inside the theme's Content style. Its
+// (0,1) alignment gutter is the +2 chrome a content-sized C carries (S:S15.1),
+// and -- since round 4 -- a theme field like every other band, so a downstream
+// composing its own chrome can zero it for a byte-exact full-width content slot.
+// The measured chrome (termChrome) and the inner-width contract (S:S15.5) pick
+// the themed style up automatically, so the shipped default (0,1) stays exact.
 func (l *Layout) renderTermContent(r *termRenderer, width int) string {
-	innerWidth := max(termMinWidth, width-termChrome(termContentStyle))
+	style := r.theme.Content
+	innerWidth := max(termMinWidth, width-termChrome(style))
 	content := strings.Join(r.blocks(l.slots['C'], innerWidth), "\n")
-	return termContentStyle.Width(width - termContentStyle.GetHorizontalBorderSize()).Render(content)
+	return style.Width(width - style.GetHorizontalBorderSize()).Render(content)
 }
 
 // renderTermMiddleFit lays the L/C/R middle band out content-sized (FitSlots):
@@ -240,7 +240,7 @@ func (l *Layout) renderTermContent(r *termRenderer, width int) string {
 // one row whatever the terminal width. Slot chrome overhead is measured from the
 // active theme, not assumed: a bordered L/R box adds its Sidebar/Aside style's
 // border + padding columns (4 for the default rounded, (0,1)-padded slot), and
-// the C content adds its own structural (0,1) gutter (S:S15.2). Measuring keeps
+// the C content adds its Content style's (0,1) gutter (S:S15.2). Measuring keeps
 // the boxes tiled on the visible glyphs under a borderless or space-glyph theme
 // too, where the old fixed +4 drifted them a column or two wide (S:S15.1).
 func (l *Layout) renderTermMiddleFit(r *termRenderer, width int, hasL, hasC, hasR bool, prefix string, baseRow, baseCol int) string {
@@ -251,7 +251,7 @@ func (l *Layout) renderTermMiddleFit(r *termRenderer, width int, hasL, hasC, has
 		lWidth = l.fitContentWidth(r, 'L', maxInner) + termChrome(r.theme.Sidebar)
 	}
 	if hasC {
-		cWidth = l.fitContentWidth(r, 'C', maxInner) + termChrome(termContentStyle)
+		cWidth = l.fitContentWidth(r, 'C', maxInner) + termChrome(r.theme.Content)
 	}
 	if hasR {
 		rWidth = l.fitContentWidth(r, 'R', maxInner) + termChrome(r.theme.Aside)

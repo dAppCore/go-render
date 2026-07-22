@@ -276,6 +276,39 @@ func TestLayout_RenderTermBoxes_FitSlots_ThemeChrome(t *testing.T) {
 	assert.Less(t, bare["R"].Col+bare["R"].Width, bordered["R"].Col+bordered["R"].Width, "the borderless strip is narrower overall")
 }
 
+func TestLayout_RenderTermBoxes_SlotWidthsForPresizing(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// Round 4, friction 1: a downstream pre-sizing content reads each slot's outer
+	// width from the box map it already holds for mouse resolution (S:S14), rather
+	// than hardcoding the fixed 24/28 budgets. The recorded widths are the render-
+	// time source of truth: outer width from the box, inner width by subtracting
+	// the slot's themed chrome (S:S15.5). No accessor for the budgets is exported.
+	page := NewLayout("LCR").
+		L(El("p", Text("l"))).C(El("p", Text("c"))).R(El("p", Text("r")))
+	ctx := termTestContext(map[string]string{"l": "L", "c": "C", "r": "R"})
+	theme := DefaultTermTheme()
+
+	_, boxes := page.RenderTermBoxes(ctx, TermOptions{Width: 100, Theme: theme})
+	require.Contains(t, boxes, "L")
+	require.Contains(t, boxes, "C")
+	require.Contains(t, boxes, "R")
+
+	// The fixed side budgets are readable straight off the boxes -- no magic constant.
+	assert.Equal(t, termSidebarWidth, boxes["L"].Width, "L outer width is its fixed budget, read from the box")
+	assert.Equal(t, termAsideWidth, boxes["R"].Width, "R outer width is its fixed budget, read from the box")
+
+	// The three slot boxes plus the two single-space gutters span the frame, so the
+	// box widths reconstruct the layout arithmetic a caller would otherwise redo.
+	assert.Equal(t, 100, boxes["L"].Width+1+boxes["C"].Width+1+boxes["R"].Width, "slot boxes plus gutters span the frame width")
+
+	// The pre-sizing recipe: inner width = the box's outer width minus the slot's
+	// themed chrome (S:S15.5) -- what a host fits pre-styled content to.
+	assert.Equal(t, termSidebarWidth-4, boxes["L"].Width-termChrome(theme.Sidebar), "L inner width from box width minus themed chrome")
+	assert.Equal(t, termAsideWidth-4, boxes["R"].Width-termChrome(theme.Aside), "R inner width from box width minus themed chrome")
+}
+
 func TestLayout_RenderTermBoxes_FitSlots_OneRowBelowStackThreshold(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()
