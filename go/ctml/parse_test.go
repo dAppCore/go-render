@@ -270,9 +270,6 @@ func TestParse_Bad(t *testing.T) {
 		{"bad: variant rejects two layout children", `<responsive><variant name="a"><layout variant="C"><c><p>x</p></c></layout><layout variant="C"><c><p>y</p></c></layout></variant></responsive>`, "requires exactly one <layout> child"},
 		{"bad: args on element content is rejected", `<p args="x"><b>hi</b></p>`, "not an element child"},
 		{"bad: args on multi-run content is rejected", `<p args="x">Hello <b>world</b></p>`, "requires exactly one text child"},
-		{"bad: unbound each reference outside any each", `<p>{{row.name}}</p>`, "unbound reference"},
-		{"bad: unbound each reference after its scope closes", `<div><each items="a" as="row"><p>{{row.n}}</p></each><p>{{row.n}}</p></div>`, "unbound reference"},
-		{"bad: unbound reference in args", `<p args="{{row.n}}">k</p>`, "unbound reference"},
 		{"bad: trailing content after the root element", `<div><p>x</p></div><div>y</div>`, "unexpected content after root"},
 		{"bad: text before the root element", `stray<div><p>x</p></div>`, "unexpected text before root"},
 	}
@@ -369,4 +366,66 @@ func TestParse_Each_RowsCloseOverFreshPerItem(t *testing.T) {
 	assert.Equal(t, 1, strings.Count(out, "alpha"))
 	assert.Equal(t, 1, strings.Count(out, "beta"))
 	assert.Equal(t, 1, strings.Count(out, "gamma"))
+}
+
+func TestParse_Values_Good(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		bnd  []Bindings
+		want html.Node
+	}{
+		{
+			// A lone {{path}} outside any <each> resolves against
+			// Bindings.Values -- no one-row <each> needed to carry it.
+			name: "good: whole-run value renders",
+			src:  `<p>{{greeting}}</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"greeting": "Hello"}}},
+			want: html.El("p", html.Text("Hello")),
+		},
+		{
+			// Dotted paths index one level into a nested Values map, exactly
+			// like a row field path (lookupPath semantics).
+			name: "good: nested value path resolves through a nested map",
+			src:  `<p>{{user.name}}</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"user": map[string]any{"name": "Ada"}}}},
+			want: html.El("p", html.Text("Ada")),
+		},
+		{
+			// The {{path}} grammar is uniform across text runs and args
+			// tokens, so an args token outside an <each> resolves Values too.
+			name: "good: args token outside each resolves against Values",
+			src:  `<p args="{{count}}">queue.remaining</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"count": 3}}},
+			want: html.El("p", html.Text("queue.remaining", 3)),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertSameRender(t, tc.src, tc.bnd, tc.want, html.NewContext())
+		})
+	}
+}
+
+func TestParse_Values_Bad_MissingKeyRendersEmpty(t *testing.T) {
+	// A Values miss is data absence, not a document defect: it parses and
+	// renders as empty text, matching the row field-miss behaviour (S:S8.3).
+	got, err := Parse([]byte(`<p>{{absent}}</p>`), Bindings{Values: map[string]any{"present": "x"}})
+	require.NoError(t, err, "a Values miss parses -- absence is not a parse error")
+	assert.Equal(t, "<p></p>", html.Render(got, html.NewContext()), "a missing Values key renders as empty text")
+}
+
+func TestParse_Values_Ugly_RowWinsOverValuesInsideEach(t *testing.T) {
+	// Inside an <each> body a row-prefixed {{path}} resolves to the row even
+	// when Values also carries that root name -- Values does not shadow rows.
+	src := `<each items="rows" as="row"><li>{{row.name}}</li></each>`
+	bnd := Bindings{
+		Sequences: map[string][]map[string]any{"rows": {{"name": "from-row"}}},
+		Values:    map[string]any{"row": map[string]any{"name": "from-values"}},
+	}
+	got, err := Parse([]byte(src), bnd)
+	require.NoError(t, err)
+	out := html.Render(got, html.NewContext())
+	assert.Contains(t, out, "from-row")
+	assert.NotContains(t, out, "from-values")
 }

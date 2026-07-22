@@ -12,13 +12,13 @@ import (
 	html "dappco.re/go/html"
 )
 
-// parser walks one document with encoding/xml.Decoder. eachStack tracks
-// the currently-open <each as="..."> names so a {{path}} token can be
-// rejected at its own position the moment its root name is unbound,
-// rather than failing later, unhelpfully, at materialise time.
+// parser walks one document with encoding/xml.Decoder. A {{path}} token is
+// always syntactically valid: it resolves at materialise time against the
+// nearest enclosing <each> row whose as-name it names, or against
+// Bindings.Values at document scope, with a miss rendering as empty text
+// (docs/ctml.md S:S8). There is therefore no parse-time scope stack to keep.
 type parser struct {
-	dec       *xml.Decoder
-	eachStack []string
+	dec *xml.Decoder
 }
 
 // Parse parses src into the node tree the Go builder API would produce for
@@ -32,7 +32,7 @@ func Parse(src []byte, bindings ...Bindings) (html.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return materialise(root, rootResolver, bnd), nil
+	return materialise(root, valuesResolver(bnd.Values), bnd), nil
 }
 
 // ParseLayout is Parse specialised to documents whose root is <layout>,
@@ -51,14 +51,8 @@ func ParseLayout(src []byte, bindings ...Bindings) (*html.Layout, error) {
 		msg := "root element must be <layout>"
 		return nil, &ParseError{Line: 1, Col: 1, Msg: msg, Cause: core.E("ctml.ParseLayout", msg, nil)}
 	}
-	return materialiseLayout(l, rootResolver, bnd), nil
+	return materialiseLayout(l, valuesResolver(bnd.Values), bnd), nil
 }
-
-// rootResolver backs every {{path}} lookup outside any <each>. It is never
-// actually reached by a tree Parse produced: validateEachRef refuses to
-// parse a {{path}} token with no enclosing <each as="..."> in the first
-// place, so this is defence in depth, not a live path.
-func rootResolver(string) (any, bool) { return nil, false }
 
 func parseRoot(src []byte, bindings []Bindings) (astNode, Bindings, error) {
 	var bnd Bindings
@@ -179,10 +173,7 @@ func (p *parser) applyArgs(children []astNode, raw string) error {
 	if len(children) != 1 {
 		return p.errAt("args attribute requires exactly one text child")
 	}
-	tokens, err := p.parseArgTokens(raw)
-	if err != nil {
-		return err
-	}
+	tokens := p.parseArgTokens(raw)
 	switch t := children[0].(type) {
 	case *astText:
 		t.Args = tokens
@@ -194,7 +185,12 @@ func (p *parser) applyArgs(children []astNode, raw string) error {
 	return nil
 }
 
-func (p *parser) parseArgTokens(raw string) ([]argToken, error) {
+// parseArgTokens splits an args="..." value into its comma-separated tokens
+// (S:S6.4). Each token is either a literal string or a whole {{path}}
+// reference resolved at materialise time against the active scope chain
+// (the enclosing <each> row first, then Bindings.Values). A near-miss like
+// {{oops!}} is not a valid path token, so it stays a literal argument.
+func (p *parser) parseArgTokens(raw string) []argToken {
 	parts := strings.Split(raw, ",")
 	tokens := make([]argToken, 0, len(parts))
 	for _, part := range parts {
@@ -203,15 +199,12 @@ func (p *parser) parseArgTokens(raw string) ([]argToken, error) {
 			continue
 		}
 		if path, ok := matchBindToken(trimmed); ok {
-			if err := p.validateEachRef(path); err != nil {
-				return nil, err
-			}
 			tokens = append(tokens, argToken{Path: path, IsPath: true})
 			continue
 		}
 		tokens = append(tokens, argToken{Lit: trimmed})
 	}
-	return tokens, nil
+	return tokens
 }
 
 // parseContent reads children until the EndElement matching startName,
@@ -244,25 +237,24 @@ func (p *parser) parseContent(startName xml.Name) ([]astNode, error) {
 			if strings.TrimSpace(raw) == "" {
 				continue // pure structural whitespace between siblings
 			}
-			node, err := p.charDataNode(normaliseRun(raw))
-			if err != nil {
-				return nil, err
-			}
-			nodes = append(nodes, node)
+			nodes = append(nodes, p.charDataNode(normaliseRun(raw)))
 		case xml.Comment, xml.ProcInst, xml.Directive:
 			continue
 		}
 	}
 }
 
-func (p *parser) charDataNode(text string) (astNode, error) {
+// charDataNode turns a whole CharData run into either a {{path}} binding
+// reference or a literal i18n key. A binding resolves at materialise time
+// against the nearest enclosing <each> row whose as-name it names, or
+// against Bindings.Values at document scope; either way a miss renders as
+// empty text, so a run is always accepted -- there is no unbound-reference
+// parse error now that Values is a document-wide scope (docs/ctml.md S:S8.3).
+func (p *parser) charDataNode(text string) astNode {
 	if path, ok := matchBindToken(text); ok {
-		if err := p.validateEachRef(path); err != nil {
-			return nil, err
-		}
-		return &astBind{Path: path}, nil
+		return &astBind{Path: path}
 	}
-	return &astText{Key: text}, nil
+	return &astText{Key: text}
 }
 
 // normaliseRun strips a CharData run's leading/trailing whitespace only
@@ -365,9 +357,7 @@ func (p *parser) parseEach(start xml.StartElement) (astNode, error) {
 		return nil, p.errAt("<each> requires an as attribute")
 	}
 
-	p.eachStack = append(p.eachStack, as)
 	children, err := p.parseContent(start.Name)
-	p.eachStack = p.eachStack[:len(p.eachStack)-1]
 	if err != nil {
 		return nil, err
 	}
@@ -537,22 +527,6 @@ func (p *parser) singleLayoutChild(nodes []astNode) (*astLayout, error) {
 		return nil, p.errAt("<variant> requires a <layout> child")
 	}
 	return l, nil
-}
-
-// validateEachRef rejects a {{path}} token at parse time when its root
-// name has no enclosing <each as="...">, per docs/ctml.md S:S8.3 -- an
-// unbound reference is a document defect, not a runtime miss.
-func (p *parser) validateEachRef(path string) error {
-	root := path
-	if i := strings.IndexByte(path, '.'); i >= 0 {
-		root = path[:i]
-	}
-	for _, name := range p.eachStack {
-		if name == root {
-			return nil
-		}
-	}
-	return p.errAt("unbound reference {{" + path + "}}: no enclosing each as=\"" + root + "\"")
 }
 
 func (p *parser) errAt(msg string) error {

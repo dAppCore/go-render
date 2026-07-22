@@ -104,11 +104,12 @@ type argToken struct {
 	IsPath bool
 }
 
-// resolver looks a dotted {{path}} reference up in the active each scope
-// chain. ok is false for an unresolvable path. validateEachRef guarantees
-// every path that survives parsing has a matching astEach ancestor, so a
-// false here at materialise time means the field itself is absent from the
-// item map -- data absence, not a document defect (S:S8.3).
+// resolver looks a dotted {{path}} reference up in the active scope chain:
+// the nearest enclosing <each> row whose as-name the path names, falling
+// through to Bindings.Values at document scope (valuesResolver). ok is false
+// for an unresolvable path -- an absent field, or an absent Values key --
+// which materialise renders as empty text: data absence, not a document
+// defect (docs/ctml.md S:S8.3).
 type resolver func(path string) (any, bool)
 
 // fragment collapses multiple sibling nodes into the single Node that If,
@@ -233,6 +234,19 @@ func resolveArgs(args []argToken, resolve resolver) []any {
 		out[i] = a.Lit
 	}
 	return out
+}
+
+// valuesResolver backs every {{path}} lookup that reaches document scope --
+// a token outside all <each> bodies, or one inside a body whose root name
+// matches no enclosing <each as="...">. It walks the dotted path into
+// Bindings.Values with the same lookupPath semantics an <each> row uses, so
+// {{user}} is Values["user"] and {{user.name}} indexes one level in. A miss
+// (absent key, or a nil Values map) returns ok=false, which materialise
+// renders as empty text -- data absence, not a document defect (S:S8.3).
+func valuesResolver(values map[string]any) resolver {
+	return func(path string) (any, bool) {
+		return lookupPath(values, path)
+	}
 }
 
 func stripEachPrefix(path, asName string) (string, bool) {

@@ -30,7 +30,7 @@ content    := (element | CharData)*
 
 Two content rules apply uniformly, with no special-casing per tag:
 
-- **A run of `CharData`** that is *entirely* whitespace is dropped -- this is how the indentation between pretty-printed sibling elements disappears. A run that has any non-whitespace content becomes a `Text(text)` node, in document order, where `text` is the run with its leading/trailing edge trimmed *only when that edge contains a newline* -- source-formatting indentation is stripped, but a plain inline space at the edge (as in `"Hello "` immediately before a following element) is significant text-flow spacing and survives untouched. The exceptions: inside `<raw>` (S:S6.2), all content is preserved verbatim and unescaped with no whitespace handling at all; inside `<each>` bodies, a run whose entirety (after the same edge rule) is exactly one `{{path}}` token is a binding reference (S:S8.3), not a literal key.
+- **A run of `CharData`** that is *entirely* whitespace is dropped -- this is how the indentation between pretty-printed sibling elements disappears. A run that has any non-whitespace content becomes a `Text(text)` node, in document order, where `text` is the run with its leading/trailing edge trimmed *only when that edge contains a newline* -- source-formatting indentation is stripped, but a plain inline space at the edge (as in `"Hello "` immediately before a following element) is significant text-flow spacing and survives untouched. The exceptions: inside `<raw>` (S:S6.2), all content is preserved verbatim and unescaped with no whitespace handling at all; a run whose entirety (after the same edge rule) is exactly one `{{path}}` token is a binding reference (S:S8.3) -- resolved against the enclosing `<each>` row inside an each body, or against `Bindings.Values` at document scope outside one -- not a literal key.
 - **A child element** becomes its own node, in document order, interleaved with any `Text`/bind nodes from adjacent `CharData` runs.
 
 This is why `<p>Hello <strong>world</strong>!</p>` needs no special mixed-content handling: it is `El("p", Text("Hello "), El("strong", Text("world")), Text("!"))` by the same two rules applied three times -- note the space kept on `"Hello "`.
@@ -129,8 +129,11 @@ S:S1.5 already states the constraint; this section is the mechanism. `Parse` tak
 ```go
 type Bindings struct {
 	Sequences map[string][]map[string]any
+	Values    map[string]any
 }
 ```
+
+`Sequences` supplies the row lists for `<each>` (this section); `Values` supplies the document-wide scalars a lone `{{path}}` outside any `<each>` resolves against (S:S8.5). Both are supplied at parse time and both are optional -- an absent name in either map is data absence, not a parse error.
 
 `<each items="repos" as="row">` looks `"repos"` up in `Bindings.Sequences` **at parse time** and calls the real, exported generic constructor:
 
@@ -148,16 +151,36 @@ Because `fn` is a closure stored on the returned `*eachNode[map[string]any]` and
 
 ### 8.3 `{{path}}` binding references
 
-A `{{path}}` token is recognised in exactly two places: as the entire trimmed content of a text run inside an `<each as="name">` body, or as one comma-separated token inside an `args=` attribute (S:S6.4), also inside such a body. `path` is `name` followed by one or more dotted field steps (`row.name`, `row.address.city`), each step indexing one level into the current item's `map[string]any` (or a nested map found there). There is no other operator -- no filters, no arithmetic, no comparisons.
+A `{{path}}` token is recognised in two places: as the entire trimmed content of a text run (S:S2), or as one comma-separated token inside an `args=` attribute (S:S6.4). `path` is an identifier followed by zero or more dotted field steps (`greeting`, `row.name`, `user.address.city`), each step indexing one level into a `map[string]any` (or a nested map found there). There is no other operator -- no filters, no arithmetic, no comparisons.
 
-- As whole text-run content: `<li>{{row.name}}</li>` compiles the body closure to call `Text(stringOf(row["name"]))` -- resolved fresh on every invocation of `fn`, HTML-escaped (or term-styled) exactly like any other `Text` node, via the real constructor.
+Resolution is by scope, innermost first: if `path`'s root identifier names an enclosing `<each as="...">`, the token resolves against that row (the nearest such each wins, so nested loops stay unambiguous); otherwise it resolves against `Bindings.Values` at document scope (S:S8.5). Row scope always wins over `Values` -- a `Values` key never shadows a row name.
+
+- As whole text-run content: `<li>{{row.name}}</li>` compiles to `Text(stringOf(resolve("row.name")))` -- resolved fresh on every invocation of the body closure, HTML-escaped (or term-styled) exactly like any other `Text` node, via the real constructor.
 - As an `args` token: the resolved value (kept as its native Go type -- `string`, `int`, `float64`, `bool`) is passed straight through as one positional argument, so a translator can format it (pluralise, localise a number) rather than CTML stringifying it up front.
 
-A `{{path}}` token whose root name has no enclosing `<each as="...">`, or whose remaining path segments are not found in the item map at render time, is a **parse-time error** for the former (S:S9 -- the binding is structurally unreachable, caught while walking the body) and renders as an empty string for the latter (a missing field is data absence, not a document defect, mirroring `Options.Get`'s own miss-is-empty convention elsewhere in CoreGO).
+Every miss renders as the empty string -- an absent field, an absent `Values` key, or a nil map alike: a `{{path}}` that resolves to nothing is data absence, not a document defect, mirroring `Options.Get`'s own miss-is-empty convention elsewhere in CoreGO. There is therefore **no unbound-reference parse error**: because `Values` is a document-wide scope, every syntactically valid `{{path}}` has a resolution target, and supplying the data stays a parse-time-optional concern (S:S8.1) -- exactly as an absent `items` sequence renders as an empty list rather than failing to parse.
 
 ### 8.4 What `{{path}}` deliberately does not do
 
 Mixed static-and-dynamic text in one run (`Cost: {{row.amount}}`) is not supported as a single token; wrap the dynamic part in its own element (`Cost: <b>{{row.amount}}</b>`) or use `args` with a catalogue message (`<span args="{{row.amount}}">cost.line</span>`, catalogue entry `"Cost: {0}"`). This keeps word order translator-controlled rather than baked into the markup, and keeps the token grammar to "the whole run or nothing" -- no partial-run scanning to specify.
+
+### 8.5 Scalar values: `{{path}}` outside an `<each>`
+
+`Bindings.Values` is a flat `map[string]any` of document-wide scalars, the companion to `Sequences`. A lone dynamic value -- a title, a count, a username -- rides `Values` directly rather than having to be wrapped in a one-row `<each>` just to be referenced:
+
+```xml
+<h1>{{page.title}}</h1>
+<p args="{{unread}}">inbox.count</p>
+```
+
+```go
+ctml.Parse(src, ctml.Bindings{Values: map[string]any{
+	"page":   map[string]any{"title": "Dashboard"},
+	"unread": 4,
+}})
+```
+
+A whole-run `{{path}}` (or an `args` token) whose root identifier matches no enclosing `<each>` resolves against `Values` with the same `lookupPath` semantics a row uses: `{{unread}}` is `Values["unread"]`, `{{page.title}}` indexes one level into the nested map, and a native Go value passed as an `args` token keeps its type for the translator. Inside an `<each>` body a row-prefixed path still resolves to the row (S:S8.3) -- `Values` does not shadow rows -- so the two scopes never collide by accident. Like `Sequences`, `Values` may be omitted when parsing a document standalone; every unmatched key simply renders empty.
 
 ## 9. Errors
 
@@ -171,7 +194,7 @@ type ParseError struct {
 }
 ```
 
-`Line`/`Col` come from `xml.Decoder.InputPos()` at the point the offending token was read (malformed XML) or the point the offending element/attribute was being interpreted (a reserved element used wrongly, an unbound `{{path}}`, `args` on mixed content, and so on) -- both classes of error carry real, non-zero positions, not just a wrapped stdlib message.
+`Line`/`Col` come from `xml.Decoder.InputPos()` at the point the offending token was read (malformed XML) or the point the offending element/attribute was being interpreted (a reserved element used wrongly, `args` on mixed content, and so on) -- both classes of error carry real, non-zero positions, not just a wrapped stdlib message.
 
 ## 10. Package API
 
@@ -180,6 +203,7 @@ package ctml // dappco.re/go/html/ctml
 
 type Bindings struct {
 	Sequences map[string][]map[string]any
+	Values    map[string]any
 }
 
 type ParseError struct {
