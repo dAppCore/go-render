@@ -161,6 +161,8 @@ func termIsBlock(n Node) bool {
 		return t != nil && termBlockTags[t.tag]
 	case *Layout, *Responsive:
 		return true
+	case *verbatimNode:
+		return true
 	default:
 		return false
 	}
@@ -225,6 +227,14 @@ func (r *termRenderer) inline(n Node, inherited lipgloss.Style) string {
 			return ""
 		}
 		return inherited.Render(termRawContent(t.content))
+	case *verbatimNode:
+		// First-class case (not the default): a Verbatim node passes its
+		// bytes through untouched -- no inherited style, no strip, no wrap.
+		// Falling to the default would re-resolve to itself and spin.
+		if t == nil {
+			return ""
+		}
+		return t.content
 	case *elNode:
 		return r.inlineEl(t, inherited)
 	case *Layout, *Responsive:
@@ -363,6 +373,14 @@ func (r *termRenderer) block(n Node, width int) []string {
 		return []string{t.renderTermFrame(r, width), ""}
 	case *Responsive:
 		return []string{t.renderTermPick(r, width), ""}
+	case *verbatimNode:
+		// The block path for Verbatim: its content is emitted as one raw
+		// unit -- no width wrapping, no whitespace normalisation, no trailing
+		// blank line -- so pre-styled ANSI survives byte-for-byte.
+		if t == nil {
+			return nil
+		}
+		return []string{t.content}
 	case *elNode:
 		return r.blockEl(t, width)
 	default:

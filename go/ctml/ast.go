@@ -39,6 +39,10 @@ type astBind struct {
 
 type astRaw struct{ Content string }
 
+// astVerbatim carries pre-styled terminal bytes resolved from
+// Bindings.Values at parse time (S:S6.5); it materialises to html.Verbatim.
+type astVerbatim struct{ Content string }
+
 type astIf struct {
 	CondKey string
 	Child   astNode
@@ -86,6 +90,7 @@ func (*astEl) isAstNode()         {}
 func (*astText) isAstNode()       {}
 func (*astBind) isAstNode()       {}
 func (*astRaw) isAstNode()        {}
+func (*astVerbatim) isAstNode()   {}
 func (*astIf) isAstNode()         {}
 func (*astUnless) isAstNode()     {}
 func (*astSwitch) isAstNode()     {}
@@ -158,6 +163,8 @@ func materialise(n astNode, resolve resolver, bnd Bindings) html.Node {
 		return html.Text(stringOf(v), resolveArgs(t.Args, resolve)...)
 	case *astRaw:
 		return html.Raw(t.Content)
+	case *astVerbatim:
+		return html.Verbatim(t.Content)
 	case *astIf:
 		return html.If(dataTruthyFunc(t.CondKey), materialise(t.Child, resolve, bnd))
 	case *astUnless:

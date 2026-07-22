@@ -210,6 +210,29 @@ func TestTerm_DefinitionTermWrapsToWidth(t *testing.T) {
 	}
 }
 
+func TestTerm_Verbatim_PassesAnsiByteExact(t *testing.T) {
+	// A Verbatim node passes its (already terminal-ready) bytes through the
+	// terminal renderer untouched: no StripTags (the <not-a-tag> survives),
+	// no whitespace normalisation (the double space survives), no width
+	// wrapping (a width of 4 does not fold the long line). Pre-styled ANSI
+	// -- e.g. Glamour-rendered markdown -- reaches the terminal byte-for-byte.
+	ansi := "\x1b[1mBOLD\x1b[0m  \x1b[38;5;42mgreen\x1b[0m\n<not-a-tag> kept"
+	out := RenderTerm(Verbatim(ansi), NewContext(), TermOptions{Width: 4})
+	assert.Equal(t, ansi, out, "verbatim content is emitted byte-for-byte")
+}
+
+func TestTerm_Verbatim_InsideComposedChrome(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+	// The intended shape: pre-styled ANSI placed inside composed chrome. The
+	// verbatim bytes survive intact even though the surrounding block renders
+	// through the normal styled path.
+	ansi := "\x1b[31mred\x1b[0m"
+	out := RenderTerm(El("div", El("h2", Text("head")), Verbatim(ansi)), termTestContext(map[string]string{"head": "Section"}))
+	assert.Contains(t, out, ansi, "verbatim bytes survive inside a composed block")
+	assert.Contains(t, out, "Section", "sibling chrome still renders")
+}
+
 func TestTerm_RenderTerm_Table(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()

@@ -482,3 +482,42 @@ func TestParse_Values_Ugly_RowWinsOverValuesInsideEach(t *testing.T) {
 	assert.Contains(t, out, "from-row")
 	assert.NotContains(t, out, "from-values")
 }
+
+func TestParse_Verbatim_Good(t *testing.T) {
+	// <verbatim value="key"/> wires its content from Bindings.Values[key] at
+	// parse time; the parsed tree renders identically to a hand-built
+	// html.Verbatim under both renderers (HTML escapes, term passes through).
+	ansi := "\x1b[1mpre-styled\x1b[0m <not-a-tag>"
+	src := `<div><verbatim value="banner"/></div>`
+	bnd := []Bindings{{Values: map[string]any{"banner": ansi}}}
+	want := html.El("div", html.Verbatim(ansi))
+	got := assertSameRender(t, src, bnd, want, html.NewContext())
+	// And the term bytes reach output untouched via the ctml path.
+	assert.Contains(t, html.RenderTerm(got, html.NewContext()), ansi)
+}
+
+func TestParse_Verbatim_Bad(t *testing.T) {
+	tests := []struct {
+		name    string
+		src     string
+		bnd     Bindings
+		wantMsg string
+	}{
+		{"bad: missing value attribute", `<verbatim/>`, Bindings{Values: map[string]any{"k": "x"}}, "requires a value attribute"},
+		{"bad: key absent from Values", `<verbatim value="missing"/>`, Bindings{Values: map[string]any{"k": "x"}}, "no such key in Bindings.Values"},
+		{"bad: value is not a string", `<verbatim value="n"/>`, Bindings{Values: map[string]any{"n": 42}}, "is not a string"},
+		{"bad: child text content is rejected", `<verbatim value="k">oops</verbatim>`, Bindings{Values: map[string]any{"k": "x"}}, "cannot contain text content"},
+		{"bad: child element is rejected", `<verbatim value="k"><b/></verbatim>`, Bindings{Values: map[string]any{"k": "x"}}, "cannot contain child elements"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Parse([]byte(tc.src), tc.bnd)
+			require.Error(t, err)
+			var pe *ParseError
+			require.ErrorAs(t, err, &pe)
+			assert.Contains(t, pe.Msg, tc.wantMsg)
+			assert.Greater(t, pe.Line, 0, "line is populated")
+			assert.Greater(t, pe.Col, 0, "column is populated")
+		})
+	}
+}

@@ -25,6 +25,7 @@ type Node interface {
 // Compile-time interface checks.
 var (
 	_ Node = (*rawNode)(nil)
+	_ Node = (*verbatimNode)(nil)
 	_ Node = (*elNode)(nil)
 	_ Node = (*textNode)(nil)
 	_ Node = (*ifNode)(nil)
@@ -80,6 +81,39 @@ func (n *rawNode) Render(_ *Context) string {
 }
 
 func (n *rawNode) renderWithLayoutPath(_ *Context, _ string) string {
+	return n.Render(nil)
+}
+
+// --- verbatimNode ---
+
+type verbatimNode struct {
+	content string
+}
+
+// Verbatim creates a node whose content passes through the TERMINAL renderer
+// byte-for-byte: no tag stripping, no whitespace normalisation, no width
+// wrapping. It is the escape hatch for content that is already terminal-ready
+// -- most importantly pre-styled ANSI (e.g. Glamour-rendered markdown) a
+// caller wants to place inside composed chrome. Because the caller owns the
+// bytes, the caller also owns fitting them to the target width.
+//
+// Under the HTML renderer the same content is HTML-escaped as ordinary text
+// -- a safe default, since raw ANSI/control bytes are meaningless (and unsafe)
+// in an HTML sink. Use Raw for trusted HTML markup; Verbatim is for trusted
+// terminal bytes.
+// Usage example: Verbatim("\x1b[1mBOLD\x1b[0m plain")
+func Verbatim(content string) Node {
+	return &verbatimNode{content: content}
+}
+
+func (n *verbatimNode) Render(_ *Context) string {
+	if n == nil {
+		return ""
+	}
+	return escapeHTML(n.content)
+}
+
+func (n *verbatimNode) renderWithLayoutPath(_ *Context, _ string) string {
 	return n.Render(nil)
 }
 
@@ -167,6 +201,8 @@ func isNilNode(n Node) bool {
 
 	switch t := n.(type) {
 	case *rawNode:
+		return t == nil
+	case *verbatimNode:
 		return t == nil
 	case *elNode:
 		return t == nil

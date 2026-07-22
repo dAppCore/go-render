@@ -17,8 +17,11 @@ import (
 // nearest enclosing <each> row whose as-name it names, or against
 // Bindings.Values at document scope, with a miss rendering as empty text
 // (docs/ctml.md S:S8). There is therefore no parse-time scope stack to keep.
+// bnd is held so <verbatim value="key"/> can resolve its pre-styled content
+// from Bindings.Values at parse time (S:S6.5).
 type parser struct {
 	dec *xml.Decoder
+	bnd Bindings
 }
 
 // Parse parses src into the node tree the Go builder API would produce for
@@ -60,7 +63,7 @@ func parseRoot(src []byte, bindings []Bindings) (astNode, Bindings, error) {
 		bnd = bindings[0]
 	}
 
-	p := &parser{dec: xml.NewDecoder(bytes.NewReader(src))}
+	p := &parser{dec: xml.NewDecoder(bytes.NewReader(src)), bnd: bnd}
 
 	for {
 		tok, err := p.dec.Token()
@@ -112,7 +115,7 @@ func (p *parser) expectTrailingEOF() error {
 	}
 }
 
-// parseElement dispatches on the fifteen reserved tag names (S:S3); every
+// parseElement dispatches on the sixteen reserved tag names (S:S3); every
 // other tag is a literal element (parseEl).
 func (p *parser) parseElement(start xml.StartElement) (astNode, error) {
 	switch start.Name.Local {
@@ -130,6 +133,8 @@ func (p *parser) parseElement(start xml.StartElement) (astNode, error) {
 		return p.parseEach(start)
 	case "raw":
 		return p.parseRaw(start)
+	case "verbatim":
+		return p.parseVerbatim(start)
 	case "layout":
 		return p.parseLayout(start)
 	case "h", "l", "c", "r", "f":
@@ -453,6 +458,57 @@ func (p *parser) parseRaw(start xml.StartElement) (astNode, error) {
 			return nil, p.errAt("mismatched closing tag in <raw>")
 		case xml.StartElement:
 			return nil, p.errAt("<raw> cannot contain child elements")
+		case xml.Comment, xml.ProcInst, xml.Directive:
+			continue
+		}
+	}
+}
+
+// parseVerbatim reads <verbatim value="key"/>, resolving its content from
+// Bindings.Values[key] at parse time (S:S6.5). Pre-styled ANSI/control bytes
+// cannot live in XML markup, so the content is supplied through the binding
+// rather than as element children: an absent key, or a non-string value, is
+// a position-accurate parse error, and any child content is rejected.
+func (p *parser) parseVerbatim(start xml.StartElement) (astNode, error) {
+	key, ok := attrValue(start, "value")
+	if !ok {
+		return nil, p.errAt("<verbatim> requires a value attribute")
+	}
+	raw, ok := p.bnd.Values[key]
+	if !ok {
+		return nil, p.errAt("<verbatim value=\"" + key + "\">: no such key in Bindings.Values")
+	}
+	content, ok := raw.(string)
+	if !ok {
+		return nil, p.errAt("<verbatim value=\"" + key + "\">: Bindings.Values[\"" + key + "\"] is not a string")
+	}
+	if err := p.expectEmptyElement(start.Name); err != nil {
+		return nil, err
+	}
+	return &astVerbatim{Content: content}, nil
+}
+
+// expectEmptyElement consumes the body of a self-closing or empty element up
+// to its matching end tag, rejecting any child element or non-whitespace
+// text -- <verbatim>'s content comes from a binding, not from markup.
+func (p *parser) expectEmptyElement(name xml.Name) error {
+	for {
+		tok, err := p.dec.Token()
+		if err != nil {
+			return p.wrapXMLErr(err)
+		}
+		switch t := tok.(type) {
+		case xml.EndElement:
+			if t.Name == name {
+				return nil
+			}
+			return p.errAt("mismatched closing tag")
+		case xml.StartElement:
+			return p.errAt("<verbatim> cannot contain child elements")
+		case xml.CharData:
+			if strings.TrimSpace(string(t)) != "" {
+				return p.errAt("<verbatim> cannot contain text content")
+			}
 		case xml.Comment, xml.ProcInst, xml.Directive:
 			continue
 		}

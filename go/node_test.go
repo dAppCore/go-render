@@ -17,6 +17,26 @@ func TestRawNode_Render_Good(t *testing.T) {
 	}
 }
 
+func TestVerbatimNode_Render_Good(t *testing.T) {
+	ctx := NewContext()
+	// Unlike Raw, the HTML render of Verbatim ESCAPES: ANSI/markup bytes are
+	// inert text in an HTML sink, so <b> becomes &lt;b&gt; and the ESC bytes
+	// survive as literal text (they are not among the escaped characters).
+	node := Verbatim("\x1b[1m<b>x</b>\x1b[0m")
+	got := node.Render(ctx)
+	want := "\x1b[1m&lt;b&gt;x&lt;/b&gt;\x1b[0m"
+	if got != want {
+		t.Errorf("Verbatim(...).Render() = %q, want %q", got, want)
+	}
+}
+
+func TestVerbatimNode_Render_Bad_NilSafe(t *testing.T) {
+	var node *verbatimNode
+	if got := node.Render(NewContext()); got != "" {
+		t.Errorf("nil verbatimNode.Render() = %q, want empty", got)
+	}
+}
+
 func TestElNode_Render_Good(t *testing.T) {
 	ctx := NewContext()
 	node := El("div", Raw("content"))
