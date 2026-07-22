@@ -149,7 +149,7 @@ It maps to the exported `Verbatim` node in package `html` either way -- only *wh
 
 ## 7. Conditions and selectors: `Context.Data` by key
 
-`If`/`Unless` need a `func(*Context) bool`; `Switch` needs a `func(*Context) string`. Both are genuine per-render closures in the Go API, and both receive only `*Context` -- so both are the one place CTML dynamism can honestly reach *render-time* state, by naming a `Context.Data` key.
+`If`/`Unless` need a `func(*Context) bool`; `Switch` needs a `func(*Context) string`. Both are genuine per-render closures in the Go API, and both receive only `*Context` -- so both are the one place CTML dynamism can honestly reach *render-time* state, by naming a `Context.Data` key. Because that closure sees only document-scope `Context.Data` and never an `<each>` row, a condition resolves at **document scope**, not per row -- a row varies its values, never its structure (S:S8.6).
 
 ### 7.1 `cond` truthiness
 
@@ -231,6 +231,16 @@ ctml.Parse(src, ctml.Bindings{Values: map[string]any{
 ```
 
 A whole-run `{{path}}` (or an `args` token) whose root identifier matches no enclosing `<each>` resolves against `Values` with the same `lookupPath` semantics a row uses: `{{unread}}` is `Values["unread"]`, `{{page.title}}` indexes one level into the nested map, and a native Go value passed as an `args` token keeps its type for the translator. Inside an `<each>` body a row-prefixed path still resolves to the row (S:S8.3) -- `Values` does not shadow rows -- so the two scopes never collide by accident. Like `Sequences`, `Values` may be omitted when parsing a document standalone; every unmatched key simply renders empty.
+
+### 8.6 Rows vary values, not structure -- conditionals are document-scope
+
+An `<each>` row can vary its **values** but never its **structure**. The body subtree is built once (S:S8.1) and re-evaluated per row only to resolve its `{{path}}` binds (S:S8.3) and any `<verbatim>` row value (S:S6.5) against that row's data -- every row renders the *same node shape* with different data plugged in. There is no way for one row to render a different tree than its siblings.
+
+This is a direct consequence of where conditions read from. `<if>`/`<unless>`/`<switch>` compile to closures that receive only `*Context` (S:S7), so they resolve against **document-scope `Context.Data`**, never against a row. A condition inside an `<each>` body is therefore **row-invariant**: it is re-checked on each render (and, inside a body, once per row), but it reads the same document key every time, so it includes or excludes its child *identically for every row*. It can gate the whole list, or gate a fixed part of every row, but it cannot branch on `row.kind` to give this row a different shape than the next. A `{{path}}` is the same -- a named lookup, no comparisons or branching (S:S8.4).
+
+**This is a deliberate design bound, not a gap.** Row-scoped *structural* branching -- "if this row is a tool call render this subtree, otherwise that one" -- is the defining feature of a template language, and per-row expression evaluation over row scope is exactly what CTML is not (S:S1: closed vocabulary, no expression language). Adding it would mean conditions that read row scope plus an operator set to test them -- the expression engine S:S8.4 refuses on purpose.
+
+**The pattern for per-row structure is host-side pre-forming.** Decide each row's shape in Go, render (or pre-style) one body per row there, and bind the finished body per row -- a `<verbatim>` value carrying the row's already-rendered content (S:S6.5), or `Sequences` whose rows already differ in the fields the one fixed body reads. A chat transcript with per-turn role branching keeps the branch in the host and hands `<each>` one pre-formed body per turn: correct under this design, and the reason the row loop stays a data loop, not a program.
 
 ## 9. Errors
 
