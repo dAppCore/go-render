@@ -401,7 +401,7 @@ func (r *termRenderer) blockEl(el *elNode, width int) []string {
 	case "dl":
 		return r.definitionList(el, width)
 	case "dt":
-		return []string{r.childrenInline(el.children, r.classStyle(el, r.theme.Strong))}
+		return []string{r.definitionTerm(el, width)}
 	case "dd":
 		return termIndent(r.blocks(el.children, width-2), "  ")
 	case "pre":
@@ -503,7 +503,7 @@ func (r *termRenderer) definitionList(el *elNode, width int) []string {
 			}
 			switch item.tag {
 			case "dt":
-				out = append(out, r.childrenInline(item.children, r.theme.Strong))
+				out = append(out, r.definitionTerm(item, width))
 			case "dd":
 				out = append(out, termIndent(r.blocks(item.children, width-2), "  ")...)
 			}
@@ -513,6 +513,17 @@ func (r *termRenderer) definitionList(el *elNode, width int) []string {
 		return nil
 	}
 	return append(out, "")
+}
+
+// definitionTerm renders a <dt> as a width-wrapped strong line. A <dt> is
+// inline-flow content like <p>, so it gets the same Width treatment its
+// sibling blocks (<p>, <dd>) already get: a term longer than the render
+// width wraps onto further lines instead of overflowing as one clipped
+// inline line. Both the standalone-block dt path (blockEl) and the dt inside
+// a <dl> (definitionList) route through here so they wrap identically.
+func (r *termRenderer) definitionTerm(el *elNode, width int) string {
+	text := r.childrenInline(el.children, r.classStyle(el, r.theme.Strong))
+	return r.theme.Strong.Width(width).Render(text)
 }
 
 // table collects thead/tbody/tr/th/td content and renders a bordered table.

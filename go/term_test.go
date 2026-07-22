@@ -172,6 +172,44 @@ func TestTerm_RenderTerm(t *testing.T) {
 	}
 }
 
+func TestTerm_DefinitionTermWrapsToWidth(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// A term far longer than the render width: it must wrap onto further
+	// lines like every sibling block, not overflow as one clipped line.
+	term := strings.TrimSpace(strings.Repeat("alpha ", 20)) // 20 words, ~119 cols
+	const width = 24
+
+	tests := []struct {
+		name string
+		node Node
+	}{
+		{
+			name: "good: standalone dt wraps",
+			node: El("dt", Text("term")),
+		},
+		{
+			name: "good: dt inside dl wraps",
+			node: El("dl", El("dt", Text("term")), El("dd", Text("def"))),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := termTestContext(map[string]string{"term": term, "def": "definition"})
+			out := termStripANSI(RenderTerm(tc.node, ctx, TermOptions{Width: width}))
+
+			lines := strings.Split(out, "\n")
+			assert.Greater(t, len(lines), 1, "a term wider than the render width must wrap to multiple lines")
+			for _, line := range lines {
+				assert.LessOrEqual(t, lipgloss.Width(line), width, "no rendered line exceeds the render width")
+			}
+			assert.Equal(t, 20, strings.Count(out, "alpha"), "wrapping loses no content")
+		})
+	}
+}
+
 func TestTerm_RenderTerm_Table(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()
