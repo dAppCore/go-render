@@ -12,7 +12,7 @@ This document is the grammar. A reader who has never seen the parser source shou
 ## 1. Design principles
 
 1. **Closed vocabulary, no expression language.** `go-html`'s own architecture doc is explicit that the HTML layer is "not a general-purpose template engine -- no arbitrary expressions, no template inheritance, no macros" (RFC-CORE-006 S:S2). CTML inherits that constraint rather than relaxing it: every dynamic construct in this document resolves to a named lookup (a `Context.Data` key, an item field, a bindings entry), never a parsed expression, operator, or function call.
-2. **The parser only ever calls exported constructors.** `go-html`'s terminal renderer (`term.go`) walks a node tree with a type switch; any concrete type it does not recognise falls through to a code path that re-wraps and re-visits the same node -- an infinite loop, not a graceful no-op (traced in `term.go`'s `resolve`/`inline` default cases). Go additionally treats an unexported interface method (`termExpandable.termNodes()`) as identified by *package*, not by spelling, so a type declared outside the `html` package can never satisfy it. Both facts together mean CTML must never introduce a custom `Node` implementation -- every parsed element becomes a real `El`/`Text`/`Raw`/`If`/`Unless`/`Switch`/`Each`/`EachSeq`/`Entitled`/`Layout`/`Responsive` value, so it is automatically safe under both renderers with no CTML-specific cases in either.
+2. **The parser only ever calls exported constructors.** `go-html`'s terminal renderer (`term.go`) walks a node tree with a type switch; any concrete type it does not recognise falls through to a code path that re-wraps and re-visits the same node -- an infinite loop, not a graceful no-op (traced in `term.go`'s `resolve`/`inline` default cases). Go additionally treats an unexported interface method (`termExpandable.termNodes()`) as identified by *package*, not by spelling, so a type declared outside the `html` package can never satisfy it. Both facts together mean CTML must never introduce a custom `Node` implementation -- every parsed element becomes a real `El`/`Text`/`Raw`/`Verbatim`/`If`/`Unless`/`Switch`/`Each`/`EachSeq`/`Entitled`/`Layout`/`Responsive` value, so it is automatically safe under both renderers with no CTML-specific cases in either. (`Verbatim` (S:S6.5) is a real `html` node like `Raw`, added to package `html` and handled as a first-class case in the terminal type switch -- not a CTML-side `Node` type.)
 3. **Attributes are static.** `elNode.attrs` is a plain `map[string]string` fixed at construction time -- the Go API itself has no mechanism to re-evaluate an attribute value per render. CTML does not invent one: attribute values in a `.ctml` file are literal strings, full stop. (Dynamic *content* is still possible -- see S:S7-8 -- because `Text`, `If`, `Unless`, `Switch` and `Each` each defer part of their work to render time or to a fresh per-item closure; attributes simply are not one of those seams.)
 4. **Text content doubles as its own i18n key and fallback.** `Text(key, args...)` looks the key up through the active `Translator`; every translator seen in this codebase (`go-i18n`, the WASM stub, the test `mapTranslator`) echoes the key verbatim when no catalogue entry exists. CTML exploits that convention: an element's text content *is* the i18n key, so a page reads as plain copy and is translation-ready with zero extra markup.
 5. **Data-driven lists bind at parse time, not render time.** `Each(items []T, fn func(T) Node)` fixes `items` when the node is constructed; nothing in the exported API lets a list's *membership* vary per `Render(ctx)` call (only per-item rendering re-runs, because `fn` is invoked fresh each render). CTML is honest about this rather than papering over it: `<each>` sources its rows from a `Bindings` value supplied to `Parse`, not from `Context.Data`. If the underlying data changes, re-parse (or re-bind) -- exactly the constraint a hand-written `Each(repos, fn)` call already has.
@@ -30,7 +30,7 @@ content    := (element | CharData)*
 
 Two content rules apply uniformly, with no special-casing per tag:
 
-- **A run of `CharData`** that is *entirely* whitespace is dropped -- this is how the indentation between pretty-printed sibling elements disappears. A run that has any non-whitespace content becomes a `Text(text)` node, in document order, where `text` is the run with its leading/trailing edge trimmed *only when that edge contains a newline* -- source-formatting indentation is stripped, but a plain inline space at the edge (as in `"Hello "` immediately before a following element) is significant text-flow spacing and survives untouched. The exceptions: inside `<raw>` (S:S6.2), all content is preserved verbatim and unescaped with no whitespace handling at all; inside `<each>` bodies, a run whose entirety (after the same edge rule) is exactly one `{{path}}` token is a binding reference (S:S8.3), not a literal key.
+- **A run of `CharData`** that is *entirely* whitespace is dropped -- this is how the indentation between pretty-printed sibling elements disappears. A run that has any non-whitespace content becomes a `Text(text)` node, in document order, where `text` is the run with its leading/trailing edge trimmed *only when that edge contains a newline* -- source-formatting indentation is stripped, but a plain inline space at the edge (as in `"Hello "` immediately before a following element) is significant text-flow spacing and survives untouched. The exceptions: inside `<raw>` (S:S6.2), all content is preserved verbatim and unescaped with no whitespace handling at all; and any `{{path}}` token within a run is a binding reference (S:S8.3), splitting the run into interleaved bind nodes and literal-text `Text` nodes -- so `○ {{tab.label}}` becomes `Text("○ ")` then the bind, and a run that is exactly one token becomes a lone bind. The edge rule is applied to the whole run before this split, not per segment, and empty text segments are dropped. Each bind resolves against the enclosing `<each>` row inside an each body, or against `Bindings.Values` at document scope outside one.
 - **A child element** becomes its own node, in document order, interleaved with any `Text`/bind nodes from adjacent `CharData` runs.
 
 This is why `<p>Hello <strong>world</strong>!</p>` needs no special mixed-content handling: it is `El("p", Text("Hello "), El("strong", Text("world")), Text("!"))` by the same two rules applied three times -- note the space kept on `"Hello "`.
@@ -41,6 +41,7 @@ This is why `<p>Hello <strong>world</strong>!</p>` needs no special mixed-conten
 |---|---|---|
 | any tag not listed below | `El(tag, children...)` | every XML attribute becomes `Attr(node, key, value)`; void tags (`br`, `hr`, `img`, `input`, ...) must self-close |
 | `<raw>...</raw>` | `Raw(content)` | content is the concatenation of every `CharData` token inside, unescaped and whitespace-preserved; element children are not permitted (trusted-content escape hatch, matching the Go doc comment on `Raw`) |
+| `<verbatim value="key"/>` | `Verbatim(Bindings.Values[key])` | self-closing; content is the pre-styled terminal string at `Values[key]` (must be a present `string`, else a parse error -- S:S6.5); terminal render passes it through byte-for-byte, HTML render escapes it |
 | `<if cond="key">child</if>` | `If(f, child)` | `f` tests `Context.Data[key]` for truthiness (S:S7.1); exactly one logical child (S:S2 content rules; multiple element children are wrapped, S:S6.1) |
 | `<unless cond="key">child</unless>` | `Unless(f, child)` | mirrors `<if>` with the condition inverted at the `Unless` call, not by negating `f` |
 | `<switch on="key"><case value="a">...</case>...</switch>` | `Switch(sel, cases)` | `sel` returns the string at `Context.Data[key]` (S:S7.2); each `<case>` becomes one `cases[value]` entry |
@@ -52,7 +53,7 @@ This is why `<p>Hello <strong>world</strong>!</p>` needs no special mixed-conten
 | `<responsive>variants</responsive>` | `NewResponsive().Add(name, layout, media)` | wraps one or more `<variant>` |
 | `<variant name="desktop" media="...">layout</variant>` | one `Responsive.Add` entry | valid only as a direct child of `<responsive>`; must contain exactly one `<layout>` |
 
-Fifteen reserved tag names in total: `if`, `unless`, `switch`, `case`, `entitled`, `each`, `raw`, `layout`, `h`, `l`, `c`, `r`, `f`, `responsive`, `variant`. None collides with a real HTML element name, so every other tag -- `div`, `p`, `h1`, `table`, `button`, an author's own custom element name -- passes straight through to `El` unmodified. This is deliberate: CTML does not maintain an allow-list of "known HTML tags"; anything not reserved is structural, exactly like calling `El` in Go.
+Sixteen reserved tag names in total: `if`, `unless`, `switch`, `case`, `entitled`, `each`, `raw`, `verbatim`, `layout`, `h`, `l`, `c`, `r`, `f`, `responsive`, `variant`. None collides with a real HTML element name, so every other tag -- `div`, `p`, `h1`, `table`, `button`, an author's own custom element name -- passes straight through to `El` unmodified. This is deliberate: CTML does not maintain an allow-list of "known HTML tags"; anything not reserved is structural, exactly like calling `El` in Go.
 
 ## 4. Why wrapper elements, not directive attributes
 
@@ -99,6 +100,29 @@ func fragment(nodes []html.Node) html.Node {
 <p args="{{row.count}}">queue.remaining</p>
 ```
 
+### 6.5 `<verbatim>` for pre-styled terminal content
+
+`<raw>` cannot carry pre-styled ANSI: escape/control bytes are invalid in XML markup, and the terminal renderer routes `Raw` through `StripTags` and whitespace normalisation (which would mangle escape sequences). `<verbatim>` is the escape hatch for content that is *already terminal-ready* -- most importantly Glamour-rendered markdown a caller wants to drop inside composed chrome.
+
+Because the bytes cannot live in markup, the content is supplied through a binding, not as element children:
+
+```xml
+<verbatim value="rendered"/>
+```
+
+```go
+ctml.Parse(src, ctml.Bindings{Values: map[string]any{
+	"rendered": glamourOutput, // pre-styled ANSI string
+}})
+```
+
+`value="key"` names a `Bindings.Values` entry that must be present and a `string`; an absent key or a non-string value is a position-accurate parse error (S:S9). The element is empty (self-closing, or open/close with no content) -- any child element or non-whitespace text is a parse error. It maps to the exported `Verbatim` node in package `html`:
+
+- **Terminal render**: the content is emitted exactly as-is -- no `StripTags`, no whitespace normalisation, no width wrapping. The caller owns fitting the bytes to the target width.
+- **HTML render**: the content is HTML-escaped as ordinary text -- a safe default, since raw ANSI/control bytes are meaningless (and unescaped markup would be unsafe) in an HTML sink. Use `<raw>` for trusted HTML.
+
+`Verbatim` is a real `html` node, so the terminal renderer handles it as a first-class case in its type switch, never the default -- the same discipline S:S1.2 requires of every node type (a node the walker does not recognise re-resolves to itself and spins).
+
 ## 7. Conditions and selectors: `Context.Data` by key
 
 `If`/`Unless` need a `func(*Context) bool`; `Switch` needs a `func(*Context) string`. Both are genuine per-render closures in the Go API, and both receive only `*Context` -- so both are the one place CTML dynamism can honestly reach *render-time* state, by naming a `Context.Data` key.
@@ -129,8 +153,11 @@ S:S1.5 already states the constraint; this section is the mechanism. `Parse` tak
 ```go
 type Bindings struct {
 	Sequences map[string][]map[string]any
+	Values    map[string]any
 }
 ```
+
+`Sequences` supplies the row lists for `<each>` (this section); `Values` supplies the document-wide scalars a lone `{{path}}` outside any `<each>` resolves against (S:S8.5). Both are supplied at parse time and both are optional -- an absent name in either map is data absence, not a parse error.
 
 `<each items="repos" as="row">` looks `"repos"` up in `Bindings.Sequences` **at parse time** and calls the real, exported generic constructor:
 
@@ -148,16 +175,38 @@ Because `fn` is a closure stored on the returned `*eachNode[map[string]any]` and
 
 ### 8.3 `{{path}}` binding references
 
-A `{{path}}` token is recognised in exactly two places: as the entire trimmed content of a text run inside an `<each as="name">` body, or as one comma-separated token inside an `args=` attribute (S:S6.4), also inside such a body. `path` is `name` followed by one or more dotted field steps (`row.name`, `row.address.city`), each step indexing one level into the current item's `map[string]any` (or a nested map found there). There is no other operator -- no filters, no arithmetic, no comparisons.
+A `{{path}}` token is recognised in two places: as one or more tokens within a text run (S:S2, interleaved with literal text), or as one comma-separated token inside an `args=` attribute (S:S6.4). `path` is an identifier followed by zero or more dotted field steps (`greeting`, `row.name`, `user.address.city`), each step indexing one level into a `map[string]any` (or a nested map found there). There is no other operator -- no filters, no arithmetic, no comparisons.
 
-- As whole text-run content: `<li>{{row.name}}</li>` compiles the body closure to call `Text(stringOf(row["name"]))` -- resolved fresh on every invocation of `fn`, HTML-escaped (or term-styled) exactly like any other `Text` node, via the real constructor.
+Resolution is by scope, innermost first: if `path`'s root identifier names an enclosing `<each as="...">`, the token resolves against that row (the nearest such each wins, so nested loops stay unambiguous); otherwise it resolves against `Bindings.Values` at document scope (S:S8.5). Row scope always wins over `Values` -- a `Values` key never shadows a row name.
+
+- As whole text-run content: `<li>{{row.name}}</li>` compiles to `Text(stringOf(resolve("row.name")))` -- resolved fresh on every invocation of the body closure, HTML-escaped (or term-styled) exactly like any other `Text` node, via the real constructor.
 - As an `args` token: the resolved value (kept as its native Go type -- `string`, `int`, `float64`, `bool`) is passed straight through as one positional argument, so a translator can format it (pluralise, localise a number) rather than CTML stringifying it up front.
 
-A `{{path}}` token whose root name has no enclosing `<each as="...">`, or whose remaining path segments are not found in the item map at render time, is a **parse-time error** for the former (S:S9 -- the binding is structurally unreachable, caught while walking the body) and renders as an empty string for the latter (a missing field is data absence, not a document defect, mirroring `Options.Get`'s own miss-is-empty convention elsewhere in CoreGO).
+Every miss renders as the empty string -- an absent field, an absent `Values` key, or a nil map alike: a `{{path}}` that resolves to nothing is data absence, not a document defect, mirroring `Options.Get`'s own miss-is-empty convention elsewhere in CoreGO. There is therefore **no unbound-reference parse error**: because `Values` is a document-wide scope, every syntactically valid `{{path}}` has a resolution target, and supplying the data stays a parse-time-optional concern (S:S8.1) -- exactly as an absent `items` sequence renders as an empty list rather than failing to parse.
 
 ### 8.4 What `{{path}}` deliberately does not do
 
-Mixed static-and-dynamic text in one run (`Cost: {{row.amount}}`) is not supported as a single token; wrap the dynamic part in its own element (`Cost: <b>{{row.amount}}</b>`) or use `args` with a catalogue message (`<span args="{{row.amount}}">cost.line</span>`, catalogue entry `"Cost: {0}"`). This keeps word order translator-controlled rather than baked into the markup, and keeps the token grammar to "the whole run or nothing" -- no partial-run scanning to specify.
+Mixed static-and-dynamic text in one run *is* supported: `Cost: {{row.amount}}` splits into `Text("Cost: ")` and the bind (S:S2), and `○ {{tab.label}}` into `Text("○ ")` and the bind. What a `{{path}}` still does not do is compute: it is a named lookup and nothing else -- no filters, no arithmetic, no comparisons, no function calls. For a *translated* message, still prefer `args` with a catalogue entry (`<span args="{{row.amount}}">cost.line</span>`, catalogue `"Cost: {0}"`) over interpolating mid-sentence, so word order stays translator-controlled rather than baked into the markup.
+
+There is also no escape syntax for a literal `{{`. Because the vocabulary is closed, a *well-formed* `{{path}}` is always a lookup -- there is no way to write one that renders as literal braces. A `{{` that does not open a valid path token (`{{oops!}}`, `{{not a path}}`) is not a token at all and stays literal text; content that genuinely needs literal `{{ident}}` braces belongs in `<raw>`.
+
+### 8.5 Scalar values: `{{path}}` outside an `<each>`
+
+`Bindings.Values` is a flat `map[string]any` of document-wide scalars, the companion to `Sequences`. A lone dynamic value -- a title, a count, a username -- rides `Values` directly rather than having to be wrapped in a one-row `<each>` just to be referenced:
+
+```xml
+<h1>{{page.title}}</h1>
+<p args="{{unread}}">inbox.count</p>
+```
+
+```go
+ctml.Parse(src, ctml.Bindings{Values: map[string]any{
+	"page":   map[string]any{"title": "Dashboard"},
+	"unread": 4,
+}})
+```
+
+A whole-run `{{path}}` (or an `args` token) whose root identifier matches no enclosing `<each>` resolves against `Values` with the same `lookupPath` semantics a row uses: `{{unread}}` is `Values["unread"]`, `{{page.title}}` indexes one level into the nested map, and a native Go value passed as an `args` token keeps its type for the translator. Inside an `<each>` body a row-prefixed path still resolves to the row (S:S8.3) -- `Values` does not shadow rows -- so the two scopes never collide by accident. Like `Sequences`, `Values` may be omitted when parsing a document standalone; every unmatched key simply renders empty.
 
 ## 9. Errors
 
@@ -171,7 +220,7 @@ type ParseError struct {
 }
 ```
 
-`Line`/`Col` come from `xml.Decoder.InputPos()` at the point the offending token was read (malformed XML) or the point the offending element/attribute was being interpreted (a reserved element used wrongly, an unbound `{{path}}`, `args` on mixed content, and so on) -- both classes of error carry real, non-zero positions, not just a wrapped stdlib message.
+`Line`/`Col` come from `xml.Decoder.InputPos()` at the point the offending token was read (malformed XML) or the point the offending element/attribute was being interpreted (a reserved element used wrongly, `args` on mixed content, a `<verbatim>` whose `value` key is absent or non-string, and so on) -- both classes of error carry real, non-zero positions, not just a wrapped stdlib message.
 
 ## 10. Package API
 
@@ -180,6 +229,7 @@ package ctml // dappco.re/go/html/ctml
 
 type Bindings struct {
 	Sequences map[string][]map[string]any
+	Values    map[string]any
 }
 
 type ParseError struct {

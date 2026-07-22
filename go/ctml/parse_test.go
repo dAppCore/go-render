@@ -120,16 +120,16 @@ func TestParse_Good(t *testing.T) {
 			ctx: html.NewContext(),
 		},
 		{
-			// Two valid {{}} tokens glued in one run are not "the entire
-			// trimmed content is exactly one token" (S:S8.3), so the whole
-			// run stays literal text rather than partially resolving.
-			name: "good: two bind tokens glued in one run stay literal, not partially resolved",
+			// A run with multiple {{path}} tokens splits into interleaved
+			// bind and literal-text nodes (S:S2, S:S8.4): the "/" between the
+			// two tokens becomes its own Text node, each token its own bind.
+			name: "good: multiple bind tokens in one run interpolate with literal text between",
 			src:  `<each items="repos" as="row"><li>{{row.name}}/{{row.status}}</li></each>`,
 			bnd: []Bindings{{Sequences: map[string][]map[string]any{
 				"repos": {{"name": "go-html", "status": "green"}},
 			}}},
 			want: html.Each([]map[string]any{{"name": "go-html", "status": "green"}}, func(row map[string]any) html.Node {
-				return html.El("li", html.Text("{{row.name}}/{{row.status}}"))
+				return html.El("li", html.Text(row["name"].(string)), html.Text("/"), html.Text(row["status"].(string)))
 			}),
 			ctx: html.NewContext(),
 		},
@@ -151,9 +151,8 @@ func TestParse_Good(t *testing.T) {
 			ctx:  html.NewContext(),
 		},
 		{
-			// {{g.name}}/{{r.n}} glued in one run is deliberately NOT a
-			// binding (S:S8.4 -- a run is the whole token or nothing), so
-			// each field gets its own element to stay a whole-run bind.
+			// Nested <each> scopes resolve independently: {{g.name}} binds to
+			// the outer row and {{r.n}} to the inner, each its own text run.
 			name: "good: nested each resolves both outer and inner fields",
 			src:  `<each items="groups" as="g"><div>{{g.name}}<each items="repos" as="r"><span>{{r.n}}</span></each></div></each>`,
 			bnd: []Bindings{{Sequences: map[string][]map[string]any{
@@ -270,9 +269,6 @@ func TestParse_Bad(t *testing.T) {
 		{"bad: variant rejects two layout children", `<responsive><variant name="a"><layout variant="C"><c><p>x</p></c></layout><layout variant="C"><c><p>y</p></c></layout></variant></responsive>`, "requires exactly one <layout> child"},
 		{"bad: args on element content is rejected", `<p args="x"><b>hi</b></p>`, "not an element child"},
 		{"bad: args on multi-run content is rejected", `<p args="x">Hello <b>world</b></p>`, "requires exactly one text child"},
-		{"bad: unbound each reference outside any each", `<p>{{row.name}}</p>`, "unbound reference"},
-		{"bad: unbound each reference after its scope closes", `<div><each items="a" as="row"><p>{{row.n}}</p></each><p>{{row.n}}</p></div>`, "unbound reference"},
-		{"bad: unbound reference in args", `<p args="{{row.n}}">k</p>`, "unbound reference"},
 		{"bad: trailing content after the root element", `<div><p>x</p></div><div>y</div>`, "unexpected content after root"},
 		{"bad: text before the root element", `stray<div><p>x</p></div>`, "unexpected text before root"},
 	}
@@ -369,4 +365,159 @@ func TestParse_Each_RowsCloseOverFreshPerItem(t *testing.T) {
 	assert.Equal(t, 1, strings.Count(out, "alpha"))
 	assert.Equal(t, 1, strings.Count(out, "beta"))
 	assert.Equal(t, 1, strings.Count(out, "gamma"))
+}
+
+func TestParse_Values_Good(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		bnd  []Bindings
+		want html.Node
+	}{
+		{
+			// A lone {{path}} outside any <each> resolves against
+			// Bindings.Values -- no one-row <each> needed to carry it.
+			name: "good: whole-run value renders",
+			src:  `<p>{{greeting}}</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"greeting": "Hello"}}},
+			want: html.El("p", html.Text("Hello")),
+		},
+		{
+			// Dotted paths index one level into a nested Values map, exactly
+			// like a row field path (lookupPath semantics).
+			name: "good: nested value path resolves through a nested map",
+			src:  `<p>{{user.name}}</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"user": map[string]any{"name": "Ada"}}}},
+			want: html.El("p", html.Text("Ada")),
+		},
+		{
+			// The {{path}} grammar is uniform across text runs and args
+			// tokens, so an args token outside an <each> resolves Values too.
+			name: "good: args token outside each resolves against Values",
+			src:  `<p args="{{count}}">queue.remaining</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"count": 3}}},
+			want: html.El("p", html.Text("queue.remaining", 3)),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertSameRender(t, tc.src, tc.bnd, tc.want, html.NewContext())
+		})
+	}
+}
+
+func TestParse_Values_Bad_MissingKeyRendersEmpty(t *testing.T) {
+	// A Values miss is data absence, not a document defect: it parses and
+	// renders as empty text, matching the row field-miss behaviour (S:S8.3).
+	got, err := Parse([]byte(`<p>{{absent}}</p>`), Bindings{Values: map[string]any{"present": "x"}})
+	require.NoError(t, err, "a Values miss parses -- absence is not a parse error")
+	assert.Equal(t, "<p></p>", html.Render(got, html.NewContext()), "a missing Values key renders as empty text")
+}
+
+func TestParse_MixedInterpolation(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		bnd  []Bindings
+		want html.Node
+	}{
+		{
+			// The tab-strip friction: a marker glued to a bind in one run.
+			// The run splits into Text("○ ") + bind, rather than staying a
+			// single literal key. The bind resolves against Values here.
+			name: "good: text before a bind splits (tab-strip shape)",
+			src:  `<span>○ {{tab.label}}</span>`,
+			bnd:  []Bindings{{Values: map[string]any{"tab": map[string]any{"label": "Editor"}}}},
+			want: html.El("span", html.Text("○ "), html.Text("Editor")),
+		},
+		{
+			// Text before, between and after several tokens all survive as
+			// their own Text nodes; every token is resolved against the row.
+			name: "good: text around multiple bind tokens all survives",
+			src:  `<each items="rows" as="row"><li>id-{{row.id}}: {{row.name}}!</li></each>`,
+			bnd: []Bindings{{Sequences: map[string][]map[string]any{
+				"rows": {{"id": "7", "name": "go-html"}},
+			}}},
+			want: html.Each([]map[string]any{{"id": "7", "name": "go-html"}}, func(row map[string]any) html.Node {
+				return html.El("li",
+					html.Text("id-"), html.Text(row["id"].(string)),
+					html.Text(": "), html.Text(row["name"].(string)), html.Text("!"))
+			}),
+		},
+		{
+			// A "{{" that opens no valid path token is literal text: no
+			// escape is invented (S:S8.4), the closed vocabulary means a
+			// well-formed {{path}} is always a lookup and nothing else is.
+			name: "bad: an invalid {{ token }} stays literal, no escape invented",
+			src:  `<p>a {{not a path}} b</p>`,
+			want: html.El("p", html.Text("a {{not a path}} b")),
+		},
+		{
+			// A valid bind and an invalid brace-run coexist in one run: the
+			// valid token interpolates, the invalid one stays literal text.
+			name: "ugly: a valid bind and an invalid brace-run coexist in one run",
+			src:  `<p>{{greeting}} {{nope!}}</p>`,
+			bnd:  []Bindings{{Values: map[string]any{"greeting": "Hi"}}},
+			want: html.El("p", html.Text("Hi"), html.Text(" {{nope!}}")),
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assertSameRender(t, tc.src, tc.bnd, tc.want, html.NewContext())
+		})
+	}
+}
+
+func TestParse_Values_Ugly_RowWinsOverValuesInsideEach(t *testing.T) {
+	// Inside an <each> body a row-prefixed {{path}} resolves to the row even
+	// when Values also carries that root name -- Values does not shadow rows.
+	src := `<each items="rows" as="row"><li>{{row.name}}</li></each>`
+	bnd := Bindings{
+		Sequences: map[string][]map[string]any{"rows": {{"name": "from-row"}}},
+		Values:    map[string]any{"row": map[string]any{"name": "from-values"}},
+	}
+	got, err := Parse([]byte(src), bnd)
+	require.NoError(t, err)
+	out := html.Render(got, html.NewContext())
+	assert.Contains(t, out, "from-row")
+	assert.NotContains(t, out, "from-values")
+}
+
+func TestParse_Verbatim_Good(t *testing.T) {
+	// <verbatim value="key"/> wires its content from Bindings.Values[key] at
+	// parse time; the parsed tree renders identically to a hand-built
+	// html.Verbatim under both renderers (HTML escapes, term passes through).
+	ansi := "\x1b[1mpre-styled\x1b[0m <not-a-tag>"
+	src := `<div><verbatim value="banner"/></div>`
+	bnd := []Bindings{{Values: map[string]any{"banner": ansi}}}
+	want := html.El("div", html.Verbatim(ansi))
+	got := assertSameRender(t, src, bnd, want, html.NewContext())
+	// And the term bytes reach output untouched via the ctml path.
+	assert.Contains(t, html.RenderTerm(got, html.NewContext()), ansi)
+}
+
+func TestParse_Verbatim_Bad(t *testing.T) {
+	tests := []struct {
+		name    string
+		src     string
+		bnd     Bindings
+		wantMsg string
+	}{
+		{"bad: missing value attribute", `<verbatim/>`, Bindings{Values: map[string]any{"k": "x"}}, "requires a value attribute"},
+		{"bad: key absent from Values", `<verbatim value="missing"/>`, Bindings{Values: map[string]any{"k": "x"}}, "no such key in Bindings.Values"},
+		{"bad: value is not a string", `<verbatim value="n"/>`, Bindings{Values: map[string]any{"n": 42}}, "is not a string"},
+		{"bad: child text content is rejected", `<verbatim value="k">oops</verbatim>`, Bindings{Values: map[string]any{"k": "x"}}, "cannot contain text content"},
+		{"bad: child element is rejected", `<verbatim value="k"><b/></verbatim>`, Bindings{Values: map[string]any{"k": "x"}}, "cannot contain child elements"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Parse([]byte(tc.src), tc.bnd)
+			require.Error(t, err)
+			var pe *ParseError
+			require.ErrorAs(t, err, &pe)
+			assert.Contains(t, pe.Msg, tc.wantMsg)
+			assert.Greater(t, pe.Line, 0, "line is populated")
+			assert.Greater(t, pe.Col, 0, "column is populated")
+		})
+	}
 }

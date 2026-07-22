@@ -161,6 +161,8 @@ func termIsBlock(n Node) bool {
 		return t != nil && termBlockTags[t.tag]
 	case *Layout, *Responsive:
 		return true
+	case *verbatimNode:
+		return true
 	default:
 		return false
 	}
@@ -225,6 +227,14 @@ func (r *termRenderer) inline(n Node, inherited lipgloss.Style) string {
 			return ""
 		}
 		return inherited.Render(termRawContent(t.content))
+	case *verbatimNode:
+		// First-class case (not the default): a Verbatim node passes its
+		// bytes through untouched -- no inherited style, no strip, no wrap.
+		// Falling to the default would re-resolve to itself and spin.
+		if t == nil {
+			return ""
+		}
+		return t.content
 	case *elNode:
 		return r.inlineEl(t, inherited)
 	case *Layout, *Responsive:
@@ -363,6 +373,14 @@ func (r *termRenderer) block(n Node, width int) []string {
 		return []string{t.renderTermFrame(r, width), ""}
 	case *Responsive:
 		return []string{t.renderTermPick(r, width), ""}
+	case *verbatimNode:
+		// The block path for Verbatim: its content is emitted as one raw
+		// unit -- no width wrapping, no whitespace normalisation, no trailing
+		// blank line -- so pre-styled ANSI survives byte-for-byte.
+		if t == nil {
+			return nil
+		}
+		return []string{t.content}
 	case *elNode:
 		return r.blockEl(t, width)
 	default:
@@ -401,7 +419,7 @@ func (r *termRenderer) blockEl(el *elNode, width int) []string {
 	case "dl":
 		return r.definitionList(el, width)
 	case "dt":
-		return []string{r.childrenInline(el.children, r.classStyle(el, r.theme.Strong))}
+		return []string{r.definitionTerm(el, width)}
 	case "dd":
 		return termIndent(r.blocks(el.children, width-2), "  ")
 	case "pre":
@@ -503,7 +521,7 @@ func (r *termRenderer) definitionList(el *elNode, width int) []string {
 			}
 			switch item.tag {
 			case "dt":
-				out = append(out, r.childrenInline(item.children, r.theme.Strong))
+				out = append(out, r.definitionTerm(item, width))
 			case "dd":
 				out = append(out, termIndent(r.blocks(item.children, width-2), "  ")...)
 			}
@@ -513,6 +531,17 @@ func (r *termRenderer) definitionList(el *elNode, width int) []string {
 		return nil
 	}
 	return append(out, "")
+}
+
+// definitionTerm renders a <dt> as a width-wrapped strong line. A <dt> is
+// inline-flow content like <p>, so it gets the same Width treatment its
+// sibling blocks (<p>, <dd>) already get: a term longer than the render
+// width wraps onto further lines instead of overflowing as one clipped
+// inline line. Both the standalone-block dt path (blockEl) and the dt inside
+// a <dl> (definitionList) route through here so they wrap identically.
+func (r *termRenderer) definitionTerm(el *elNode, width int) string {
+	text := r.childrenInline(el.children, r.classStyle(el, r.theme.Strong))
+	return r.theme.Strong.Width(width).Render(text)
 }
 
 // table collects thead/tbody/tr/th/td content and renders a bordered table.

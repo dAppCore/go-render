@@ -9,6 +9,13 @@ func ExampleRaw() {
 	// Output: <strong>trusted</strong>
 }
 
+func ExampleVerbatim() {
+	// HTML render escapes -- Verbatim carries trusted TERMINAL bytes, not
+	// trusted HTML, so markup is inert text here (use Raw for trusted HTML).
+	core.Println(Verbatim("<b>x</b>").Render(NewContext()))
+	// Output: &lt;b&gt;x&lt;/b&gt;
+}
+
 func ExampleNode_Render() {
 	var node Node = Text("hello")
 	core.Println(node.Render(NewContext()))

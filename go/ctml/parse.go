@@ -12,13 +12,16 @@ import (
 	html "dappco.re/go/html"
 )
 
-// parser walks one document with encoding/xml.Decoder. eachStack tracks
-// the currently-open <each as="..."> names so a {{path}} token can be
-// rejected at its own position the moment its root name is unbound,
-// rather than failing later, unhelpfully, at materialise time.
+// parser walks one document with encoding/xml.Decoder. A {{path}} token is
+// always syntactically valid: it resolves at materialise time against the
+// nearest enclosing <each> row whose as-name it names, or against
+// Bindings.Values at document scope, with a miss rendering as empty text
+// (docs/ctml.md S:S8). There is therefore no parse-time scope stack to keep.
+// bnd is held so <verbatim value="key"/> can resolve its pre-styled content
+// from Bindings.Values at parse time (S:S6.5).
 type parser struct {
-	dec       *xml.Decoder
-	eachStack []string
+	dec *xml.Decoder
+	bnd Bindings
 }
 
 // Parse parses src into the node tree the Go builder API would produce for
@@ -32,7 +35,7 @@ func Parse(src []byte, bindings ...Bindings) (html.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return materialise(root, rootResolver, bnd), nil
+	return materialise(root, valuesResolver(bnd.Values), bnd), nil
 }
 
 // ParseLayout is Parse specialised to documents whose root is <layout>,
@@ -51,14 +54,8 @@ func ParseLayout(src []byte, bindings ...Bindings) (*html.Layout, error) {
 		msg := "root element must be <layout>"
 		return nil, &ParseError{Line: 1, Col: 1, Msg: msg, Cause: core.E("ctml.ParseLayout", msg, nil)}
 	}
-	return materialiseLayout(l, rootResolver, bnd), nil
+	return materialiseLayout(l, valuesResolver(bnd.Values), bnd), nil
 }
-
-// rootResolver backs every {{path}} lookup outside any <each>. It is never
-// actually reached by a tree Parse produced: validateEachRef refuses to
-// parse a {{path}} token with no enclosing <each as="..."> in the first
-// place, so this is defence in depth, not a live path.
-func rootResolver(string) (any, bool) { return nil, false }
 
 func parseRoot(src []byte, bindings []Bindings) (astNode, Bindings, error) {
 	var bnd Bindings
@@ -66,7 +63,7 @@ func parseRoot(src []byte, bindings []Bindings) (astNode, Bindings, error) {
 		bnd = bindings[0]
 	}
 
-	p := &parser{dec: xml.NewDecoder(bytes.NewReader(src))}
+	p := &parser{dec: xml.NewDecoder(bytes.NewReader(src)), bnd: bnd}
 
 	for {
 		tok, err := p.dec.Token()
@@ -118,7 +115,7 @@ func (p *parser) expectTrailingEOF() error {
 	}
 }
 
-// parseElement dispatches on the fifteen reserved tag names (S:S3); every
+// parseElement dispatches on the sixteen reserved tag names (S:S3); every
 // other tag is a literal element (parseEl).
 func (p *parser) parseElement(start xml.StartElement) (astNode, error) {
 	switch start.Name.Local {
@@ -136,6 +133,8 @@ func (p *parser) parseElement(start xml.StartElement) (astNode, error) {
 		return p.parseEach(start)
 	case "raw":
 		return p.parseRaw(start)
+	case "verbatim":
+		return p.parseVerbatim(start)
 	case "layout":
 		return p.parseLayout(start)
 	case "h", "l", "c", "r", "f":
@@ -179,10 +178,7 @@ func (p *parser) applyArgs(children []astNode, raw string) error {
 	if len(children) != 1 {
 		return p.errAt("args attribute requires exactly one text child")
 	}
-	tokens, err := p.parseArgTokens(raw)
-	if err != nil {
-		return err
-	}
+	tokens := p.parseArgTokens(raw)
 	switch t := children[0].(type) {
 	case *astText:
 		t.Args = tokens
@@ -194,7 +190,12 @@ func (p *parser) applyArgs(children []astNode, raw string) error {
 	return nil
 }
 
-func (p *parser) parseArgTokens(raw string) ([]argToken, error) {
+// parseArgTokens splits an args="..." value into its comma-separated tokens
+// (S:S6.4). Each token is either a literal string or a whole {{path}}
+// reference resolved at materialise time against the active scope chain
+// (the enclosing <each> row first, then Bindings.Values). A near-miss like
+// {{oops!}} is not a valid path token, so it stays a literal argument.
+func (p *parser) parseArgTokens(raw string) []argToken {
 	parts := strings.Split(raw, ",")
 	tokens := make([]argToken, 0, len(parts))
 	for _, part := range parts {
@@ -203,15 +204,12 @@ func (p *parser) parseArgTokens(raw string) ([]argToken, error) {
 			continue
 		}
 		if path, ok := matchBindToken(trimmed); ok {
-			if err := p.validateEachRef(path); err != nil {
-				return nil, err
-			}
 			tokens = append(tokens, argToken{Path: path, IsPath: true})
 			continue
 		}
 		tokens = append(tokens, argToken{Lit: trimmed})
 	}
-	return tokens, nil
+	return tokens
 }
 
 // parseContent reads children until the EndElement matching startName,
@@ -244,25 +242,44 @@ func (p *parser) parseContent(startName xml.Name) ([]astNode, error) {
 			if strings.TrimSpace(raw) == "" {
 				continue // pure structural whitespace between siblings
 			}
-			node, err := p.charDataNode(normaliseRun(raw))
-			if err != nil {
-				return nil, err
-			}
-			nodes = append(nodes, node)
+			nodes = append(nodes, splitRun(normaliseRun(raw))...)
 		case xml.Comment, xml.ProcInst, xml.Directive:
 			continue
 		}
 	}
 }
 
-func (p *parser) charDataNode(text string) (astNode, error) {
-	if path, ok := matchBindToken(text); ok {
-		if err := p.validateEachRef(path); err != nil {
-			return nil, err
+// splitRun turns one CharData run (already edge-normalised, S:S2) into the
+// interleaved Text and bind nodes it denotes. Each {{path}} token within the
+// run becomes an astBind resolved at materialise time (against the enclosing
+// <each> row or Bindings.Values, S:S8.3); the literal text between tokens
+// becomes astText. The whitespace edge rule is applied to the run as a whole
+// before this split (the caller passes normaliseRun's output), not per
+// segment, and empty text segments are dropped -- so "○ {{tab.label}}"
+// becomes Text("○ ") + bind, and a whole-run "{{x}}" becomes a lone bind.
+// A "{{" that opens no valid {{path}} token stays literal text (S:S8.4): the
+// closed vocabulary makes a well-formed {{path}} always a lookup, so there is
+// no escape syntax to invent.
+func splitRun(run string) []astNode {
+	var nodes []astNode
+	segStart, i := 0, 0
+	for i < len(run) {
+		if run[i] == '{' && i+1 < len(run) && run[i+1] == '{' {
+			if path, end, ok := scanBindToken(run, i); ok {
+				if seg := run[segStart:i]; seg != "" {
+					nodes = append(nodes, &astText{Key: seg})
+				}
+				nodes = append(nodes, &astBind{Path: path})
+				i, segStart = end, end
+				continue
+			}
 		}
-		return &astBind{Path: path}, nil
+		i++
 	}
-	return &astText{Key: text}, nil
+	if seg := run[segStart:]; seg != "" {
+		nodes = append(nodes, &astText{Key: seg})
+	}
+	return nodes
 }
 
 // normaliseRun strips a CharData run's leading/trailing whitespace only
@@ -365,9 +382,7 @@ func (p *parser) parseEach(start xml.StartElement) (astNode, error) {
 		return nil, p.errAt("<each> requires an as attribute")
 	}
 
-	p.eachStack = append(p.eachStack, as)
 	children, err := p.parseContent(start.Name)
-	p.eachStack = p.eachStack[:len(p.eachStack)-1]
 	if err != nil {
 		return nil, err
 	}
@@ -443,6 +458,57 @@ func (p *parser) parseRaw(start xml.StartElement) (astNode, error) {
 			return nil, p.errAt("mismatched closing tag in <raw>")
 		case xml.StartElement:
 			return nil, p.errAt("<raw> cannot contain child elements")
+		case xml.Comment, xml.ProcInst, xml.Directive:
+			continue
+		}
+	}
+}
+
+// parseVerbatim reads <verbatim value="key"/>, resolving its content from
+// Bindings.Values[key] at parse time (S:S6.5). Pre-styled ANSI/control bytes
+// cannot live in XML markup, so the content is supplied through the binding
+// rather than as element children: an absent key, or a non-string value, is
+// a position-accurate parse error, and any child content is rejected.
+func (p *parser) parseVerbatim(start xml.StartElement) (astNode, error) {
+	key, ok := attrValue(start, "value")
+	if !ok {
+		return nil, p.errAt("<verbatim> requires a value attribute")
+	}
+	raw, ok := p.bnd.Values[key]
+	if !ok {
+		return nil, p.errAt("<verbatim value=\"" + key + "\">: no such key in Bindings.Values")
+	}
+	content, ok := raw.(string)
+	if !ok {
+		return nil, p.errAt("<verbatim value=\"" + key + "\">: Bindings.Values[\"" + key + "\"] is not a string")
+	}
+	if err := p.expectEmptyElement(start.Name); err != nil {
+		return nil, err
+	}
+	return &astVerbatim{Content: content}, nil
+}
+
+// expectEmptyElement consumes the body of a self-closing or empty element up
+// to its matching end tag, rejecting any child element or non-whitespace
+// text -- <verbatim>'s content comes from a binding, not from markup.
+func (p *parser) expectEmptyElement(name xml.Name) error {
+	for {
+		tok, err := p.dec.Token()
+		if err != nil {
+			return p.wrapXMLErr(err)
+		}
+		switch t := tok.(type) {
+		case xml.EndElement:
+			if t.Name == name {
+				return nil
+			}
+			return p.errAt("mismatched closing tag")
+		case xml.StartElement:
+			return p.errAt("<verbatim> cannot contain child elements")
+		case xml.CharData:
+			if strings.TrimSpace(string(t)) != "" {
+				return p.errAt("<verbatim> cannot contain text content")
+			}
 		case xml.Comment, xml.ProcInst, xml.Directive:
 			continue
 		}
@@ -539,22 +605,6 @@ func (p *parser) singleLayoutChild(nodes []astNode) (*astLayout, error) {
 	return l, nil
 }
 
-// validateEachRef rejects a {{path}} token at parse time when its root
-// name has no enclosing <each as="...">, per docs/ctml.md S:S8.3 -- an
-// unbound reference is a document defect, not a runtime miss.
-func (p *parser) validateEachRef(path string) error {
-	root := path
-	if i := strings.IndexByte(path, '.'); i >= 0 {
-		root = path[:i]
-	}
-	for _, name := range p.eachStack {
-		if name == root {
-			return nil
-		}
-	}
-	return p.errAt("unbound reference {{" + path + "}}: no enclosing each as=\"" + root + "\"")
-}
-
 func (p *parser) errAt(msg string) error {
 	line, col := p.dec.InputPos()
 	return &ParseError{Line: line, Col: col, Msg: msg, Cause: core.E("ctml.Parse", msg, nil)}
@@ -612,6 +662,25 @@ func matchBindToken(s string) (string, bool) {
 		return "", false
 	}
 	return inner, true
+}
+
+// scanBindToken tries to read one {{path}} token beginning at run[i], where
+// run[i:i+2] is "{{". On success it returns the trimmed inner path and the
+// index just past the closing "}}"; on failure -- no closing "}}", or an
+// inner that is not a valid path -- ok is false and splitRun treats the "{{"
+// as literal text (S:S8.4). The first "}}" closes the token, so one token
+// never spans another.
+func scanBindToken(run string, i int) (path string, end int, ok bool) {
+	rest := run[i+2:]
+	j := strings.Index(rest, "}}")
+	if j < 0 {
+		return "", 0, false
+	}
+	inner := strings.TrimSpace(rest[:j])
+	if !isValidPath(inner) {
+		return "", 0, false
+	}
+	return inner, i + 2 + j + 2, true
 }
 
 func isValidPath(s string) bool {
