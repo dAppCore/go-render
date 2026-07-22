@@ -209,6 +209,64 @@ func TestTermLayout_RegionInnerContentWidth(t *testing.T) {
 	}
 }
 
+func TestTermLayout_FitToInner_ByteExactVerbatim(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// Friction-4 re-probe, pinned. On this base (measured chrome from round 3 +
+	// the S:S15.5 inner-width contract) the original ANSI corruption is closed: a
+	// pre-styled Verbatim line the host fitted to a slot's INNER width (outer -
+	// chrome) passes through byte-exact on one row for C, L and R alike. One
+	// column wider trips the slot's Width() word-wrap onto a second row, splitting
+	// the ANSI -- so the corruption the reporter saw on v0.13.0 was a host fitting
+	// to the slot's nominal width, not a renderer defect. Fit to inner, bytes live.
+	theme := DefaultTermTheme()
+	ansiOf := func(n int) string { return "\x1b[1m" + strings.Repeat("A", n) + "\x1b[0m" }
+	rows := func(out string) int {
+		n := 0
+		for _, ln := range strings.Split(strings.TrimRight(out, "\n"), "\n") {
+			if strings.Contains(termStripANSI(ln), "A") {
+				n++
+			}
+		}
+		return n
+	}
+
+	tests := []struct {
+		name  string
+		outer int
+		inner int
+		build func(body Node) *Layout
+	}{
+		{
+			name:  "good: C content passes byte-exact at its inner width",
+			outer: 40, inner: 40 - termChrome(theme.Content),
+			build: func(body Node) *Layout { return NewLayout("C").C(body) },
+		},
+		{
+			name:  "good: L boxed slot passes byte-exact at its inner width",
+			outer: 100, inner: termSidebarWidth - termChrome(theme.Sidebar),
+			build: func(body Node) *Layout { return NewLayout("LC").L(body).C(Text("c")) },
+		},
+		{
+			name:  "good: R boxed slot passes byte-exact at its inner width",
+			outer: 100, inner: termAsideWidth - termChrome(theme.Aside),
+			build: func(body Node) *Layout { return NewLayout("CR").C(Text("c")).R(body) },
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := termTestContext(map[string]string{"c": "c"})
+			fit := tc.build(Verbatim(ansiOf(tc.inner))).RenderTerm(ctx, TermOptions{Width: tc.outer})
+			over := tc.build(Verbatim(ansiOf(tc.inner + 1))).RenderTerm(ctx, TermOptions{Width: tc.outer})
+
+			assert.Equal(t, 1, rows(fit), "a line fitted to the inner width rides one row")
+			assert.Contains(t, fit, ansiOf(tc.inner), "the pre-styled ANSI survives byte-exact at the inner width")
+			assert.Equal(t, 2, rows(over), "one column over the inner width word-wraps to a second row")
+		})
+	}
+}
+
 func TestTermChrome(t *testing.T) {
 	// termChrome measures the horizontal columns a slot style spends on border and
 	// padding -- what FitSlots adds to a slot's content width so its recorded box
