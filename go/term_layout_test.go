@@ -191,6 +191,59 @@ func TestTermLayout_SlotWidthOverride(t *testing.T) {
 	})
 }
 
+func TestTermLayout_VerticalPanePair(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// S:S15.7: a mid-page vertical pair of two independently-sized panes with a
+	// rule between is NOT a new construct -- it is the frame's own band stacking.
+	// An "HC" layout renders H (top pane) over C (bottom pane) at ANY width, with
+	// H's bottom border the divider; nesting it in an outer page's C slot places
+	// the pair mid-page (the same clone-on-render nesting proven in _Nested).
+	// Independent SCROLL state stays host-composed -- not a one-pass renderer's job.
+	pair := NewLayout("HC").
+		H(El("p", Text("top"))).
+		C(El("p", Text("bottom")))
+	page := NewLayout("HCF").
+		H(Text("pageHead")).
+		C(pair).
+		F(Text("pageFoot"))
+	ctx := termTestContext(map[string]string{
+		"top": "Upper pane", "bottom": "Lower pane",
+		"pageHead": "Page header", "pageFoot": "Page footer",
+	})
+
+	// Mid-page width (>= 80): the pair does not depend on the narrow-stack regime.
+	out := page.RenderTerm(ctx, TermOptions{Width: 100})
+
+	assert.Less(t, strings.Index(out, "Upper pane"), strings.Index(out, "Lower pane"),
+		"the top pane renders above the bottom pane")
+	assert.Less(t, strings.Index(out, "Page header"), strings.Index(out, "Upper pane"),
+		"the pane pair sits below the page header, mid-page")
+	assert.Less(t, strings.Index(out, "Lower pane"), strings.Index(out, "Page footer"),
+		"and above the page footer")
+
+	lines := strings.Split(out, "\n")
+	upperRow, lowerRow := -1, -1
+	for i, ln := range lines {
+		if strings.Contains(ln, "Upper pane") {
+			upperRow = i
+		}
+		if strings.Contains(ln, "Lower pane") {
+			lowerRow = i
+		}
+	}
+	require.Positive(t, upperRow, "upper pane row found")
+	require.Greater(t, lowerRow, upperRow, "lower pane below upper")
+	ruleBetween := false
+	for i := upperRow + 1; i < lowerRow; i++ {
+		if strings.Contains(lines[i], "─") {
+			ruleBetween = true
+		}
+	}
+	assert.True(t, ruleBetween, "a divider rule (the nested H bottom border) sits between the two panes")
+}
+
 func TestTermLayout_JunctionGutterRule(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()
