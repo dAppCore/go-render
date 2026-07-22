@@ -147,10 +147,10 @@ func RenderTermBoxes(n Node, ctx *Context, opts ...TermOptions) (string, BoxMap)
 	if n == nil {
 		return "", boxes
 	}
-	width, theme, fit := resolveTermOptions(opts)
+	cfg := resolveTermOptions(opts)
 	rec := &termBoxRecorder{boxes: boxes}
-	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit, rec: rec}
-	out := strings.TrimRight(strings.Join(r.blocks([]Node{n}, width), "\n"), "\n")
+	r := &termRenderer{ctx: termContext(ctx), theme: cfg.theme, fit: cfg.fit, sidebarW: cfg.sidebarW, asideW: cfg.asideW, rec: rec}
+	out := strings.TrimRight(strings.Join(r.blocks([]Node{n}, cfg.width), "\n"), "\n")
 	return out, boxes
 }
 
@@ -163,10 +163,10 @@ func (l *Layout) RenderTermBoxes(ctx *Context, opts ...TermOptions) (string, Box
 	if l == nil {
 		return "", boxes
 	}
-	width, theme, fit := resolveTermOptions(opts)
+	cfg := resolveTermOptions(opts)
 	rec := &termBoxRecorder{boxes: boxes}
-	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit, rec: rec}
-	out := l.renderTermFrame(r, width)
+	r := &termRenderer{ctx: termContext(ctx), theme: cfg.theme, fit: cfg.fit, sidebarW: cfg.sidebarW, asideW: cfg.asideW, rec: rec}
+	out := l.renderTermFrame(r, cfg.width)
 	return out, boxes
 }
 
@@ -178,9 +178,9 @@ func (resp *Responsive) RenderTermBoxes(ctx *Context, opts ...TermOptions) (stri
 	if resp == nil || len(resp.variants) == 0 {
 		return "", boxes
 	}
-	width, theme, fit := resolveTermOptions(opts)
+	cfg := resolveTermOptions(opts)
 	rec := &termBoxRecorder{boxes: boxes}
-	r := &termRenderer{ctx: termContext(ctx), theme: theme, fit: fit, rec: rec}
-	out := resp.renderTermPick(r, width)
+	r := &termRenderer{ctx: termContext(ctx), theme: cfg.theme, fit: cfg.fit, sidebarW: cfg.sidebarW, asideW: cfg.asideW, rec: rec}
+	out := resp.renderTermPick(r, cfg.width)
 	return out, boxes
 }

@@ -143,6 +143,169 @@ func TestTermLayout_RenderTerm_FitSlots(t *testing.T) {
 	assert.Equal(t, fixed, page.RenderTerm(ctx, TermOptions{Width: 100}), "default render is unchanged")
 }
 
+func TestTermLayout_SlotWidthOverride(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// S:S15.1: TermOptions.SidebarWidth/AsideWidth override the fixed L/R budgets
+	// in the wide side-by-side band. A wider R shrinks C by exactly the extra
+	// columns; an unset (zero/negative) budget keeps the fixed default; a budget so
+	// wide it would starve C floors C at the minimum and overflows the frame sanely.
+	page := termTestPage()
+	ctx := termTestPageContext()
+
+	t.Run("good: requested aside width is honoured and C absorbs the difference", func(t *testing.T) {
+		_, base := page.RenderTermBoxes(ctx, TermOptions{Width: 120})
+		_, wide := page.RenderTermBoxes(ctx, TermOptions{Width: 120, AsideWidth: 32})
+
+		assert.Equal(t, termAsideWidth, base["R"].Width, "default R is the fixed 28 budget")
+		assert.Equal(t, 32, wide["R"].Width, "requested R budget is honoured")
+		assert.Equal(t, termSidebarWidth, wide["L"].Width, "L is untouched by an aside request")
+		assert.Equal(t, base["C"].Width-(32-termAsideWidth), wide["C"].Width, "C narrows by exactly the aside's extra columns")
+	})
+
+	t.Run("good: requested sidebar width is honoured independently of aside", func(t *testing.T) {
+		_, wide := page.RenderTermBoxes(ctx, TermOptions{Width: 120, SidebarWidth: 30})
+		assert.Equal(t, 30, wide["L"].Width, "requested L budget is honoured")
+		assert.Equal(t, termAsideWidth, wide["R"].Width, "R is untouched by a sidebar request")
+	})
+
+	t.Run("bad: a zero override keeps the fixed budget byte-identical to no option", func(t *testing.T) {
+		assert.Equal(t,
+			page.RenderTerm(ctx, TermOptions{Width: 120}),
+			page.RenderTerm(ctx, TermOptions{Width: 120, SidebarWidth: 0, AsideWidth: 0}),
+			"an unset override is byte-identical to no option",
+		)
+	})
+
+	t.Run("ugly: a negative override falls back to the fixed default", func(t *testing.T) {
+		_, neg := page.RenderTermBoxes(ctx, TermOptions{Width: 120, SidebarWidth: -5, AsideWidth: -1})
+		assert.Equal(t, termSidebarWidth, neg["L"].Width, "a negative sidebar budget is treated as unset")
+		assert.Equal(t, termAsideWidth, neg["R"].Width, "a negative aside budget is treated as unset")
+	})
+
+	t.Run("ugly: an over-wide aside floors C at the minimum without panicking", func(t *testing.T) {
+		_, boxes := page.RenderTermBoxes(ctx, TermOptions{Width: 100, AsideWidth: 200})
+		assert.Equal(t, 200, boxes["R"].Width, "the over-wide budget is honoured literally")
+		assert.GreaterOrEqual(t, boxes["C"].Width, termMinWidth, "C floors at the minimum content width")
+	})
+}
+
+func TestTermLayout_VerticalPanePair(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// S:S15.7: a mid-page vertical pair of two independently-sized panes with a
+	// rule between is NOT a new construct -- it is the frame's own band stacking.
+	// An "HC" layout renders H (top pane) over C (bottom pane) at ANY width, with
+	// H's bottom border the divider; nesting it in an outer page's C slot places
+	// the pair mid-page (the same clone-on-render nesting proven in _Nested).
+	// Independent SCROLL state stays host-composed -- not a one-pass renderer's job.
+	pair := NewLayout("HC").
+		H(El("p", Text("top"))).
+		C(El("p", Text("bottom")))
+	page := NewLayout("HCF").
+		H(Text("pageHead")).
+		C(pair).
+		F(Text("pageFoot"))
+	ctx := termTestContext(map[string]string{
+		"top": "Upper pane", "bottom": "Lower pane",
+		"pageHead": "Page header", "pageFoot": "Page footer",
+	})
+
+	// Mid-page width (>= 80): the pair does not depend on the narrow-stack regime.
+	out := page.RenderTerm(ctx, TermOptions{Width: 100})
+
+	assert.Less(t, strings.Index(out, "Upper pane"), strings.Index(out, "Lower pane"),
+		"the top pane renders above the bottom pane")
+	assert.Less(t, strings.Index(out, "Page header"), strings.Index(out, "Upper pane"),
+		"the pane pair sits below the page header, mid-page")
+	assert.Less(t, strings.Index(out, "Lower pane"), strings.Index(out, "Page footer"),
+		"and above the page footer")
+
+	lines := strings.Split(out, "\n")
+	upperRow, lowerRow := -1, -1
+	for i, ln := range lines {
+		if strings.Contains(ln, "Upper pane") {
+			upperRow = i
+		}
+		if strings.Contains(ln, "Lower pane") {
+			lowerRow = i
+		}
+	}
+	require.Positive(t, upperRow, "upper pane row found")
+	require.Greater(t, lowerRow, upperRow, "lower pane below upper")
+	ruleBetween := false
+	for i := upperRow + 1; i < lowerRow; i++ {
+		if strings.Contains(lines[i], "─") {
+			ruleBetween = true
+		}
+	}
+	assert.True(t, ruleBetween, "a divider rule (the nested H bottom border) sits between the two panes")
+}
+
+func TestTermLayout_JunctionGutterRule(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// S:S15.6: the single-column gap either side of C is a blank space by default;
+	// TermTheme.GutterRule paints a glyph ("│") there instead, the full height of
+	// the band, so a downstream regains its rule between main and inspector. Paint,
+	// not layout: the gap stays one column, and FitSlots (edge-to-edge) does not
+	// apply it. The Good case borderless-frames the L/R boxes so the ONLY vertical
+	// glyph that can appear is the gutter rule, isolating it from box borders.
+	page := termTestPage()
+	ctx := termTestPageContext()
+
+	borderlessSides := func() *TermTheme {
+		th := DefaultTermTheme()
+		th.Sidebar = lipgloss.NewStyle().Padding(0, 1)
+		th.Aside = lipgloss.NewStyle().Padding(0, 1)
+		return th
+	}
+
+	t.Run("good: a set rule glyph paints the junction the full band height", func(t *testing.T) {
+		theme := borderlessSides()
+		theme.GutterRule = "│"
+		out := page.RenderTerm(ctx, TermOptions{Width: 120, Theme: theme})
+
+		ruleRows := 0
+		for _, ln := range strings.Split(strings.TrimRight(out, "\n"), "\n") {
+			if strings.Contains(ln, "│") {
+				ruleRows++
+			}
+		}
+		assert.Greater(t, ruleRows, 1, "the rule runs the full band height, not just one row")
+
+		// It IS the gutter, not a box border: the same borderless frame WITHOUT the
+		// rule carries no vertical glyph at all.
+		assert.NotContains(t, page.RenderTerm(ctx, TermOptions{Width: 120, Theme: borderlessSides()}), "│",
+			"without the rule the borderless band has no vertical glyph")
+	})
+
+	t.Run("bad: the default theme leaves the gutter a blank space, byte-identical", func(t *testing.T) {
+		assert.Equal(t, "", DefaultTermTheme().GutterRule, "the shipped theme sets no gutter rule")
+		explicit := DefaultTermTheme()
+		explicit.GutterRule = ""
+		assert.Equal(t,
+			page.RenderTerm(ctx, TermOptions{Width: 120}),
+			page.RenderTerm(ctx, TermOptions{Width: 120, Theme: explicit}),
+			"an empty gutter rule is byte-identical to the default blank space",
+		)
+	})
+
+	t.Run("ugly: FitSlots packs edge-to-edge, so the rule glyph never appears", func(t *testing.T) {
+		strip := NewLayout("LCR").L(Text("brand")).C(Text("mid")).R(Text("tail"))
+		sctx := termTestContext(map[string]string{"brand": "Brand", "mid": "Mid", "tail": "Tail"})
+		theme := DefaultTermTheme()
+		theme.Sidebar = lipgloss.NewStyle()
+		theme.Aside = lipgloss.NewStyle()
+		theme.GutterRule = "│"
+		out := strip.RenderTerm(sctx, TermOptions{Width: 120, Theme: theme, FitSlots: true})
+		assert.NotContains(t, out, "│", "FitSlots inserts no gutter column, so GutterRule paints nothing")
+	})
+}
+
 func TestTermLayout_RegionInnerContentWidth(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()
