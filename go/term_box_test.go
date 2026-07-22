@@ -5,8 +5,10 @@
 package html
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -167,6 +169,111 @@ func TestLayout_RenderTermBoxes_FitSlots(t *testing.T) {
 	assert.Equal(t, termSidebarWidth, fixed["L"].Width, "default L keeps the fixed budget")
 	assert.Equal(t, termAsideWidth, fixed["R"].Width, "default R keeps the fixed budget")
 	assert.Less(t, fixed["L"].Col+fixed["L"].Width, fixed["C"].Col, "default keeps a gutter between L and C")
+}
+
+// glyphColumn finds the first line containing label and returns the display
+// column it starts at, after ANSI stripping -- used to check a slot's rendered
+// glyphs fall inside its recorded box.
+func glyphColumn(lines []string, label string) (int, bool) {
+	for _, ln := range lines {
+		s := termStripANSI(ln)
+		if i := strings.Index(s, label); i >= 0 {
+			return lipgloss.Width(s[:i]), true
+		}
+	}
+	return 0, false
+}
+
+func TestLayout_RenderTermBoxes_FitSlots_ThemeChrome(t *testing.T) {
+	restore := asciiProfile()
+	defer restore()
+
+	// Friction (round 3): FitSlots measures each L/R slot's chrome from the active
+	// theme's slot style instead of assuming the default rounded, padded slot's
+	// +4. So a borderless or space-glyph theme records boxes that tile the
+	// *visible* glyphs exactly, rather than drifting a column or two wide of them
+	// as the old fixed constant did.
+	page := NewLayout("LCR").L(Text("brand")).C(Text("mid")).R(Text("tail"))
+	ctx := termTestContext(map[string]string{"brand": "Brand", "mid": "Mid", "tail": "Tail"})
+
+	borderless := DefaultTermTheme()
+	borderless.Sidebar = lipgloss.NewStyle()
+	borderless.Aside = lipgloss.NewStyle()
+
+	spaceGlyph := lipgloss.NewStyle().Padding(0, 1).
+		Border(lipgloss.Border{Left: " ", Right: " "}, false, true, false, true)
+	spaceTheme := DefaultTermTheme()
+	spaceTheme.Sidebar = spaceGlyph
+	spaceTheme.Aside = spaceGlyph
+
+	tests := []struct {
+		name     string
+		theme    *TermTheme
+		wantRows int
+	}{
+		{
+			name:     "good: default bordered theme records exact boxes (regression pin)",
+			theme:    DefaultTermTheme(),
+			wantRows: 3,
+		},
+		{
+			name:     "good: borderless theme boxes match the visible glyphs",
+			theme:    borderless,
+			wantRows: 1,
+		},
+		{
+			name:     "good: space-glyph border theme keeps the downstream idiom exact",
+			theme:    spaceTheme,
+			wantRows: 1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			out, boxes := page.RenderTermBoxes(ctx, TermOptions{Width: 100, FitSlots: true, Theme: tc.theme})
+			l, c, r := boxes["L"], boxes["C"], boxes["R"]
+
+			lines := strings.Split(out, "\n")
+			assert.Len(t, lines, tc.wantRows, "the strip renders on the expected number of rows")
+
+			// One packed strip: every slot box shares the strip's top row.
+			assert.Equal(t, l.Row, c.Row, "L and C share the strip's top row")
+			assert.Equal(t, c.Row, r.Row, "C and R share the strip's top row")
+
+			// The boxes tile edge-to-edge with no inter-slot gutter.
+			assert.Equal(t, l.Col+l.Width, c.Col, "C abuts L exactly")
+			assert.Equal(t, c.Col+c.Width, r.Col, "R abuts C exactly")
+
+			// No drift: the recorded extent equals the rendered strip's own visible
+			// width -- the whole point of measuring chrome from the active theme.
+			visible := 0
+			for _, ln := range lines {
+				if w := lipgloss.Width(termStripANSI(ln)); w > visible {
+					visible = w
+				}
+			}
+			assert.Equal(t, visible, r.Col+r.Width, "the recorded boxes span exactly the visible strip -- no chrome drift")
+
+			// Each slot's own glyphs fall inside its recorded box.
+			for _, probe := range []struct {
+				box   Box
+				label string
+			}{{l, "Brand"}, {c, "Mid"}, {r, "Tail"}} {
+				col, ok := glyphColumn(lines, probe.label)
+				require.True(t, ok, "%s is rendered", probe.label)
+				assert.GreaterOrEqual(t, col, probe.box.Col, "%s starts at or after its slot's left edge", probe.label)
+				assert.Less(t, col, probe.box.Col+probe.box.Width, "%s ends before its slot's right edge", probe.label)
+			}
+		})
+	}
+
+	// The borderless theme is content-sized to zero chrome, so its slots and its
+	// whole strip are strictly narrower than the default bordered theme's -- proof
+	// the overhead is measured, not the fixed +4.
+	_, bordered := page.RenderTermBoxes(ctx, TermOptions{Width: 100, FitSlots: true})
+	_, bare := page.RenderTermBoxes(ctx, TermOptions{Width: 100, FitSlots: true, Theme: borderless})
+	assert.Less(t, bare["L"].Width, bordered["L"].Width, "a borderless L is narrower than a bordered L")
+	assert.Less(t, bare["R"].Col+bare["R"].Width, bordered["R"].Col+bordered["R"].Width, "the borderless strip is narrower overall")
 }
 
 func TestLayout_RenderTermBoxes_FitSlots_OneRowBelowStackThreshold(t *testing.T) {

@@ -143,6 +143,59 @@ func TestTermLayout_RenderTerm_FitSlots(t *testing.T) {
 	assert.Equal(t, fixed, page.RenderTerm(ctx, TermOptions{Width: 100}), "default render is unchanged")
 }
 
+func TestTermChrome(t *testing.T) {
+	// termChrome measures the horizontal columns a slot style spends on border and
+	// padding -- what FitSlots adds to a slot's content width so its recorded box
+	// spans the rendered glyphs. The default rounded, (0,1)-padded slot is 4; a
+	// stripped theme is less, and the measurement is what keeps its boxes exact.
+	tests := []struct {
+		name  string
+		style lipgloss.Style
+		want  int
+	}{
+		{
+			name:  "good: rounded border with (0,1) padding is 4 (the default slot)",
+			style: lipgloss.NewStyle().Padding(0, 1).Border(lipgloss.RoundedBorder()),
+			want:  4,
+		},
+		{
+			name:  "good: borderless and unpadded is 0",
+			style: lipgloss.NewStyle(),
+			want:  0,
+		},
+		{
+			name:  "good: space-glyph left/right border with padding still counts the border",
+			style: lipgloss.NewStyle().Padding(0, 1).Border(lipgloss.Border{Left: " ", Right: " "}, false, true, false, true),
+			want:  4,
+		},
+		{
+			name:  "bad: padding only, no border",
+			style: lipgloss.NewStyle().Padding(0, 2),
+			want:  4,
+		},
+		{
+			name:  "bad: full border only, no padding",
+			style: lipgloss.NewStyle().Border(lipgloss.NormalBorder()),
+			want:  2,
+		},
+		{
+			name:  "ugly: a hidden border still occupies its columns",
+			style: lipgloss.NewStyle().Border(lipgloss.HiddenBorder()),
+			want:  2,
+		},
+		{
+			name:  "ugly: a single left border is one column",
+			style: lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, false, true),
+			want:  1,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, termChrome(tc.style))
+		})
+	}
+}
+
 func TestTermLayout_Responsive_RenderTerm(t *testing.T) {
 	restore := asciiProfile()
 	defer restore()
