@@ -404,6 +404,23 @@ A leading space-only gutter on a **block-open line** -- indenting a paragraph's 
 
 **Interior lines are different -- the one asymmetry to know.** Because the flush trims only the run's outer edge, a line *after* an interior `<br>` is a continuation line whose **leading whitespace survives**: `<p>head<br>  tail</p>` keeps the two-space gutter on `  tail`, and `<p>  first<br>  second</p>` collapses the first line's gutter but keeps the second's. "Nothing survives" holds for the block-open line only; a post-`<br>` continuation gutter rides through untouched. So the blessed **marker-glyph** idiom -- a non-space leading character the flush keeps, `○ ` or `· ` before the text, exactly the tab-strip shape S:S8.4 already uses -- is needed **only at block-open rows** (a paragraph's first line, a band-opening row); a continuation line after `<br>` already carries its plain-space gutter and needs no marker, which is why a caller can mark just the opening rows and pass exact bytes elsewhere. The other route to a visible gutter, at any row, is **structural padding**: the C content gutter (S:S15.2), or a themed slot's own padding (`Sidebar`, `Card`). Reach for a marker glyph on the opening row, a plain gutter (or marker) on continuation rows, or a padded region -- never a run of spaces expecting the block-open edge to keep it.
 
+### 15.5 Band and slot inner content width
+
+A downstream doing row-budget maths -- how many columns a region gives before text wraps, and so how many rows a block of copy takes before a frame has to split -- needs the inner content width each region renders into, not just its outer width. Every region reserves its own chrome from the width it is handed, so a band of outer width `W` does **not** render content at `W`:
+
+| Region | Inner content width | Where the chrome comes from |
+|---|---|---|
+| H, F bands | `W - 2` | the band's `(0,1)` horizontal padding gutter (S:S15.2) -- one column each side |
+| C content | `W - 2` | its structural `(0,1)` gutter (S:S15.2), the same alignment gutter, not themed |
+| L, R boxed slots | `W - 4` | the default rounded border (2) + `(0,1)` padding (2) |
+
+The general rule is one line: **inner content width = region width − the region's horizontal chrome (border + padding)** -- the same `termChrome` FitSlots measures for L/R (S:S15.1). For the default theme that is `2` for the full-width bands (H/C/F -- padding only, no left/right border) and `4` for the bordered L/R boxes. Two consequences worth stating outright:
+
+- The C gutter is **structural and fixed at 2** whatever the `TermTheme` is, because C's `(0,1)` alignment gutter is not a theme field (S:S15.2). The `- 4` for L/R is **theme-dependent**: a theme whose `Sidebar`/`Aside` style drops the border, or widens the padding, changes their inner width by exactly that much -- and FitSlots already tiles their boxes to that measured chrome (S:S15.1). The H/F bands render at a fixed `W - 2` matching the default band gutter; a theme that re-pads a band away from `(0,1)` owns keeping its content-width expectation in step, the same caller-owns-content boundary as FitSlots.
+- The `W` a slot is handed is itself the layout's arithmetic, not the terminal width: at `>= 80` columns L is a fixed `24` and R a fixed `28` (so inner `20` and `24`), C fills the remainder; below 80 the slots stack at full width; under FitSlots each slot is content-sized (S:S15.1). Compose the two -- outer width from the layout, minus the chrome above -- to get the wrap width for a region.
+
+No helper is exported for the subtraction: a region's chrome is a property of the `TermTheme` the caller already holds, the default contract above (`- 2` for bands, `- 4` for L/R) is stable for the shipped theme, and a single documented rule is a steadier thing to depend on than one more one-line accessor (S:S1 keeps the surface closed).
+
 ## 16. CoreCommand-derived default TUI (exploratory)
 
 `CoreCommand` (`dappco.re/go`, the `core` module already in `go.mod`) is a declarative command tree: `Command{Name, Description, Path, Action CommandAction, Managed string, Flags Options, Hidden bool}`, `CommandAction = func(Options) Result`, registered and fetched via `(*Core).Command(path string, command ...Command) Result` (zero variadic args = lookup), listed flat via `(*Core).Commands() []string` in registration order. There is no separate subcommand-tree type: the flat, path-keyed registry *is* the tree (`"deploy/to/homelab"`), and registering a nested path auto-creates placeholder ancestor entries so the tree is always walkable from any leaf.
