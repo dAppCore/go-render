@@ -4,6 +4,8 @@ go 1.26.2
 // from go.mod tags — no external submodules.
 
 use (
-	./go
 	./cli
+	./display/webkit
+	./engine/php
+	./go
 )
