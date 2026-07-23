@@ -93,6 +93,16 @@ func TestParseTape_Good(t *testing.T) {
 			want: []command{{Verb: "Click", Args: []string{"banner"}, Line: 1}},
 		},
 		{
+			name: "good: Snapshot takes one path argument",
+			src:  "Snapshot settings.snapshot",
+			want: []command{{Verb: "Snapshot", Args: []string{"settings.snapshot"}, Line: 1}},
+		},
+		{
+			name: "good: Image takes one path argument",
+			src:  "Image settings.png",
+			want: []command{{Verb: "Image", Args: []string{"settings.png"}, Line: 1}},
+		},
+		{
 			name: "good: a trailing # comment after real arguments is dropped",
 			src:  "Set Width 80 # eighty columns",
 			want: []command{{Verb: "Set", Args: []string{"Width", "80"}, Line: 1}},
@@ -182,6 +192,10 @@ func TestParseTape_Bad(t *testing.T) {
 		{"bad: Golden with two arguments", "Golden a.golden extra", 1},
 		{"bad: Click with no id", "Click", 1},
 		{"bad: Click with two arguments", "Click banner extra", 1},
+		{"bad: Snapshot with no argument", "Snapshot", 1},
+		{"bad: Snapshot with two arguments", "Snapshot a.snapshot extra", 1},
+		{"bad: Image with no argument", "Image", 1},
+		{"bad: Image with two arguments", "Image a.png extra", 1},
 		{"bad: an unterminated quoted argument", `Expect Text "unterminated`, 1},
 		{"bad: a later line reports its own line number", "Source a.ctml\nSet Width 80\nBogus", 3},
 	}
