@@ -1,16 +1,9 @@
 go 1.26.2
 
-// Workspace mode for development: pulls fresh code from external/ submodules.
-//
-// Devs:   git clone --recursive   ->   go.work picks up local sources.
-// CI:     GOWORK=off               ->   go.mod tags drive resolution.
+// Workspace: the repo's own modules only (library + cli). Dependencies resolve
+// from go.mod tags — no external submodules.
 
 use (
 	./go
-	./external/go
-	./external/go-i18n/go
-	./external/go-inference
-	./external/go-io
-	./external/go-log
-	./external/go-process
+	./cli
 )
