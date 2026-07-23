@@ -1,0 +1,21 @@
+# Click hit-testing -- exercises the Click verb: resolves a box id against
+# the render's BoxMap, failing (and naming the tape line) if the id is
+# absent or its box is empty/zero-area. Source is the same sample.ctml the
+# core DSL example (sample_test.ctml) renders, so the ids match its own
+# Expect Box lines: banner (the <h1 id="banner">) and list (the
+# <ul id="list">).
+#
+# Click is hit-testing only -- it proves a target CAN be hit, not that a
+# click was dispatched anywhere. See doc.go's Click section for why driving
+# an actual click (or a key) waits on a `hooks` prop this package does not
+# have yet.
+
+Source sample.ctml
+Set Width 40
+
+Data session.title "Welcome"
+Data version "1.0"
+Rows items 3
+
+Click banner
+Click list

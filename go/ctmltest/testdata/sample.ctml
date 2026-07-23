@@ -1,0 +1,9 @@
+<div>
+  <h1 id="banner">{{session.title}}</h1>
+  <p>Build {{version}}</p>
+  <ul id="list">
+    <each items="items" as="row">
+      <li>{{row.label}}</li>
+    </each>
+  </ul>
+</div>

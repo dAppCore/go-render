@@ -1,0 +1,21 @@
+# Worked example for the ctmltest DSL -- exercises every verb the first
+# slice implements. See ../ctmltest_test.go, which runs every *_test.ctml
+# file directly under testdata/ (this one included) via ctmltest.Run.
+
+Source sample.ctml
+Set Width 40
+Set Height 24
+Set Theme midnight
+
+Data session.title "Welcome"
+Data version "1.0"
+Rows items 3
+
+Expect Text "Welcome"
+Expect Text "Build 1.0"
+Expect Text "Row 1"
+Expect Text "Row 3"
+Expect Box banner
+Expect Box list
+Expect Fits
+Golden sample.golden

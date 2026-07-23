@@ -1,0 +1,4 @@
+# Deliberately malformed -- exercises RunFile's tape-parse-error t.Fatalf
+# path (parseTape itself is covered directly by tape_test.go; this proves
+# RunFile actually wires that error through).
+Bogus verb

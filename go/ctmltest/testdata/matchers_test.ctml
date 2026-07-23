@@ -1,0 +1,16 @@
+# Richer Expect matchers -- NotText (the frame must NOT contain substr),
+# Line N (line N, 0-indexed, trimmed of trailing space, equals text
+# exactly), and Width N (the frame's widest line, in display cells, equals
+# N exactly). Source is the same sample.ctml the core DSL example
+# (sample_test.ctml) renders.
+
+Source sample.ctml
+Set Width 40
+
+Data session.title "Welcome"
+Data version "1.0"
+Rows items 3
+
+Expect NotText "Goodbye"
+Expect Line 0 "Welcome"
+Expect Width 40
