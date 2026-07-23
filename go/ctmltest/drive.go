@@ -7,7 +7,7 @@ package ctmltest
 import (
 	"strconv"
 
-	html "dappco.re/go/html"
+	html "dappco.re/go/html/engine/html"
 )
 
 // isRenderRead reports whether verb reads the tape's current render state

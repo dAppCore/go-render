@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	core "dappco.re/go"
-	html "dappco.re/go/html"
-	ctml "dappco.re/go/html/ctml"
+	html "dappco.re/go/html/engine/html"
+	ctml "dappco.re/go/html/engine/ctml"
 	coreio "dappco.re/go/io"
 )
 

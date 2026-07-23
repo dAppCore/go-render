@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	html "dappco.re/go/html"
+	html "dappco.re/go/html/engine/html"
 )
 
 // astNode is the parsed, pre-materialisation representation of one .ctml

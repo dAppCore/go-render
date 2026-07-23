@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	core "dappco.re/go"
-	html "dappco.re/go/html"
+	html "dappco.re/go/html/engine/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
