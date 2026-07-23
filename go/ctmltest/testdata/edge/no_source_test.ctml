@@ -1,0 +1,4 @@
+# Deliberately missing a Source line -- exercises RunFile's "missing Source
+# verb" t.Fatalf path. Consumed only by run_test.go, never by the top-level
+# testdata/*_test.ctml glob (this file lives one directory deeper).
+Expect Fits

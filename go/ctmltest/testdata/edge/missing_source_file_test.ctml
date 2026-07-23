@@ -1,0 +1,4 @@
+# Source names a file that does not exist -- exercises RunFile's "reading
+# Source" t.Fatalf path.
+Source does-not-exist.ctml
+Expect Fits
