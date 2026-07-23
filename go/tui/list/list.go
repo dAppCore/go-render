@@ -3,7 +3,7 @@
 // keeps every list.Model / list.New / list.Item reference unchanged.
 package list
 
-import "github.com/charmbracelet/bubbles/list"
+import "charm.land/bubbles/v2/list"
 
 type (
 	Model           = list.Model

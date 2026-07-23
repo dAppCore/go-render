@@ -8,8 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
-	"github.com/muesli/termenv"
+	"charm.land/lipgloss/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,18 +34,7 @@ func termTestEntitledContext() *Context {
 	return ctx
 }
 
-// asciiProfile forces deterministic unstyled output for structural assertions;
-// the returned restore function reinstates the detected profile.
-func asciiProfile() func() {
-	previous := lipgloss.ColorProfile()
-	lipgloss.SetColorProfile(termenv.Ascii)
-	return func() { lipgloss.SetColorProfile(previous) }
-}
-
 func TestTerm_RenderTerm(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	tests := []struct {
 		name     string
 		node     Node
@@ -161,7 +149,12 @@ func TestTerm_RenderTerm(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			out := RenderTerm(tc.node, tc.ctx, tc.opts)
+			// Stripped: the default theme always paints now (lipgloss v2 has
+			// no global profile to force down to plain ASCII), and a styled
+			// fragment concatenated with a plain one -- e.g. a themed bullet
+			// marker plus its list-item text -- carries a reset/open escape
+			// pair between them, breaking a raw contiguous substring match.
+			out := termStripANSI(RenderTerm(tc.node, tc.ctx, tc.opts))
 			for _, want := range tc.contains {
 				assert.Contains(t, out, want)
 			}
@@ -173,9 +166,6 @@ func TestTerm_RenderTerm(t *testing.T) {
 }
 
 func TestTerm_DefinitionTermWrapsToWidth(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// A term far longer than the render width: it must wrap onto further
 	// lines like every sibling block, not overflow as one clipped line.
 	term := strings.TrimSpace(strings.Repeat("alpha ", 20)) // 20 words, ~119 cols
@@ -222,8 +212,6 @@ func TestTerm_Verbatim_PassesAnsiByteExact(t *testing.T) {
 }
 
 func TestTerm_Verbatim_InsideComposedChrome(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
 	// The intended shape: pre-styled ANSI placed inside composed chrome. The
 	// verbatim bytes survive intact even though the surrounding block renders
 	// through the normal styled path.
@@ -234,9 +222,6 @@ func TestTerm_Verbatim_InsideComposedChrome(t *testing.T) {
 }
 
 func TestTerm_ParagraphLeadingWhitespaceAsymmetry(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// The paragraph flush runs strings.TrimSpace over the whole flattened run
 	// (blockEl's "p"/"address" case, and the blocks() inline flush), which by
 	// definition only bites the run's outer edge. So a block-open leading gutter
@@ -291,9 +276,6 @@ func TestTerm_ParagraphLeadingWhitespaceAsymmetry(t *testing.T) {
 }
 
 func TestTerm_RenderTerm_Table(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	node := El("table",
 		El("thead", El("tr", El("th", Text("repo")), El("th", Text("status")))),
 		El("tbody",
@@ -316,28 +298,26 @@ func TestTerm_RenderTerm_Table(t *testing.T) {
 }
 
 func TestTerm_RenderTerm_Hyperlink(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	linked := Attr(El("a", Text("site")), "href", "https://dappco.re")
 	ctx := termTestContext(map[string]string{"site": "dappco.re"})
 
 	out := RenderTerm(linked, ctx)
 	assert.Contains(t, out, "\x1b]8;;https://dappco.re\x1b\\", "OSC 8 hyperlink opens")
-	assert.Contains(t, out, "dappco.re")
+	// Stripped: the Link style underlines, so v2 styles the run rune-by-rune
+	// (its space/underline styler split) rather than as one contiguous block.
+	assert.Contains(t, termStripANSI(out), "dappco.re")
 
 	theme := DefaultTermTheme()
 	theme.Hyperlinks = false
 	plain := RenderTerm(linked, ctx, TermOptions{Theme: theme})
 	assert.NotContains(t, plain, "\x1b]8;;", "hyperlinks disabled by theme")
-	assert.Contains(t, plain, "dappco.re")
+	assert.Contains(t, termStripANSI(plain), "dappco.re")
 }
 
 func TestTerm_RenderTerm_ClassTokens(t *testing.T) {
-	previous := lipgloss.ColorProfile()
-	lipgloss.SetColorProfile(termenv.TrueColor)
-	defer lipgloss.SetColorProfile(previous)
-
+	// lipgloss v2 has no global colour profile to force: Style.Render always
+	// paints whatever colours a Style has set, so a themed class token emits
+	// ANSI unconditionally -- nothing to arrange first.
 	node := El("p", Attr(El("span", Text("state")), "class", "error"))
 	ctx := termTestContext(map[string]string{"state": "failed"})
 

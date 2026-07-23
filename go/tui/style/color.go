@@ -1,16 +1,23 @@
 package style
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"image/color"
 
-// Color is a light/dark adaptive colour: the terminal's background decides
-// which of the two is used, so one theme value stays legible on both. Written
-// as style.Color{Light: "#172033", Dark: "#E2E8F0"}.
-type Color = lipgloss.AdaptiveColor
+	"charm.land/lipgloss/v2"
+)
 
-// Paint is any single terminal colour (a plain hex/ANSI value) where an
-// adaptive pair is not needed.
-type Paint = lipgloss.Color
+// Paint is a single terminal colour — the value a Style's Foreground,
+// Background and Border*Foreground calls accept.
+type Paint = color.Color
 
-// TerminalColor is the interface both Color and Paint satisfy — the type a
-// Style's Foreground/Background accepts.
-type TerminalColor = lipgloss.TerminalColor
+// Color builds a Paint from a hex ("#RRGGBB"/"#RGB") or ANSI (decimal index)
+// string, e.g. style.New().Foreground(style.Color("#7aa2f7")).
+func Color(s string) Paint { return lipgloss.Color(s) }
+
+// LightDark picks between a light-terminal and a dark-terminal Paint for the
+// same role, once isDark is known, e.g.
+// ld := style.LightDark(true); accent := ld(style.Color("#2e5cc5"), style.Color("#7aa2f7")).
+type LightDark = lipgloss.LightDarkFunc
+
+// NewLightDark builds a LightDark chooser for the given background.
+func NewLightDark(isDark bool) LightDark { return lipgloss.LightDark(isDark) }

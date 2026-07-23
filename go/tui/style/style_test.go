@@ -7,8 +7,9 @@ import (
 	"dappco.re/go/html/tui/style"
 )
 
-// Color must satisfy the colour interface a Style's Foreground/Background take.
-var _ style.TerminalColor = style.Color{Light: "#000000", Dark: "#ffffff"}
+// Color must satisfy Paint -- the colour interface a Style's
+// Foreground/Background take.
+var _ style.Paint = style.Color("#000000")
 
 func TestNew_RendersTheText(t *testing.T) {
 	if out := style.New().Bold(true).Render("hi"); !strings.Contains(out, "hi") {
@@ -65,5 +66,23 @@ func TestPlace_FillsToWidthAndHeight(t *testing.T) {
 func TestBorders_RoundedDiffersFromNormal(t *testing.T) {
 	if style.Rounded().TopLeft == style.Normal().TopLeft {
 		t.Fatal("Rounded and Normal borders should differ at the corner")
+	}
+}
+
+func TestColor_ParsesHex(t *testing.T) {
+	r, g, b, _ := style.Color("#7aa2f7").RGBA()
+	if r == 0 && g == 0 && b == 0 {
+		t.Fatalf("Color(#7aa2f7).RGBA() = %d,%d,%d, want a non-black colour", r, g, b)
+	}
+}
+
+func TestNewLightDark_PicksByIsDark(t *testing.T) {
+	light, dark := style.Color("#111111"), style.Color("#eeeeee")
+
+	if got := style.NewLightDark(false)(light, dark); got != light {
+		t.Fatalf("NewLightDark(false)(light, dark) = %v, want light", got)
+	}
+	if got := style.NewLightDark(true)(light, dark); got != dark {
+		t.Fatalf("NewLightDark(true)(light, dark) = %v, want dark", got)
 	}
 }

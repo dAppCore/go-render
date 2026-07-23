@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,9 +31,6 @@ func termTestPageContext() *Context {
 }
 
 func TestTermLayout_RenderTerm(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	tests := []struct {
 		name     string
 		layout   *Layout
@@ -87,9 +84,6 @@ func TestTermLayout_RenderTerm(t *testing.T) {
 }
 
 func TestTermLayout_RenderTerm_SideBySide(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	out := termTestPage().RenderTerm(termTestPageContext(), TermOptions{Width: 120})
 	lines := strings.Split(out, "\n")
 
@@ -106,9 +100,6 @@ func TestTermLayout_RenderTerm_SideBySide(t *testing.T) {
 }
 
 func TestTermLayout_RenderTerm_NarrowStacks(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	out := termTestPage().RenderTerm(termTestPageContext(), TermOptions{Width: 60})
 	lines := strings.Split(out, "\n")
 
@@ -122,9 +113,6 @@ func TestTermLayout_RenderTerm_NarrowStacks(t *testing.T) {
 }
 
 func TestTermLayout_RenderTerm_FitSlots(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	page := NewLayout("LCR").L(Text("brand")).C(Text("mid")).R(Text("tail"))
 	ctx := termTestContext(map[string]string{"brand": "Brand", "mid": "Mid", "tail": "Tail"})
 
@@ -144,9 +132,6 @@ func TestTermLayout_RenderTerm_FitSlots(t *testing.T) {
 }
 
 func TestTermLayout_SlotWidthOverride(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// S:S15.1: TermOptions.SidebarWidth/AsideWidth override the fixed L/R budgets
 	// in the wide side-by-side band. A wider R shrinks C by exactly the extra
 	// columns; an unset (zero/negative) budget keeps the fixed default; a budget so
@@ -192,9 +177,6 @@ func TestTermLayout_SlotWidthOverride(t *testing.T) {
 }
 
 func TestTermLayout_VerticalPanePair(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// S:S15.7: a mid-page vertical pair of two independently-sized panes with a
 	// rule between is NOT a new construct -- it is the frame's own band stacking.
 	// An "HC" layout renders H (top pane) over C (bottom pane) at ANY width, with
@@ -245,9 +227,6 @@ func TestTermLayout_VerticalPanePair(t *testing.T) {
 }
 
 func TestTermLayout_JunctionGutterRule(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// S:S15.6: the single-column gap either side of C is a blank space by default;
 	// TermTheme.GutterRule paints a glyph ("│") there instead, the full height of
 	// the band, so a downstream regains its rule between main and inspector. Paint,
@@ -307,9 +286,6 @@ func TestTermLayout_JunctionGutterRule(t *testing.T) {
 }
 
 func TestTermLayout_RegionInnerContentWidth(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// S:S15.5: each region renders content into (region width - its horizontal
 	// chrome). A full-width band (H/C/F) reserves its (0,1) gutter -> width-2; a
 	// bordered L/R box reserves the default rounded border + (0,1) padding ->
@@ -373,9 +349,6 @@ func TestTermLayout_RegionInnerContentWidth(t *testing.T) {
 }
 
 func TestTermLayout_FitToInner_ByteExactVerbatim(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// Friction-4 re-probe, pinned. On this base (measured chrome from round 3 +
 	// the S:S15.5 inner-width contract) the original ANSI corruption is closed: a
 	// pre-styled Verbatim line the host fitted to a slot's INNER width (outer -
@@ -421,7 +394,7 @@ func TestTermLayout_FitToInner_ByteExactVerbatim(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := termTestContext(map[string]string{"c": "c"})
 			fit := tc.build(Verbatim(ansiOf(tc.inner))).RenderTerm(ctx, TermOptions{Width: tc.outer})
-			over := tc.build(Verbatim(ansiOf(tc.inner + 1))).RenderTerm(ctx, TermOptions{Width: tc.outer})
+			over := tc.build(Verbatim(ansiOf(tc.inner+1))).RenderTerm(ctx, TermOptions{Width: tc.outer})
 
 			assert.Equal(t, 1, rows(fit), "a line fitted to the inner width rides one row")
 			assert.Contains(t, fit, ansiOf(tc.inner), "the pre-styled ANSI survives byte-exact at the inner width")
@@ -484,9 +457,6 @@ func TestTermChrome(t *testing.T) {
 }
 
 func TestTermLayout_ContentSlotChrome(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// Round 4: the C slot's alignment gutter is the themeable Content style
 	// (S:S15.2), symmetric with the Sidebar/Aside/Header/Footer band styles. The
 	// default keeps the (0,1) gutter that aligns C with the H/F bands; a theme may
@@ -520,8 +490,8 @@ func TestTermLayout_ContentSlotChrome_ByteExactVerbatim(t *testing.T) {
 	// panel body byte-exact at the slot's full width. With the default (0,1)
 	// gutter the same full-width line lands two columns over budget and the slot's
 	// Width() word-wraps it, splitting the ANSI -- which is exactly why the lever
-	// is needed for a host that pre-fits to the slot's nominal width (S:S15.5). No
-	// asciiProfile here: the verbatim ANSI must reach output to be asserted intact.
+	// is needed for a host that pre-fits to the slot's nominal width (S:S15.5). The
+	// verbatim ANSI must reach output to be asserted intact.
 	ansi := "\x1b[1m" + strings.Repeat("A", 40) + "\x1b[0m"
 	rows := func(out string) int {
 		n := 0
@@ -545,9 +515,6 @@ func TestTermLayout_ContentSlotChrome_ByteExactVerbatim(t *testing.T) {
 }
 
 func TestTermTheme_Content_DefaultByteIdentity(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// Regression pin (round 4): making the C gutter a theme field must not change
 	// the shipped theme's output. The default Content is exactly (0,1), so its
 	// measured chrome stays the documented 2 (S:S15.5) and a full HLCRF frame under
@@ -567,9 +534,6 @@ func TestTermTheme_Content_DefaultByteIdentity(t *testing.T) {
 }
 
 func TestTermLayout_Responsive_RenderTerm(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	wide := NewLayout("C").C(El("p", Text("wide")))
 	narrow := NewLayout("C").C(El("p", Text("narrow")))
 	resp := NewResponsive().

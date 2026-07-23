@@ -6,7 +6,7 @@ package key
 import (
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/key"
+	"charm.land/bubbles/v2/key"
 )
 
 type (

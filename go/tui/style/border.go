@@ -1,6 +1,6 @@
 package style
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 // Border is a box-drawing border set, passed to Style.Border.
 type Border = lipgloss.Border

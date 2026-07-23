@@ -14,7 +14,8 @@ import (
 	core "dappco.re/go"
 	html "dappco.re/go/html"
 	coreio "dappco.re/go/io"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // update, when set (`go test ./... -update`), makes every Golden command in
@@ -79,7 +80,7 @@ func evalExpect(tapePath string, cmd command, frame string, boxes html.BoxMap, f
 
 // matchText reports whether frame contains substr -- Expect Text.
 func matchText(frame, substr string) (ok bool, detail string) {
-	if strings.Contains(frame, substr) {
+	if strings.Contains(ansi.Strip(frame), substr) {
 		return true, ""
 	}
 	return false, "Expect Text " + strconv.Quote(substr) + ": not found in the rendered frame"
@@ -92,7 +93,7 @@ func matchText(frame, substr string) (ok bool, detail string) {
 // asserting on what IS present cannot: a frame can contain plenty of other
 // text while still containing the one substring it must not.
 func matchNotText(frame, substr string) (ok bool, detail string) {
-	if !strings.Contains(frame, substr) {
+	if !strings.Contains(ansi.Strip(frame), substr) {
 		return true, ""
 	}
 	return false, "Expect NotText " + strconv.Quote(substr) + ": found in the rendered frame"
@@ -105,7 +106,7 @@ func matchNotText(frame, substr string) (ok bool, detail string) {
 // fails and says how many lines the frame actually has, rather than
 // panicking or silently comparing against "".
 func matchLine(frame string, n int, want string) (ok bool, detail string) {
-	lines := strings.Split(frame, "\n")
+	lines := strings.Split(ansi.Strip(frame), "\n")
 	if n < 0 || n >= len(lines) {
 		return false, "Expect Line " + strconv.Itoa(n) + ": frame has only " + strconv.Itoa(len(lines)) + " line(s)"
 	}
@@ -130,7 +131,7 @@ func matchWidth(frame string, want int) (ok bool, detail string) {
 }
 
 // frameWidth returns the widest line in frame, in display cells
-// (github.com/charmbracelet/lipgloss.Width) -- the same per-line measure
+// (charm.land/lipgloss/v2.Width) -- the same per-line measure
 // matchFits checks against a budget and matchWidth checks against an exact
 // figure.
 func frameWidth(frame string) int {
@@ -175,7 +176,7 @@ func matchBox(boxes html.BoxMap, id string) (ok bool, detail string) {
 }
 
 // matchFits reports whether every line of frame fits within width display
-// cells (github.com/charmbracelet/lipgloss.Width -- ANSI- and wide-rune-
+// cells (charm.land/lipgloss/v2.Width -- ANSI- and wide-rune-
 // aware, the same measure the renderer itself wraps against) -- Expect
 // Fits. The failure detail names the first offending line.
 func matchFits(frame string, width int) (ok bool, detail string) {
