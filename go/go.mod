@@ -12,6 +12,8 @@ require (
 	dappco.re/go/io v0.15.1
 	dappco.re/go/process v0.16.1
 	github.com/charmbracelet/x/ansi v0.11.7
+	github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20260720091843-3eef36eaaa28
+	github.com/charmbracelet/x/mosaic v0.0.0-20260720091843-3eef36eaaa28
 	github.com/gin-gonic/gin v1.12.0
 	github.com/lucasb-eyer/go-colorful v1.4.0
 	github.com/muesli/termenv v0.16.0
@@ -35,7 +37,6 @@ require (
 	github.com/charmbracelet/x/exp/ordered v0.1.0 // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20250327172914-2fdc97757edf // indirect
 	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
-	github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20260720091843-3eef36eaaa28 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
@@ -78,8 +79,9 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	golang.org/x/arch v0.25.0 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
+	golang.org/x/image v0.44.0 // indirect
 	golang.org/x/net v0.53.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -87,5 +89,5 @@ require (
 
 require (
 	dappco.re/go v0.12.0
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 )
