@@ -1,69 +1,74 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Agent instructions for **go-render** (formerly go-html / go-help): a terminal-UI
+**display server**. Library module `dappco.re/go/html` lives at `go/`; the binaries live
+at `cli/` (module `dappco.re/go/html/cli`, a sibling — Library-as-package vs Instantiated
+code). The module path stays `dappco.re/go/html` until the `go/render` graduation.
 
-Agent instructions for `go-html`. Module path: `dappco.re/go/core/html`
+## Layout (a display server)
 
-## Commands
+```
+go/                     library (dappco.re/go/html)
+├── engine/             produce renderable content
+│   ├── html/           node model · HLCRF layout · terminal render (RenderTerm / RenderTermBoxes) · WASM · pipeline · grammar
+│   ├── ctml/           the .ctml parser: ctml.Parse(src) -> html.Node
+│   ├── teabox/         (x,y) -> node hit-test (resolve against a BoxMap)
+│   └── codegen/        Web Component bundle generation from slot maps
+├── display/            paint to a surface
+│   ├── tui/            charm-free tui layer: widget re-exports + the tui manager (tui.Run / tui.App)
+│   └── ctmltest/       the _test.ctml harness (in-process render + Snapshot / Image backends)
+└── pkg/api/            standalone HTTP handlers/provider
+cli/                    instantiated binaries (dappco.re/go/html/cli): codegen · termdemo · wasm
+# host/{win,pi,riscv} — later
+```
+
+**Architecture:** the `Node` interface (`Render(ctx *Context) string` — El, Text, Raw,
+If, Each[T], Switch, Entitled). **HLCRF** = the Header/Left/Content/Right/Footer
+compositor (variant strings like "HCF"/"HLCRF"/"C", deterministic `data-block` IDs).
+`.ctml` is the declarative markup; `engine/ctml.Parse` yields a node tree the terminal
+renderer or the WASM/web path paints.
+
+## Build / test
 
 ```bash
-go test ./...                                                      # Run all tests
-go test -run TestName ./...                                        # Single test
-go test -short ./...                                               # Skip slow WASM build test
-go test -bench . ./...                                             # Benchmarks
-go test -bench . -benchmem ./...                                   # Benchmarks with alloc stats
-go vet ./...                                                       # Static analysis
-GOOS=js GOARCH=wasm go build -ldflags="-s -w" -o gohtml.wasm ./cmd/wasm/  # WASM build
-make wasm                                                          # WASM build with size gate
-echo '{"H":"nav-bar","C":"main-content"}' | go run ./cmd/codegen/ # Codegen CLI
+cd go && GOWORK=off go test ./...      # library — deps resolve from go.mod TAGS
+cd go && GOWORK=off go vet ./...
+go build ./cli/...                     # binaries — the go.work (use ./go ./cli) resolves the local library
+GOOS=js GOARCH=wasm go build ./cli/wasm/   # WASM build (via the workspace)
 ```
 
-## Architecture
+**go.work holds the repo's own modules only** (`./go ./cli`); every other dependency
+resolves from a released tag. **No external submodules in go.work** (banned) and **no
+`replace` in go.mod**.
 
-See `docs/architecture.md` for full detail. Summary:
+## The tui manager (display/tui)
 
-- **Node interface**: `Render(ctx *Context) string` — El, Text, Raw, If, Unless, Each[T], EachSeq[T], Switch, Entitled
-- **HLCRF Layout**: Header/Left/Content/Right/Footer compositor with ARIA roles and deterministic `data-block` IDs. Variant string (e.g. "HCF", "HLCRF", "C") controls which slots render. Layouts nest via clone-on-render (thread-safe).
-- **Responsive**: Multi-variant breakpoint wrapper (`data-variant` attributes), renders all variants in insertion order
-- **Pipeline**: Render → StripTags → go-i18n/reversal Tokenise → GrammarImprint (server-side only)
-- **Codegen**: Web Component classes with closed Shadow DOM, generated at build time by `cmd/codegen/`
-- **WASM**: `cmd/wasm/` exports `renderToString()` only — size gate: < 3.5 MB raw, < 1 MB gzip
+`tui.Run(tui.NewApp(node))` turns a parsed `.ctml` into a live, cross-platform terminal
+screen — the "active thing" over the passive engines. `tui.App` is a root Bubble Tea
+Model (render the `.ctml` via `engine/html.RenderTerm`, track window size, set
+altscreen + mouse on the v2 `View`, quit on ctrl+c/q). The `tui/*` subpackages re-export
+charmbracelet (`charm.land/*`) so consumers import `dappco.re/go/html/display/tui/*` and
+never touch charmbracelet directly — harnesses included.
 
-## Server/Client Split
+## WASM constraint (engine/html)
 
-Files guarded with `//go:build !js` are excluded from WASM:
+Files WITHOUT a `//go:build !js` tag are WASM-linked — **never** import `encoding/json`,
+`text/template`, or `fmt` in them (string concatenation instead; `fmt` alone adds ~500 KB).
+The terminal renderer (`engine/html/term*.go`, lipgloss) and `pipeline.go` (go-i18n
+reversal) are `!js`-tagged, server-side only. WASM size gate: < 3.5 MB raw, < 1 MB gzip.
 
-- `pipeline.go` — Imprint/CompareVariants use `go-i18n/reversal` (server-side only)
-- `term.go`, `term_theme.go`, `term_layout.go` — the terminal renderer (lipgloss); ANSI output for CLIs, never WASM-linked
-- `cmd/wasm/register.go` — encoding/json + codegen (replaced by `cmd/codegen/` CLI)
+## Coding standards
 
-**Critical WASM constraint**: Never import `encoding/json`, `text/template`, or `fmt` in WASM-linked code (files without a `!js` build tag). Use string concatenation instead of `fmt.Sprintf` in `layout.go`, `node.go`, `responsive.go`, `render.go`, `path.go`, and `context.go`. The `fmt` package alone adds ~500 KB to the WASM binary.
-
-## Dependencies
-
-- `dappco.re/go/core/i18n` (replace directive → local go-i18n)
-- `forge.lthn.ai/core/go-inference` (indirect, via go-i18n; not yet migrated)
-- `forge.lthn.ai/core/go-log` (indirect, via go-i18n; not yet migrated)
-- Both `go-i18n` and `go-inference` must be cloned alongside this repo for builds
-- Go 1.26+ required (uses `range` over integers, `iter.Seq`, `maps.Keys`, `slices.Collect`)
-
-## Coding Standards
-
-- UK English (colour, organisation, centre, behaviour, licence, serialise)
-- All types annotated; use `any` not `interface{}`
-- Tests use `testify` assert/require
-- Licence: EUPL-1.2 — add `// SPDX-Licence-Identifier: EUPL-1.2` to new files
-- Safe-by-default: HTML escaping via `html.EscapeString()` on Text nodes and attribute values, void element handling, entitlement deny-by-default
-- Deterministic output: sorted attributes on El nodes, reproducible block ID paths
-- Errors: use `log.E("scope", "message", err)` from `go-log`, never `fmt.Errorf`
-- File I/O: use `coreio.Local` from `go-io`, never `os.ReadFile`/`os.WriteFile`
-- Commits: conventional commits + `Co-Authored-By: Virgil <virgil@lethean.io>`
-
-## Test Conventions
-
-Use table-driven subtests with `t.Run()`. Integration tests that use `Text` nodes must initialise i18n before rendering:
-
-```go
-svc, _ := i18n.New()
-i18n.SetDefault(svc)
+- UK English (colour, organisation, behaviour, licence, serialise).
+- Licence EUPL-1.2 — `// SPDX-Licence-Identifier: EUPL-1.2` on new files.
+- Errors via `core.E` / `log.E`, never `fmt.Errorf`. File I/O via `coreio.Local` (go-io),
+  never `os.ReadFile` / `os.WriteFile`.
+- All types annotated; `any` not `interface{}`. Deterministic output (sorted attributes,
+  reproducible block IDs). Safe-by-default (HTML escaping, deny-by-default entitlement).
+- One test per symbol; match neighbouring files' test style (plain stdlib `testing` in
+  `display/tui`, testify where existing files use it). Ship an `Example` + `// Output:`
+  with a public feature. Integration tests using `Text` nodes init i18n first
+  (`svc,_ := i18n.New(); i18n.SetDefault(svc)`).
+- Commits: conventional + `Co-Authored-By: Virgil <virgil@lethean.io>`. Go 1.26+.
 ```
+
