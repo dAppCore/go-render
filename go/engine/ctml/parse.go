@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	core "dappco.re/go"
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // parser walks one document with encoding/xml.Decoder. A {{path}} token is

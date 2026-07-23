@@ -15,7 +15,7 @@ import (
 	"time"
 
 	core "dappco.re/go"
-	"dappco.re/go/html/engine/codegen"
+	"dappco.re/go/render/engine/codegen"
 	coreio "dappco.re/go/io"
 )
 

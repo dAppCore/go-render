@@ -5,7 +5,7 @@ package main
 import (
 	"syscall/js"
 
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // Keep the callback alive for the lifetime of the WASM module.

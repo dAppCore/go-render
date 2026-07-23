@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // astNode is the parsed, pre-materialisation representation of one .ctml
@@ -187,7 +187,7 @@ func materialiseAll(nodes []astNode, resolve resolver, bnd Bindings) []html.Node
 }
 
 // materialise builds the real html.Node tree for one astNode, calling only
-// exported dappco.re/go/html constructors -- see docs/ctml.md S:S1.2.
+// exported dappco.re/go/render constructors -- see docs/ctml.md S:S1.2.
 func materialise(n astNode, resolve resolver, bnd Bindings) html.Node {
 	switch t := n.(type) {
 	case *astEl:

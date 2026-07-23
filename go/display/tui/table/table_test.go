@@ -10,8 +10,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	"dappco.re/go/html/display/tui/style"
-	"dappco.re/go/html/display/tui/table"
+	"dappco.re/go/render/display/tui/style"
+	"dappco.re/go/render/display/tui/table"
 )
 
 func cols() []table.Column {

@@ -3,7 +3,7 @@ package style_test
 import (
 	"testing"
 
-	"dappco.re/go/html/display/tui/style"
+	"dappco.re/go/render/display/tui/style"
 )
 
 func TestNewLayer_TracksPositionAndContent(t *testing.T) {

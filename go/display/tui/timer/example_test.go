@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"dappco.re/go/html/display/tui/timer"
+	"dappco.re/go/render/display/tui/timer"
 )
 
 // ExampleNew builds a ten-second countdown and confirms Init arms the first

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"dappco.re/go/html/display/ctmltest"
+	"dappco.re/go/render/display/ctmltest"
 )
 
 // TestCTML runs every _test.ctml tape directly under testdata/ -- this is

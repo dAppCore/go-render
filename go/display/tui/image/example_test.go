@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	tuiimage "dappco.re/go/html/display/tui/image"
+	tuiimage "dappco.re/go/render/display/tui/image"
 )
 
 // ExampleRender renders a tiny generated image to an 8x4 terminal block —

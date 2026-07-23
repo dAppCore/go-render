@@ -29,7 +29,7 @@
 // BEFORE the tape's first render-reading command (Expect, Golden, or
 // Click -- see isRenderRead) build the initial render inputs -- a
 // ctml.Bindings, since .ctml binds resolve at PARSE time, not from a
-// Context at render time (see dappco.re/go/html/ctml's package doc) -- and
+// Context at render time (see dappco.re/go/render/ctml's package doc) -- and
 // a html.TermOptions; RenderTermBoxes renders once to seed that state.
 // From there RunFile walks the rest of the tape in order: Expect/Golden/
 // Click assert against the CURRENT frame and box map, and a Data command

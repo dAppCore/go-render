@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"dappco.re/go/html/display/tui/style"
+	"dappco.re/go/render/display/tui/style"
 )
 
 // Color must satisfy Paint -- the colour interface a Style's

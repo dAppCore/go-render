@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	core "dappco.re/go"
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // SubcommandList generates a <ul> of a CoreCommand path's direct

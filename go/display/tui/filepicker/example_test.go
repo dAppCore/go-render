@@ -5,7 +5,7 @@ package filepicker_test
 import (
 	"fmt"
 
-	"dappco.re/go/html/display/tui/filepicker"
+	"dappco.re/go/render/display/tui/filepicker"
 )
 
 // ExampleNew builds a picker and points it at a directory, restricting

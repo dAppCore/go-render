@@ -5,7 +5,7 @@ package paginator_test
 import (
 	"fmt"
 
-	"dappco.re/go/html/display/tui/paginator"
+	"dappco.re/go/render/display/tui/paginator"
 )
 
 // ExampleNew builds a Dots-style paginator over three pages, advances it one

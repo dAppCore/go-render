@@ -1,4 +1,4 @@
-module dappco.re/go/html/cli
+module dappco.re/go/render/cli
 
 go 1.26.2
 

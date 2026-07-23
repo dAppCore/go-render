@@ -3,7 +3,7 @@ package style_test
 import (
 	"fmt"
 
-	"dappco.re/go/html/display/tui/style"
+	"dappco.re/go/render/display/tui/style"
 )
 
 // ExampleNewCompositor composites a background layer and a badge layer

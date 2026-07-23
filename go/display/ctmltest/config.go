@@ -82,7 +82,7 @@ func applySet(cfg *tapeConfig, cmd command) {
 // "Welcome"` seeds values["session"] = map[string]any{"title": "Welcome"}
 // and a .ctml {{session.title}} bind resolves against it -- ctml's own
 // {{path}} resolution walks Bindings.Values the same way (see
-// dappco.re/go/html/ctml's lookupPath). A key with no dot ("count") is the
+// dappco.re/go/render/ctml's lookupPath). A key with no dot ("count") is the
 // single-segment case of the same walk: values["count"] = value directly.
 // A dotted path whose prefix was previously set to a non-map value (or vice
 // versa) simply overwrites at the point of collision -- last Data line for

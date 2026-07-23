@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"testing"
 
-	"dappco.re/go/html/display/tui/colorprofile"
+	"dappco.re/go/render/display/tui/colorprofile"
 )
 
 // --- Profile constants ---

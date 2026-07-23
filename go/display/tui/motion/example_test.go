@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"dappco.re/go/html/display/tui/motion"
+	"dappco.re/go/render/display/tui/motion"
 )
 
 // ExampleNewSpring runs a Spring toward a target position over a run of

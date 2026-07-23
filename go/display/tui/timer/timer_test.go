@@ -9,8 +9,8 @@ import (
 
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	tea "dappco.re/go/html/display/tui"
-	"dappco.re/go/html/display/tui/timer"
+	tea "dappco.re/go/render/display/tui"
+	"dappco.re/go/render/display/tui/timer"
 )
 
 // TestNew builds a countdown and confirms the timeout it was given and the
