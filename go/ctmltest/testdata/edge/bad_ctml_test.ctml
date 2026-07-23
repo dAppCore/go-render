@@ -1,0 +1,4 @@
+# Source names a .ctml that fails to parse -- exercises prepareRun's
+# "parsing Source" error path.
+Source bad.ctml
+Expect Fits
