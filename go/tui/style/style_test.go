@@ -69,6 +69,21 @@ func TestBorders_RoundedDiffersFromNormal(t *testing.T) {
 	}
 }
 
+func TestBorders_ExtraStylesDifferFromNormal(t *testing.T) {
+	normal := style.Normal().TopLeft
+	extras := map[string]style.Border{
+		"Double": style.Double(),
+		"Thick":  style.Thick(),
+		"Hidden": style.Hidden(),
+		"Block":  style.Block(),
+	}
+	for name, b := range extras {
+		if b.TopLeft == normal {
+			t.Fatalf("%s.TopLeft matches Normal's — should be a distinct border", name)
+		}
+	}
+}
+
 func TestColor_ParsesHex(t *testing.T) {
 	r, g, b, _ := style.Color("#7aa2f7").RGBA()
 	if r == 0 && g == 0 && b == 0 {
