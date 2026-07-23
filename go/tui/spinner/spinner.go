@@ -13,7 +13,9 @@ type (
 )
 
 var (
-	New     = spinner.New
-	Tick    = spinner.Tick
-	MiniDot = spinner.MiniDot
+	New         = spinner.New
+	Tick        = spinner.Tick
+	MiniDot     = spinner.MiniDot
+	WithSpinner = spinner.WithSpinner
+	Ellipsis    = spinner.Ellipsis
 )
