@@ -3,7 +3,7 @@
 package main
 
 import (
-	php "dappco.re/go/render/engine/php/pkg/php"
+	php "dappco.re/go/render/engine/php"
 
 	"dappco.re/go/cli/pkg/cli"
 )
