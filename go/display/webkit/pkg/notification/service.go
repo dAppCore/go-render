@@ -35,6 +35,9 @@ func Register(p Platform) func(*core.Core) core.Result {
 
 func (s *Service) OnStartup(_ context.Context) core.Result {
 	s.Core().RegisterQuery(s.handleQuery)
+	if platform, ok := s.platform.(responsePlatform); ok {
+		platform.OnResponse(s.handleResponse)
+	}
 	send := func(_ context.Context, opts core.Options) core.Result {
 		options, err := notificationOptionsFrom(opts)
 		if err != nil {
@@ -56,16 +59,12 @@ func (s *Service) OnStartup(_ context.Context) core.Result {
 	s.Core().Action("gui.notification.revokePermission", func(_ context.Context, _ core.Options) core.Result {
 		return core.Result{Value: nil, OK: true}.New(s.platform.RevokePermission())
 	})
-	s.Core().Action("notification.registerCategory", func(_ context.Context, opts core.Options) core.Result {
+	registerCategory := func(_ context.Context, opts core.Options) core.Result {
 		t, _ := opts.Get("task").Value.(TaskRegisterCategory)
-		s.categories[t.Category.ID] = t.Category
-		return core.Result{OK: true}
-	})
-	s.Core().Action("gui.notification.registerCategory", func(_ context.Context, opts core.Options) core.Result {
-		t, _ := opts.Get("task").Value.(TaskRegisterCategory)
-		s.categories[t.Category.ID] = t.Category
-		return core.Result{OK: true}
-	})
+		return core.Result{Value: nil, OK: true}.New(s.registerCategory(t.Category))
+	}
+	s.Core().Action("notification.registerCategory", registerCategory)
+	s.Core().Action("gui.notification.registerCategory", registerCategory)
 	s.Core().Action("notification.clear", func(_ context.Context, opts core.Options) core.Result {
 		t, _ := opts.Get("task").Value.(TaskClear)
 		return core.Result{Value: nil, OK: true}.New(s.clear(t.ID))
@@ -104,7 +103,15 @@ func (s *Service) send(options NotificationOptions) resultFailure {
 	}
 	options = s.applyCategoryActions(options)
 
-	if err := s.platform.Send(options); err != nil {
+	if options.Update {
+		platform, ok := s.platform.(updatePlatform)
+		if !ok {
+			return core.E("notification.send", "platform does not support notification updates", nil)
+		}
+		if err := platform.Update(options); err != nil {
+			return core.E("notification.send", "native notification update failed", err)
+		}
+	} else if err := s.platform.Send(options); err != nil {
 		// Fallback: show as dialog via IPC
 		if err := s.fallbackDialog(options); err != nil {
 			return err
@@ -114,6 +121,34 @@ func (s *Service) send(options NotificationOptions) resultFailure {
 	s.active[options.ID] = options
 	s.mu.Unlock()
 	return nil
+}
+
+func (s *Service) registerCategory(category NotificationCategory) resultFailure {
+	if category.ID == "" {
+		return core.E("notification.registerCategory", "category ID is required", nil)
+	}
+	if platform, ok := s.platform.(categoryPlatform); ok {
+		if err := platform.RegisterCategory(category); err != nil {
+			return core.E("notification.registerCategory", "native category registration failed", err)
+		}
+	}
+	s.mu.Lock()
+	s.categories[category.ID] = category
+	s.mu.Unlock()
+	return nil
+}
+
+func (s *Service) handleResponse(notificationID, actionID, userText string) {
+	switch actionID {
+	case "", "DEFAULT_ACTION":
+		coreutil.DispatchAction(s.Core(), "notification.click", ActionNotificationClicked{ID: notificationID})
+	default:
+		coreutil.DispatchAction(s.Core(), "notification.action", ActionNotificationActionTriggered{
+			NotificationID: notificationID,
+			ActionID:       actionID,
+			UserText:       userText,
+		})
+	}
 }
 
 func (s *Service) applyCategoryActions(options NotificationOptions) NotificationOptions {

@@ -87,3 +87,26 @@ func TestServiceBehaviour_notificationOptionsFrom_Good(t *core.T) {
 	core.AssertNil(t, err)
 	core.AssertEqual(t, "B", fromOpts.Title)
 }
+
+func TestServiceBehaviour_toWailsNotificationOptions_Good(t *core.T) {
+	got := toWailsNotificationOptions(NotificationOptions{
+		ID:                   "n-7",
+		Title:                "Ready",
+		Message:              "Done",
+		Silent:               true,
+		SoundName:            "Ping",
+		AttachmentPaths:      []string{"/tmp/result.png"},
+		ThreadID:             "jobs",
+		InterruptionLevel:    "active",
+		ScheduleDelaySeconds: 15,
+	})
+
+	core.AssertEqual(t, "n-7", got.ID)
+	core.RequireTrue(t, got.Sound != nil)
+	core.AssertTrue(t, got.Sound.Silent)
+	core.AssertEqual(t, "Ping", got.Sound.Name)
+	core.AssertLen(t, got.Attachments, 1)
+	core.AssertEqual(t, "/tmp/result.png", got.Attachments[0].Path)
+	core.RequireTrue(t, got.Schedule != nil)
+	core.AssertEqual(t, 15, got.Schedule.DelaySeconds)
+}

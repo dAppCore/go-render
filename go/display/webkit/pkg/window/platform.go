@@ -14,6 +14,7 @@ type PlatformWindowOptions struct {
 	URL                        string
 	HTML                       string
 	JS                         string
+	CSS                        string
 	Width, Height              int
 	X, Y                       int
 	MinWidth, MinHeight        int
@@ -27,6 +28,21 @@ type PlatformWindowOptions struct {
 	HideOnEscape               bool
 	HideOnFocusLost            bool
 	DefaultContextMenuDisabled bool
+	StartState                 int
+	BackgroundType             int
+	ScreenID                   string
+	Zoom                       float64
+	ZoomControlEnabled         bool
+	Permissions                map[uint8]uint8
+	OpenInspectorOnStartup     bool
+	MinimiseButtonState        int
+	MaximiseButtonState        int
+	CloseButtonState           int
+	FullscreenButtonState      int
+	DevToolsEnabled            bool
+	IgnoreMouseEvents          bool
+	ContentProtection          bool
+	UseApplicationMenu         bool
 	Mac                        MacWindow
 	Linux                      LinuxWindow
 	Windows                    WindowsWindow

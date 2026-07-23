@@ -33,6 +33,7 @@ type ActionNotificationClicked struct{ ID string }
 type ActionNotificationActionTriggered struct {
 	NotificationID string `json:"notificationId"`
 	ActionID       string `json:"actionId"`
+	UserText       string `json:"userText,omitempty"`
 }
 
 // ActionNotificationDismissed is broadcast when the user dismisses a notification.

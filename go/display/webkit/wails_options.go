@@ -42,8 +42,9 @@ func buildWailsOptions(cfg GuiConfig) application.Options {
 		Icon:        cfg.Icon,
 		Services:    cfg.Bindings,
 		Assets: application.AssetOptions{
-			Handler:    cfg.Assets.Handler,
-			Middleware: translateMiddleware(cfg.Assets.Middleware),
+			Handler:        cfg.Assets.Handler,
+			Middleware:     translateMiddleware(cfg.Assets.Middleware),
+			DisableLogging: cfg.Assets.DisableLogging,
 		},
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: cfg.Mac.ApplicationShouldTerminateAfterLastWindowClosed,
@@ -52,6 +53,12 @@ func buildWailsOptions(cfg GuiConfig) application.Options {
 		Windows: application.WindowsOptions{
 			DisableQuitOnLastWindowClosed: cfg.Windows.DisableQuitOnLastWindowClosed,
 			EnabledFeatures:               cfg.Windows.EnabledFeatures,
+			DisabledFeatures:              cfg.Windows.DisabledFeatures,
+			AdditionalBrowserArgs:         cfg.Windows.AdditionalBrowserArgs,
+			UseVisualHosting:              cfg.Windows.UseVisualHosting,
+			WndClass:                      cfg.Windows.WndClass,
+			WebviewUserDataPath:           cfg.Windows.WebviewUserDataPath,
+			WebviewBrowserPath:            cfg.Windows.WebviewBrowserPath,
 		},
 	}
 

@@ -182,8 +182,9 @@ type GuiConfig struct {
 // carve out platform-internal routes (e.g. /wails/*) before the user
 // handler sees them.
 type AssetOptions struct {
-	Handler    http.Handler
-	Middleware MiddlewareFunc
+	Handler        http.Handler
+	Middleware     MiddlewareFunc
+	DisableLogging bool
 }
 
 // MiddlewareFunc wraps a downstream HTTP handler. Mirrors the stdlib
@@ -213,6 +214,21 @@ type WindowsOptions struct {
 	// (e.g. "msWebView2EnableDraggableRegions" for --wails-draggable
 	// CSS support).
 	EnabledFeatures []string
+	// DisabledFeatures explicitly disables named WebView2 feature flags.
+	DisabledFeatures []string
+	// AdditionalBrowserArgs passes process-wide switches to WebView2.
+	// Entries include their "--" prefix.
+	AdditionalBrowserArgs []string
+	// UseVisualHosting selects WebView2's DirectComposition visual
+	// hosting. It avoids the monitor-scale re-marshalling path that can
+	// stall remote-desktop sessions and is configured before app.Run.
+	UseVisualHosting bool
+	// WndClass overrides the native Windows window class.
+	WndClass string
+	// WebviewUserDataPath overrides WebView2's user-data directory.
+	WebviewUserDataPath string
+	// WebviewBrowserPath selects a fixed WebView2 runtime directory.
+	WebviewBrowserPath string
 }
 
 // ActivationPolicy is the macOS activation kind. Mirrors the wails
