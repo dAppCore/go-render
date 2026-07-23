@@ -1,0 +1,25 @@
+package php
+
+const (
+	apiErrorFormat               = "API error (%d): %s"
+	ciPipelineFailedMessage      = "CI pipeline failed"
+	cliLabelBoolFormat           = "%s %v\n"
+	cliIndentedLabelValueFormat  = "  %s %s\n"
+	cliLabelValueBlankFormat     = "%s %s\n\n"
+	cliLabelValueFormat          = "%s %s\n"
+	cliSectionLabelValueFormat   = "\n%s %s\n"
+	cliSingleLineFormat          = "\n%s\n"
+	cliWrapErrorFormat           = "%s: %w"
+	cmdPHPDeployLabelKey         = "cmd.php.label.deploy"
+	cmdPHPLabelKey               = "cmd.php.label.php"
+	composerJSONFile             = "composer.json"
+	composerLockFile             = "composer.lock"
+	coolifyConfigSubject         = "Coolify config"
+	defaultLinuxKitTemplateName  = "server-php"
+	i18nFailGetKey               = "i18n.fail.get"
+	noAppIDEnvironmentFormat     = "no app ID configured for %s environment"
+	notPHPProjectComposerMessage = "not a PHP project (missing composer.json)"
+	packageJSONFile              = "package.json"
+	requestFailedMessage         = "request failed"
+	workingDirectorySubject      = "working directory"
+)
