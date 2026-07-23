@@ -231,7 +231,7 @@ func (a *Anim) updateChars(chars *[]cyclingChar) {
 }
 
 // View renders the animation's current frame.
-func (a Anim) View() string {
+func (a Anim) View() tea.View {
 	var b strings.Builder
 
 	for i, c := range a.cyclingChars {
@@ -246,11 +246,13 @@ func (a Anim) View() string {
 		b.WriteRune(c.currentValue)
 	}
 
-	return b.String() + a.ellipsis.View()
+	return tea.NewView(b.String() + a.ellipsis.View())
 }
 
 // makeGradientRamp builds a length-long pink-to-purple colour ramp
-// (#F967DC → #6B50FF), blended in Luv space.
+// (#F967DC → #6B50FF), blended in Luv space. colorful.Color satisfies
+// style.Paint (image/color.Color) directly via its own RGBA method, so each
+// blended step is stored as-is — no hex round trip needed.
 func makeGradientRamp(length int) []style.Paint {
 	const startColour = "#F967DC"
 	const endColour = "#6B50FF"
@@ -260,8 +262,7 @@ func makeGradientRamp(length int) []style.Paint {
 		end, _   = colorful.Hex(endColour)
 	)
 	for i := 0; i < length; i++ {
-		step := start.BlendLuv(end, float64(i)/float64(length))
-		c[i] = style.Paint(step.Hex())
+		c[i] = start.BlendLuv(end, float64(i)/float64(length))
 	}
 	return c
 }

@@ -4,7 +4,7 @@
 // textinput.New reference unchanged.
 package textinput
 
-import "github.com/charmbracelet/bubbles/textinput"
+import "charm.land/bubbles/v2/textinput"
 
 type Model = textinput.Model
 

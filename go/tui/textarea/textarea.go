@@ -4,7 +4,7 @@
 // textarea.New reference unchanged.
 package textarea
 
-import "github.com/charmbracelet/bubbles/textarea"
+import "charm.land/bubbles/v2/textarea"
 
 type Model = textarea.Model
 

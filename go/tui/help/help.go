@@ -3,7 +3,7 @@
 // html/tui/help) and keep every help.Model / help.New reference unchanged.
 package help
 
-import "github.com/charmbracelet/bubbles/help"
+import "charm.land/bubbles/v2/help"
 
 type (
 	Model  = help.Model

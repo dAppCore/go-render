@@ -8,7 +8,8 @@
 //	out, boxes := html.RenderTermBoxes(page, ctx, html.TermOptions{Width: 100})
 //	// inside a bubbletea Update:
 //	case tea.MouseMsg:
-//	    if hit, ok := teabox.Resolve(boxes, int(msg.X), int(msg.Y)); ok {
+//	    m := msg.Mouse()
+//	    if hit, ok := teabox.Resolve(boxes, m.X, m.Y); ok {
 //	        return m.handle(hit.BlockID, hit.Box.Node)
 //	    }
 package teabox

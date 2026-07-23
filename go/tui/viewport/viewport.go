@@ -4,8 +4,15 @@
 // viewport.New reference unchanged.
 package viewport
 
-import "github.com/charmbracelet/bubbles/viewport"
+import "charm.land/bubbles/v2/viewport"
 
-type Model = viewport.Model
+type (
+	Model  = viewport.Model
+	Option = viewport.Option
+)
 
-var New = viewport.New
+var (
+	New        = viewport.New
+	WithWidth  = viewport.WithWidth
+	WithHeight = viewport.WithHeight
+)

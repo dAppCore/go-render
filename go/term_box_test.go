@@ -8,15 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRenderTermBoxes_MatchesRenderTerm(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	page := termTestPage()
 	ctx := termTestPageContext()
 	opts := TermOptions{Width: 120}
@@ -29,9 +26,6 @@ func TestRenderTermBoxes_MatchesRenderTerm(t *testing.T) {
 }
 
 func TestLayout_RenderTermBoxes_SideBySide(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	page := termTestPage()
 	_, boxes := page.RenderTermBoxes(termTestPageContext(), TermOptions{Width: 120})
 
@@ -64,9 +58,6 @@ func TestLayout_RenderTermBoxes_SideBySide(t *testing.T) {
 }
 
 func TestLayout_RenderTermBoxes_NarrowStacks(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	page := termTestPage()
 	_, boxes := page.RenderTermBoxes(termTestPageContext(), TermOptions{Width: 60})
 
@@ -93,9 +84,6 @@ func TestLayout_RenderTermBoxes_NarrowStacks(t *testing.T) {
 }
 
 func TestLayout_RenderTermBoxes_Nested(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	inner := NewLayout("HCF").
 		H(Text("in.h")).
 		C(El("p", Text("in.c"))).
@@ -133,9 +121,6 @@ func TestLayout_RenderTermBoxes_Nested(t *testing.T) {
 }
 
 func TestLayout_RenderTermBoxes_FitSlots(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// Friction 1 residual: a content-packed strip rides L/C/R slots. FitSlots
 	// sizes each slot to its own content and packs them edge-to-edge, so the
 	// recorded boxes tile the row exactly rather than sitting in the fixed
@@ -185,9 +170,6 @@ func glyphColumn(lines []string, label string) (int, bool) {
 }
 
 func TestLayout_RenderTermBoxes_FitSlots_ThemeChrome(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// Friction (round 3): FitSlots measures each L/R slot's chrome from the active
 	// theme's slot style instead of assuming the default rounded, padded slot's
 	// +4. So a borderless or space-glyph theme records boxes that tile the
@@ -277,9 +259,6 @@ func TestLayout_RenderTermBoxes_FitSlots_ThemeChrome(t *testing.T) {
 }
 
 func TestLayout_RenderTermBoxes_SlotWidthsForPresizing(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// Round 4, friction 1: a downstream pre-sizing content reads each slot's outer
 	// width from the box map it already holds for mouse resolution (S:S14), rather
 	// than hardcoding the fixed 24/28 budgets. The recorded widths are the render-
@@ -310,9 +289,6 @@ func TestLayout_RenderTermBoxes_SlotWidthsForPresizing(t *testing.T) {
 }
 
 func TestLayout_RenderTermBoxes_FitSlots_OneRowBelowStackThreshold(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	// FitSlots is meant for a strip that rides one row whatever the width, so it
 	// bypasses the narrow-width stacking the default middle band applies below 80
 	// columns.
@@ -328,9 +304,6 @@ func TestLayout_RenderTermBoxes_FitSlots_OneRowBelowStackThreshold(t *testing.T)
 }
 
 func TestRenderTermBoxes_ElementID(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	page := NewLayout("C").C(
 		Attr(El("div", El("p", Text("a"))), "id", "card-a"),
 		Attr(El("div", El("p", Text("b"))), "id", "card-b"),
@@ -349,9 +322,6 @@ func TestRenderTermBoxes_ElementID(t *testing.T) {
 }
 
 func TestRenderTermBoxes_Ugly(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	t.Run("ugly: nil node returns an empty box map, not a panic", func(t *testing.T) {
 		out, boxes := RenderTermBoxes(nil, NewContext())
 		assert.Equal(t, "", out)
@@ -387,9 +357,6 @@ func TestRenderTermBoxes_Ugly(t *testing.T) {
 }
 
 func TestResponsive_RenderTermBoxes(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	wide := NewLayout("C").C(El("p", Text("wide")))
 	narrow := NewLayout("C").C(El("p", Text("narrow")))
 	resp := NewResponsive().Variant("desktop", wide).Variant("mobile", narrow)

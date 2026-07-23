@@ -21,7 +21,7 @@ func TestSeam_ConstructsEveryWidget(t *testing.T) {
 	_ = list.New(nil, list.NewDefaultDelegate(), 20, 10)
 	_ = textinput.New()
 	_ = textarea.New()
-	_ = viewport.New(20, 10)
+	_ = viewport.New(viewport.WithWidth(20), viewport.WithHeight(10))
 	_ = spinner.New()
 	_ = help.New()
 

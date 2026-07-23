@@ -8,7 +8,7 @@
 //	out, _ := r.Render("# hello")
 package markdown
 
-import "github.com/charmbracelet/glamour"
+import "charm.land/glamour/v2"
 
 // Renderer turns Markdown source into styled terminal output via Render(s).
 type Renderer = glamour.TermRenderer

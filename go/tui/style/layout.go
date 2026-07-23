@@ -1,6 +1,6 @@
 package style
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 // Position is an alignment along one axis, used by Row, Column and Place.
 type Position = lipgloss.Position
