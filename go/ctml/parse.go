@@ -156,7 +156,11 @@ func (p *parser) parseEl(start xml.StartElement) (astNode, error) {
 			argsAttr, hasArgs = a.Value, true
 			continue
 		}
-		attrs = append(attrs, astAttr{Key: a.Name.Local, Value: a.Value, Parts: splitAttrValue(a.Value)})
+		parts, err := p.splitAttrValue(a.Value)
+		if err != nil {
+			return nil, err
+		}
+		attrs = append(attrs, astAttr{Key: a.Name.Local, Value: a.Value, Parts: parts})
 	}
 
 	children, err := p.parseContent(start.Name)
@@ -242,7 +246,11 @@ func (p *parser) parseContent(startName xml.Name) ([]astNode, error) {
 			if strings.TrimSpace(raw) == "" {
 				continue // pure structural whitespace between siblings
 			}
-			nodes = append(nodes, splitRun(normaliseRun(raw))...)
+			segs, err := p.splitRun(normaliseRun(raw))
+			if err != nil {
+				return nil, err
+			}
+			nodes = append(nodes, segs...)
 		case xml.Comment, xml.ProcInst, xml.Directive:
 			continue
 		}
@@ -259,17 +267,23 @@ func (p *parser) parseContent(startName xml.Name) ([]astNode, error) {
 // becomes Text("○ ") + bind, and a whole-run "{{x}}" becomes a lone bind.
 // A "{{" that opens no valid {{path}} token stays literal text (S:S8.4): the
 // closed vocabulary makes a well-formed {{path}} always a lookup, so there is
-// no escape syntax to invent.
-func splitRun(run string) []astNode {
+// no escape syntax to invent. A token may also carry a single formatting
+// pipe (S:S8.7, {{path|pipe}} / {{path|pipe:arg}}); an unrecognised pipe
+// name is a loud parse error, not a literal fallback.
+func (p *parser) splitRun(run string) ([]astNode, error) {
 	var nodes []astNode
 	segStart, i := 0, 0
 	for i < len(run) {
 		if run[i] == '{' && i+1 < len(run) && run[i+1] == '{' {
-			if path, end, ok := scanBindToken(run, i); ok {
+			tok, end, ok, pipeErr := scanBindToken(run, i)
+			if pipeErr != "" {
+				return nil, p.errAt(pipeErr)
+			}
+			if ok {
 				if seg := run[segStart:i]; seg != "" {
 					nodes = append(nodes, &astText{Key: seg})
 				}
-				nodes = append(nodes, &astBind{Path: path})
+				nodes = append(nodes, &astBind{Path: tok.Path, Pipe: tok.Pipe, PipeArg: tok.Arg})
 				i, segStart = end, end
 				continue
 			}
@@ -279,7 +293,7 @@ func splitRun(run string) []astNode {
 	if seg := run[segStart:]; seg != "" {
 		nodes = append(nodes, &astText{Key: seg})
 	}
-	return nodes
+	return nodes, nil
 }
 
 // splitAttrValue splits an attribute value into the literal/bind segments a
@@ -291,20 +305,30 @@ func splitRun(run string) []astNode {
 // its literal fast path with no per-render work -- the overwhelmingly common
 // case. The row scope this resolves against is what lets an <each> row carry a
 // row-scoped class or id (S:S5); a "{{" that opens no valid path token stays
-// literal, exactly as in a text run (S:S8.4).
-func splitAttrValue(value string) []attrSeg {
+// literal, exactly as in a text run (S:S8.4). A formatting pipe (S:S8.7) is
+// NOT a pipe-legal context here -- an attribute is code, not copy -- so any
+// {{path|pipe}} token, well-formed or not, is a loud parse error rather than
+// either interpolating or falling back to literal text.
+func (p *parser) splitAttrValue(value string) ([]attrSeg, error) {
 	if !strings.Contains(value, "{{") {
-		return nil
+		return nil, nil
 	}
 	var segs []attrSeg
 	segStart, i := 0, 0
 	for i < len(value) {
 		if value[i] == '{' && i+1 < len(value) && value[i+1] == '{' {
-			if path, end, ok := scanBindToken(value, i); ok {
+			tok, end, ok, pipeErr := scanBindToken(value, i)
+			if pipeErr != "" {
+				return nil, p.errAt("an attribute bind must not use a pipe (S:S8.7): " + pipeErr)
+			}
+			if ok {
+				if tok.Pipe != "" {
+					return nil, p.errAt("an attribute bind must not use a pipe (S:S8.7): {{" + value[i+2:end-2] + "}}")
+				}
 				if seg := value[segStart:i]; seg != "" {
 					segs = append(segs, attrSeg{Lit: seg})
 				}
-				segs = append(segs, attrSeg{Path: path, IsPath: true})
+				segs = append(segs, attrSeg{Path: tok.Path, IsPath: true})
 				i, segStart = end, end
 				continue
 			}
@@ -312,12 +336,12 @@ func splitAttrValue(value string) []attrSeg {
 		i++
 	}
 	if len(segs) == 0 {
-		return nil // "{{" present but no valid token -- keep the literal fast path
+		return nil, nil // "{{" present but no valid token -- keep the literal fast path
 	}
 	if seg := value[segStart:]; seg != "" {
 		segs = append(segs, attrSeg{Lit: seg})
 	}
-	return segs
+	return segs, nil
 }
 
 // normaliseRun strips a CharData run's leading/trailing whitespace only
@@ -506,20 +530,26 @@ func (p *parser) parseRaw(start xml.StartElement) (astNode, error) {
 // resolution to materialise time, binding against the enclosing <each> row (or
 // Bindings.Values at document scope), a miss rendering empty -- exactly like a
 // row-scoped {{path}} bind (S:S8.3), so an <each> can carry per-row pre-styled
-// content. Any other value is a plain Bindings.Values key resolved at parse time
-// (S:S6.5): an absent key, or a non-string value, is a position-accurate parse
-// error. Pre-styled ANSI/control bytes cannot live in XML markup, so the content
-// arrives through the binding either way, and any child content is rejected.
+// content. That {{path}} token may also carry a single formatting pipe
+// (S:S8.7); an unrecognised pipe name is a loud parse error. Any other value
+// is a plain Bindings.Values key resolved at parse time (S:S6.5): an absent
+// key, or a non-string value, is a position-accurate parse error. Pre-styled
+// ANSI/control bytes cannot live in XML markup, so the content arrives
+// through the binding either way, and any child content is rejected.
 func (p *parser) parseVerbatim(start xml.StartElement) (astNode, error) {
 	key, ok := attrValue(start, "value")
 	if !ok {
 		return nil, p.errAt("<verbatim> requires a value attribute")
 	}
-	if path, isBind := matchBindToken(key); isBind {
+	tok, isBind, pipeErr := matchPipedBindToken(key)
+	if pipeErr != "" {
+		return nil, p.errAt(pipeErr)
+	}
+	if isBind {
 		if err := p.expectEmptyElement(start.Name); err != nil {
 			return nil, err
 		}
-		return &astVerbatim{Path: path}, nil
+		return &astVerbatim{Path: tok.Path, Pipe: tok.Pipe, PipeArg: tok.Arg}, nil
 	}
 	raw, ok := p.bnd.Values[key]
 	if !ok {
@@ -699,7 +729,12 @@ func slotLetter(tag string) byte {
 // matchBindToken recognises a whole trimmed run of the shape {{ident(.ident)*}}.
 // Anything else -- including a near-miss like {{oops!}} -- is left as
 // literal text (S:S8.4 is lenient by design: prose that merely contains
-// double braces should not become a parse error).
+// double braces should not become a parse error). This is the pipe-blind
+// matcher: it is used only by parseArgTokens, since args="..." is not a
+// pipe-legal context (S:S8.7) -- a {{path|pipe}} token there fails
+// isValidPath (the "|" is not a valid path character) and so falls through
+// to a literal argument string exactly as before pipes existed. The
+// pipe-aware matcher <verbatim> and text runs use is matchPipedBindToken.
 func matchBindToken(s string) (string, bool) {
 	if len(s) < 4 || !strings.HasPrefix(s, "{{") || !strings.HasSuffix(s, "}}") {
 		return "", false
@@ -711,23 +746,93 @@ func matchBindToken(s string) (string, bool) {
 	return inner, true
 }
 
-// scanBindToken tries to read one {{path}} token beginning at run[i], where
-// run[i:i+2] is "{{". On success it returns the trimmed inner path and the
-// index just past the closing "}}"; on failure -- no closing "}}", or an
-// inner that is not a valid path -- ok is false and splitRun treats the "{{"
-// as literal text (S:S8.4). The first "}}" closes the token, so one token
-// never spans another.
-func scanBindToken(run string, i int) (path string, end int, ok bool) {
+// bindToken is one recognised {{path}} token body: a dotted path, and
+// (S:S8.7) an optional single formatting pipe with an optional single
+// colon-argument -- {{path}}, {{path|pipe}}, or {{path|pipe:arg}}. Pipe is
+// "" for a plain, unpiped token.
+type bindToken struct {
+	Path string
+	Pipe string
+	Arg  string
+}
+
+// pipeNames is the closed v1 formatting-pipe vocabulary (docs/ctml.md
+// S:S8.7). A "|" inside a {{...}} token has no other meaning in CTML, so
+// once one appears the token is unambiguously a pipe attempt: an
+// unrecognised name is always a loud parse error (S:S9), never S:S8.4's
+// near-miss-stays-literal leniency -- that leniency governs the path half
+// only.
+var pipeNames = map[string]bool{
+	"number": true, "decimal": true, "percent": true,
+	"ordinal": true, "ago": true, "size": true, "bytes": true,
+}
+
+// parseBindBody parses one {{...}} token's already-trimmed inner text into
+// a path and an optional pipe (S:S8.7). ok is false when the path half is
+// not a valid identifier path (S:S8.4 leniency, unaffected by pipes -- the
+// caller treats the whole {{...}} as literal text). pipeErr is a non-empty
+// reason when the path half checks out but the "|" pipe half does not (a
+// pipe name that is not a plain identifier, or one outside pipeNames): the
+// caller always surfaces this as a loud parse error via its own p.errAt,
+// rather than falling through to literal text -- see scanBindToken.
+func parseBindBody(inner string) (tok bindToken, ok bool, pipeErr string) {
+	pathPart, pipePart, hasPipe := strings.Cut(inner, "|")
+	path := strings.TrimSpace(pathPart)
+	if !isValidPath(path) {
+		return bindToken{}, false, ""
+	}
+	if !hasPipe {
+		return bindToken{Path: path}, true, ""
+	}
+	namePart, argPart, hasArg := strings.Cut(pipePart, ":")
+	name := strings.TrimSpace(namePart)
+	if !isIdent(name) {
+		return bindToken{}, false, "malformed pipe in {{" + inner + "}}"
+	}
+	if !pipeNames[name] {
+		return bindToken{}, false, "unknown pipe \"" + name + "\" in {{" + inner + "}}"
+	}
+	tok = bindToken{Path: path, Pipe: name}
+	if hasArg {
+		tok.Arg = strings.TrimSpace(argPart)
+	}
+	return tok, true, ""
+}
+
+// matchPipedBindToken recognises a whole trimmed run of the shape
+// {{ident(.ident)*}}, optionally carrying a single formatting pipe
+// (S:S8.7). Used by <verbatim value="{{...}}"/>, the one other pipe-legal
+// context besides a text run (S:S6.5) -- parseArgTokens deliberately keeps
+// using the pipe-blind matchBindToken above instead, since args="..." is
+// not a pipe-legal context.
+func matchPipedBindToken(s string) (tok bindToken, ok bool, pipeErr string) {
+	if len(s) < 4 || !strings.HasPrefix(s, "{{") || !strings.HasSuffix(s, "}}") {
+		return bindToken{}, false, ""
+	}
+	inner := strings.TrimSpace(s[2 : len(s)-2])
+	return parseBindBody(inner)
+}
+
+// scanBindToken tries to read one {{path}} (or {{path|pipe}},
+// S:S8.7) token beginning at run[i], where run[i:i+2] is "{{". On success
+// it returns the parsed token and the index just past the closing "}}";
+// on failure -- no closing "}}", or a path half that is not a valid path
+// with no "|" involved -- ok is false and the caller treats the "{{" as
+// literal text (S:S8.4). pipeErr is a non-empty reason when the token does
+// contain a "|" but its pipe half is malformed or names an unrecognised
+// pipe; the caller always reports this as a loud parse error rather than
+// falling through to literal text -- see parseBindBody. The first "}}"
+// closes the token, so one token never spans another.
+func scanBindToken(run string, i int) (tok bindToken, end int, ok bool, pipeErr string) {
 	rest := run[i+2:]
 	j := strings.Index(rest, "}}")
 	if j < 0 {
-		return "", 0, false
+		return bindToken{}, 0, false, ""
 	}
 	inner := strings.TrimSpace(rest[:j])
-	if !isValidPath(inner) {
-		return "", 0, false
-	}
-	return inner, i + 2 + j + 2, true
+	end = i + 2 + j + 2
+	tok, ok, pipeErr = parseBindBody(inner)
+	return tok, end, ok, pipeErr
 }
 
 func isValidPath(s string) bool {

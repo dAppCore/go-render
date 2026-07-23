@@ -13,6 +13,19 @@ type Translator interface {
 	T(key string, args ...any) string
 }
 
+// Formatter formats a bound value through a named pipe (a go-i18n formatter)
+// for .ctml's {{ path | pipe }} / {{ path | pipe:arg }} syntax.
+// Usage example: ctx := NewContextWithFormatter(myFormatter)
+//
+// The default server build formats through go-i18n's N/Bytes helpers (see
+// FormatValue). Alternate builds, including WASM, can provide any
+// implementation with the same Format() method. name is one of the builtin
+// pipe names (number, decimal, percent, ordinal, ago, size, bytes); args
+// carries the single optional colon-argument a pipe like ago:minutes takes.
+type Formatter interface {
+	Format(name string, value any, args ...string) string
+}
+
 // Context carries rendering state through the node tree.
 // Usage example: ctx := NewContext()
 //
@@ -25,6 +38,7 @@ type Context struct {
 	Data         map[string]any
 	Metadata     map[string]any
 	service      Translator
+	formatter    Formatter
 }
 
 // applyLocaleFallback bridges translators whose SetLanguage doesn't return a
@@ -120,6 +134,26 @@ func (ctx *Context) SetService(svc Translator) *Context {
 
 	ctx.service = svc
 	applyLocaleToService(svc, ctx.Locale)
+	return ctx
+}
+
+// NewContextWithFormatter creates a rendering context backed by a specific
+// pipe formatter.
+// Usage example: ctx := NewContextWithFormatter(myFormatter, "en-GB")
+func NewContextWithFormatter(f Formatter, locale ...string) *Context {
+	ctx := NewContext(locale...)
+	ctx.SetFormatter(f)
+	return ctx
+}
+
+// SetFormatter swaps the pipe formatter used by the context.
+// Usage example: ctx.SetFormatter(myFormatter)
+func (ctx *Context) SetFormatter(f Formatter) *Context {
+	if ctx == nil {
+		return nil
+	}
+
+	ctx.formatter = f
 	return ctx
 }
 
