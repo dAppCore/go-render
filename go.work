@@ -5,7 +5,7 @@ go 1.26.2
 
 use (
 	./cli
-	./display/webkit
-	./engine/php
 	./go
+	./go/display/webkit
+	./go/engine/php
 )
