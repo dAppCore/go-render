@@ -19,7 +19,10 @@ import (
 // Rows, Expect Text/Box/Fits, and Golden; click_test.ctml exercises Click
 // hit-testing; matchers_test.ctml exercises Expect NotText/Line/Width;
 // redrive_test.ctml exercises Data re-drive across several data states
-// (see doc.go's "Data re-drive" section).
+// (see doc.go's "Data re-drive" section); visual_test.ctml exercises the
+// visual backend, Snapshot and Image, both captured via a real terminal
+// emulator (see doc.go's "Snapshot and Image" section, and snapshot.go/
+// image.go).
 func TestCTML(t *testing.T) {
 	ctmltest.Run(t, "testdata/*_test.ctml")
 }

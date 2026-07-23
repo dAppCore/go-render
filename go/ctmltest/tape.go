@@ -89,6 +89,14 @@ func (e *TapeError) Unwrap() error {
 //	                             Expect Box resolves one (see hitBox) -- see
 //	                             doc.go for why this is hit-testing only, not
 //	                             a driven click
+//	Snapshot path.snapshot     -- exactly 1 arg: a cell-level golden of the
+//	                             CURRENT frame -- per-cell content + fg/bg/
+//	                             attrs, captured via a real terminal
+//	                             emulator (github.com/charmbracelet/x/vt) --
+//	                             see snapshot.go
+//	Image path.png             -- exactly 1 arg: a PNG render of the CURRENT
+//	                             frame, for visual inspection (always
+//	                             written, not a diff gate) -- see image.go
 //
 // Every defect -- an unrecognised verb, a wrong argument count, an
 // unrecognised Set key or Expect kind, a non-numeric Width/Height/Rows/Line/
@@ -183,6 +191,10 @@ func validateCommand(cmd command) error {
 		return requireArgs(cmd, 1, "Golden requires exactly one argument: the golden file path")
 	case "Click":
 		return requireArgs(cmd, 1, "Click requires exactly one argument: the box id")
+	case "Snapshot":
+		return requireArgs(cmd, 1, "Snapshot requires exactly one argument: the snapshot file path")
+	case "Image":
+		return requireArgs(cmd, 1, "Image requires exactly one argument: the PNG file path")
 	default:
 		return tapeErr(cmd.Line, "unknown verb "+strconv.Quote(cmd.Verb))
 	}

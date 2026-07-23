@@ -1,0 +1,24 @@
+# Visual backend -- Snapshot (a cell-level golden: content + fg/bg/attrs
+# per cell, captured via a real github.com/charmbracelet/x/vt terminal
+# emulator fed this tape's CURRENT frame) and Image (the same emulator's
+# cells drawn to a PNG via charmbracelet/x/vttest's Drawer, for visual
+# inspection -- see snapshot.go and image.go). Source is the same
+# sample.ctml the core DSL example (sample_test.ctml) renders, so this tape
+# doubles as a second worked example of the same fixture read through a
+# different backend.
+#
+# Expect Fits first: Snapshot/Image size their emulator to this tape's
+# resolved Width, so a line that overflowed it would autowrap inside the
+# emulator and corrupt every row after -- Expect Fits is what guarantees
+# that assumption holds before Snapshot/Image ever run.
+
+Source sample.ctml
+Set Width 40
+
+Data session.title "Welcome"
+Data version "1.0"
+Rows items 3
+
+Expect Fits
+Snapshot visual.snapshot
+Image visual.png

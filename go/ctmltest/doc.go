@@ -43,12 +43,12 @@
 // # Verb set
 //
 // Source, Set (Width/Height/Theme), Data, Rows, Expect (Text/NotText/Line/
-// Width/Box/Fits), Golden, Click -- see parseTape's doc comment for exact
-// grammar and arity, and buildRows for the fixture row shape Rows
-// generates. Unknown verbs and malformed argument counts are parse errors
-// naming the tape line, so a tape can be audited without executing it
-// (RFC-CORE-008 AX principle 10: CLI/DSL tests are artifact validation,
-// and a tape is exactly that kind of artifact).
+// Width/Box/Fits), Golden, Click, Snapshot, Image -- see parseTape's doc
+// comment for exact grammar and arity, and buildRows for the fixture row
+// shape Rows generates. Unknown verbs and malformed argument counts are
+// parse errors naming the tape line, so a tape can be audited without
+// executing it (RFC-CORE-008 AX principle 10: CLI/DSL tests are artifact
+// validation, and a tape is exactly that kind of artifact).
 //
 // # Data re-drive
 //
@@ -95,6 +95,35 @@
 // fires -> assert" becomes one test, exercising the same BoxMap hit-test
 // Click already performs, now wired to something that reacts. Until then,
 // Click stays what it is here: a pure hit-test.
+//
+// # Snapshot and Image: the visual backend, still in-process
+//
+// Snapshot <path> and Image <path> read the SAME current frame every other
+// verb asserts against, feeding it through a real terminal emulator
+// (github.com/charmbracelet/x/vt, see snapshot.go's newFrameEmulator) to
+// capture it as a human -- or a real terminal -- would see it: Snapshot as
+// a structured, diff-friendly cell golden (content plus fg/bg/attrs per
+// cell, see visualSnapshot); Image as a PNG rendered by
+// github.com/charmbracelet/x/vttest's Drawer (see image.go's buildImage),
+// for visual inspection.
+//
+// This is a lighter cut of the design doc's "visual / screenshot" backend
+// (docs/superpowers/specs/2026-07-23-ctml-test-vhs-design.md): that doc
+// describes charmbracelet/x/vttest.Terminal, which attaches its emulator to
+// a real PTY running an external process. There is no PTY and no external
+// process here -- x/vt's emulator is fed the already-in-process-rendered
+// frame string directly, so Snapshot/Image stay exactly what "Scope: the
+// in-process backend only" (below) commits this package to: fast,
+// deterministic, no external binary, no wall clock. What they add over
+// Expect/Golden is not a second render path but a second, independently-
+// implemented READER of the first one's output -- proving the frame parses
+// and lays out correctly in a real VT100-class cell model, not just that
+// its raw bytes match a stored string.
+//
+// Snapshot diffs its golden like Golden diffs the frame (a mismatch fails,
+// naming the tape line and showing a line-by-line diff); Image does not --
+// see runImage's doc comment (image.go) for why a PNG byte-diff is the
+// wrong gate and what Image asserts instead.
 //
 // # Scope: the in-process backend only
 //
