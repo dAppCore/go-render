@@ -53,9 +53,15 @@ type astText struct {
 	Args []argToken
 }
 
+// astBind is a {{path}} value reference, optionally extended with a single
+// formatting pipe (S:S8.7): {{path}}, {{path|pipe}}, or {{path|pipe:arg}}.
+// Pipe is "" for a plain, unpiped bind -- the pre-existing behaviour is
+// unchanged. PipeArg is "" when the pipe carries no colon-argument.
 type astBind struct {
-	Path string
-	Args []argToken
+	Path    string
+	Args    []argToken
+	Pipe    string
+	PipeArg string
 }
 
 type astRaw struct{ Content string }
@@ -67,9 +73,14 @@ type astRaw struct{ Content string }
 // a miss rendering empty -- exactly like a row-scoped {{path}} bind (S:S8.3), so
 // an <each> can carry per-row pre-styled content. It materialises to
 // html.Verbatim either way; the terminal renderer emits the bytes unchanged.
+// The {{path}} form may also carry a single formatting pipe (S:S8.7), exactly
+// like a text-run bind -- Pipe/PipeArg are always "" for the plain value="key"
+// form, which has no {{path}} token to carry one.
 type astVerbatim struct {
 	Content string // parse-time-resolved literal content (plain value="key")
 	Path    string // non-empty: a {{path}} bind resolved at materialise time
+	Pipe    string
+	PipeArg string
 }
 
 type astIf struct {
@@ -188,7 +199,10 @@ func materialise(n astNode, resolve resolver, bnd Bindings) html.Node {
 	case *astText:
 		return html.Text(t.Key, resolveArgs(t.Args, resolve)...)
 	case *astBind:
-		v, _ := resolve(t.Path)
+		v, ok := resolve(t.Path)
+		if t.Pipe != "" {
+			return html.Text(pipedStringOf(t.Pipe, v, t.PipeArg, ok), resolveArgs(t.Args, resolve)...)
+		}
 		return html.Text(stringOf(v), resolveArgs(t.Args, resolve)...)
 	case *astRaw:
 		return html.Raw(t.Content)
@@ -198,7 +212,10 @@ func materialise(n astNode, resolve resolver, bnd Bindings) html.Node {
 		// miss stringifying to "" exactly like an astBind (S:S8.3). A plain
 		// value="key" carries its parse-time-resolved Content straight through.
 		if t.Path != "" {
-			v, _ := resolve(t.Path)
+			v, ok := resolve(t.Path)
+			if t.Pipe != "" {
+				return html.Verbatim(pipedStringOf(t.Pipe, v, t.PipeArg, ok))
+			}
 			return html.Verbatim(stringOf(v))
 		}
 		return html.Verbatim(t.Content)
@@ -439,4 +456,23 @@ func stringOf(v any) string {
 	default:
 		return ""
 	}
+}
+
+// pipedStringOf formats a resolved {{path|pipe}} value through go-html's
+// Formatter default (S:S8.7). materialise resolves every bind at
+// construction time (S:S1.3, S:S8.1), so there is no *html.Context here to
+// route through the Formatter seam -- html.FormatValue is the exported,
+// Context-free entry point that seam falls back to as well, so a ctml pipe
+// and a hand-built tree with no Formatter installed format identically. A
+// resolver miss (ok false) renders empty, exactly like an unpiped bind's
+// stringOf(nil) -- a missing field must stay data absence (S:S8.3), not a
+// formatted zero.
+func pipedStringOf(pipe string, v any, arg string, ok bool) string {
+	if !ok {
+		return ""
+	}
+	if arg == "" {
+		return html.FormatValue(pipe, v)
+	}
+	return html.FormatValue(pipe, v, arg)
 }
