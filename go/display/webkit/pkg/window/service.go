@@ -650,8 +650,8 @@ func (s *Service) trackWindow(pw PlatformWindow) {
 			}
 		case "resize":
 			if data := e.Data; data != nil {
-				w, _ := data["w"].(int)
-				h, _ := data["h"].(int)
+				w, _ := data["width"].(int)
+				h, _ := data["height"].(int)
 				coreutil.DispatchAction(s.Core(), "window.resize", ActionWindowResized{Name: e.Name, Width: w, Height: h})
 			}
 			// Auto-persist OS-driven resize — same rationale as move.
@@ -678,6 +678,16 @@ func (s *Service) trackWindow(pw PlatformWindow) {
 			coreutil.DispatchAction(s.Core(), "window.unfullscreen", ActionWindowUnfullscreened{Name: e.Name})
 		case "ready":
 			coreutil.DispatchAction(s.Core(), "window.ready", ActionWindowRuntimeReady{Name: e.Name})
+		case "nonclient-hit":
+			coreutil.DispatchAction(s.Core(), "window.nonClientHit", e)
+		case "nonclient-mouse-down":
+			coreutil.DispatchAction(s.Core(), "window.nonClientMouseDown", e)
+		case "nonclient-mouse-up":
+			coreutil.DispatchAction(s.Core(), "window.nonClientMouseUp", e)
+		case "nonclient-mouse-move":
+			coreutil.DispatchAction(s.Core(), "window.nonClientMouseMove", e)
+		case "nonclient-mouse-leave":
+			coreutil.DispatchAction(s.Core(), "window.nonClientMouseLeave", e)
 		}
 	})
 	pw.OnFileDrop(func(paths []string, target *DropTarget) {

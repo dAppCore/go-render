@@ -19,6 +19,9 @@ type mockPlatform struct {
 	clearID      string
 	lastOpts     NotificationOptions
 	sendCalled   bool
+	updateCalled bool
+	category     NotificationCategory
+	response     func(notificationID, actionID, userText string)
 }
 
 func (m *mockPlatform) Send(opts NotificationOptions) resultFailure {
@@ -36,6 +39,18 @@ func (m *mockPlatform) Clear(id string) resultFailure {
 	m.clearCalled = true
 	m.clearID = id
 	return m.clearErr
+}
+func (m *mockPlatform) Update(opts NotificationOptions) resultFailure {
+	m.updateCalled = true
+	m.lastOpts = opts
+	return m.sendErr
+}
+func (m *mockPlatform) RegisterCategory(category NotificationCategory) resultFailure {
+	m.category = category
+	return nil
+}
+func (m *mockPlatform) OnResponse(callback func(notificationID, actionID, userText string)) {
+	m.response = callback
 }
 
 // mockDialogPlatform tracks whether MessageDialog was called (for fallback test).
@@ -215,6 +230,46 @@ func TestTaskSend_WithActions_GoodCase(t *core.T) {
 	core.RequireTrue(t, r.OK)
 	core.AssertEqual(t, "message", mock.lastOpts.CategoryID)
 	core.AssertEqual(t, 2, len(mock.lastOpts.Actions))
+}
+
+func TestTaskSend_CurrentWailsNotificationFeatures_Good(t *core.T) {
+	mock, c := newTestService(t)
+	options := NotificationOptions{
+		ID:                   "build-7",
+		Title:                "Build complete",
+		Message:              "The application is ready.",
+		Silent:               true,
+		AttachmentPaths:      []string{"/tmp/build.png"},
+		ThreadID:             "builds",
+		InterruptionLevel:    "timeSensitive",
+		ScheduleDelaySeconds: 5,
+		Update:               true,
+	}
+
+	r := taskRun(c, "notification.send", TaskSend{Options: options})
+
+	core.RequireTrue(t, r.OK)
+	core.AssertTrue(t, mock.updateCalled)
+	core.AssertEqual(t, options.AttachmentPaths, mock.lastOpts.AttachmentPaths)
+	core.AssertEqual(t, "timeSensitive", mock.lastOpts.InterruptionLevel)
+}
+
+func TestNotificationResponse_CurrentWailsFeatures_Good(t *core.T) {
+	mock, c := newTestService(t)
+	var triggered ActionNotificationActionTriggered
+	c.RegisterAction(func(_ *core.Core, msg core.Message) core.Result {
+		if action, ok := msg.(ActionNotificationActionTriggered); ok {
+			triggered = action
+		}
+		return core.Result{OK: true}
+	})
+
+	core.RequireTrue(t, mock.response != nil)
+	mock.response("message-1", "reply", "On my way")
+
+	core.AssertEqual(t, "message-1", triggered.NotificationID)
+	core.AssertEqual(t, "reply", triggered.ActionID)
+	core.AssertEqual(t, "On my way", triggered.UserText)
 }
 
 func TestTaskSend_RegisteredCategoryActions_GoodCase(t *core.T) {

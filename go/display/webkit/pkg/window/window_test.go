@@ -11,6 +11,59 @@ func TestWindowDefaults_Good(t *core.T) {
 	core.AssertEqual(t, 0, w.Width)
 }
 
+func TestWindowToPlatformOptions_CurrentWailsFeatures_Good(t *core.T) {
+	tint := &[4]uint8{10, 20, 30, 40}
+	spec := &Window{
+		CSS:                    "html { app-region: drag; }",
+		StartState:             2,
+		BackgroundType:         2,
+		ScreenID:               "screen-2",
+		Zoom:                   1.25,
+		ZoomControlEnabled:     true,
+		Permissions:            map[uint8]uint8{0: 1, 1: 2},
+		OpenInspectorOnStartup: true,
+		FullscreenButtonState:  1,
+		IgnoreMouseEvents:      true,
+		ContentProtection:      true,
+		UseApplicationMenu:     true,
+		Mac: MacWindow{
+			Backdrop:                        3,
+			DisableShadow:                   true,
+			TabbingMode:                     3,
+			DisableEscapeExitsFullscreen:    true,
+			EnableAutoplayWithoutUserAction: true,
+			LiquidGlassStyle:                2,
+			LiquidGlassMaterial:             -1,
+			LiquidGlassCornerRadius:         18,
+			LiquidGlassTintColour:           tint,
+			LiquidGlassGroupID:              "utility",
+			LiquidGlassGroupSpacing:         8,
+		},
+		Windows: WindowsWindow{
+			DisableMenu:                true,
+			Theme:                      1,
+			NonClientRegionSupport:     true,
+			WebView2CompositionHosting: true,
+			WindowDidMoveDebounceMS:    25,
+		},
+	}
+
+	got := spec.ToPlatformOptions()
+
+	core.AssertEqual(t, spec.CSS, got.CSS)
+	core.AssertEqual(t, spec.StartState, got.StartState)
+	core.AssertEqual(t, spec.BackgroundType, got.BackgroundType)
+	core.AssertEqual(t, spec.ScreenID, got.ScreenID)
+	core.AssertEqual(t, spec.Zoom, got.Zoom)
+	core.AssertEqual(t, spec.Permissions[1], got.Permissions[1])
+	core.AssertTrue(t, got.OpenInspectorOnStartup)
+	core.AssertTrue(t, got.ContentProtection)
+	core.AssertTrue(t, got.Mac.DisableEscapeExitsFullscreen)
+	core.AssertEqual(t, tint, got.Mac.LiquidGlassTintColour)
+	core.AssertTrue(t, got.Windows.NonClientRegionSupport)
+	core.AssertTrue(t, got.Windows.WebView2CompositionHosting)
+}
+
 func TestWindowOption_Name_Good(t *core.T) {
 	// Name
 	ax7Variant := "Name:good"

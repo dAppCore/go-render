@@ -91,6 +91,7 @@ func (wp *WailsPlatform) CreateWindow(options PlatformWindowOptions) PlatformWin
 		URL:                        options.URL,
 		HTML:                       options.HTML,
 		JS:                         options.JS,
+		CSS:                        options.CSS,
 		Width:                      options.Width,
 		Height:                     options.Height,
 		InitialPosition:            initialPos,
@@ -108,23 +109,63 @@ func (wp *WailsPlatform) CreateWindow(options PlatformWindowOptions) PlatformWin
 		HideOnEscape:               options.HideOnEscape,
 		HideOnFocusLost:            options.HideOnFocusLost,
 		DefaultContextMenuDisabled: options.DefaultContextMenuDisabled,
+		StartState:                 application.WindowState(options.StartState),
+		BackgroundType:             application.BackgroundType(options.BackgroundType),
+		Zoom:                       options.Zoom,
+		ZoomControlEnabled:         options.ZoomControlEnabled,
+		Permissions:                translatePermissions(options.Permissions),
+		OpenInspectorOnStartup:     options.OpenInspectorOnStartup,
+		MinimiseButtonState:        application.ButtonState(options.MinimiseButtonState),
+		MaximiseButtonState:        application.ButtonState(options.MaximiseButtonState),
+		CloseButtonState:           application.ButtonState(options.CloseButtonState),
+		FullscreenButtonState:      application.ButtonState(options.FullscreenButtonState),
+		DevToolsEnabled:            options.DevToolsEnabled,
+		IgnoreMouseEvents:          options.IgnoreMouseEvents,
+		ContentProtectionEnabled:   options.ContentProtection,
+		UseApplicationMenu:         options.UseApplicationMenu,
 		BackgroundColour:           application.NewRGBA(options.BackgroundColour[0], options.BackgroundColour[1], options.BackgroundColour[2], options.BackgroundColour[3]),
 		Mac: application.MacWindow{
-			WindowLevel:             application.MacWindowLevel(options.Mac.WindowLevel),
-			CollectionBehavior:      application.MacWindowCollectionBehavior(options.Mac.CollectionBehavior),
-			InvisibleTitleBarHeight: options.Mac.InvisibleTitleBarHeight,
+			WindowLevel:                  application.MacWindowLevel(options.Mac.WindowLevel),
+			CollectionBehavior:           application.MacWindowCollectionBehavior(options.Mac.CollectionBehavior),
+			InvisibleTitleBarHeight:      options.Mac.InvisibleTitleBarHeight,
+			Backdrop:                     application.MacBackdrop(options.Mac.Backdrop),
+			DisableShadow:                options.Mac.DisableShadow,
+			TabbingMode:                  application.MacWindowTabbingMode(options.Mac.TabbingMode),
+			DisableEscapeExitsFullscreen: options.Mac.DisableEscapeExitsFullscreen,
+			LiquidGlass: application.MacLiquidGlass{
+				Style:        application.MacLiquidGlassStyle(options.Mac.LiquidGlassStyle),
+				Material:     application.NSVisualEffectMaterial(options.Mac.LiquidGlassMaterial),
+				CornerRadius: options.Mac.LiquidGlassCornerRadius,
+				GroupID:      options.Mac.LiquidGlassGroupID,
+				GroupSpacing: options.Mac.LiquidGlassGroupSpacing,
+			},
 		},
 		Linux: application.LinuxWindow{
 			Icon: options.Linux.Icon,
 		},
 		Windows: application.WindowsWindow{
-			HiddenOnTaskbar: options.Windows.HiddenOnTaskbar,
+			HiddenOnTaskbar:            options.Windows.HiddenOnTaskbar,
+			DisableMenu:                options.Windows.DisableMenu,
+			Theme:                      application.Theme(options.Windows.Theme),
+			NonClientRegionSupport:     options.Windows.NonClientRegionSupport,
+			WebView2CompositionHosting: options.Windows.WebView2CompositionHosting,
+			WindowDidMoveDebounceMS:    options.Windows.WindowDidMoveDebounceMS,
 		},
+	}
+	if options.ScreenID != "" && wp.app.Screen != nil {
+		wOpts.Screen = wp.app.Screen.GetByID(options.ScreenID)
 	}
 	if options.Mac.DisableBackForwardNav {
 		// alpha2 moved the preference to an internal optional.Bool — the
 		// field's Set method is the public construction path.
 		wOpts.Mac.WebviewPreferences.AllowsBackForwardNavigationGestures.Set(false)
+	}
+	if options.Mac.EnableAutoplayWithoutUserAction {
+		wOpts.Mac.WebviewPreferences.EnableAutoplayWithoutUserAction.Set(true)
+	}
+	if tint := options.Mac.LiquidGlassTintColour; tint != nil {
+		colour := application.NewRGBA((*tint)[0], (*tint)[1], (*tint)[2], (*tint)[3])
+		wOpts.Mac.LiquidGlass.TintColor = &colour
 	}
 	var windowHandle *application.WebviewWindow
 	preloadHook := func(origin string, target preload.Webview) {
@@ -170,6 +211,17 @@ func (wp *WailsPlatform) CreateWindow(options PlatformWindowOptions) PlatformWin
 		subscribeToNavigationFinished(w, preloadHookOrigin, preloadHook)
 	}
 	return &wailsWindow{w: w, app: wp.app, title: options.Title, opacity: 1.0, alwaysOnTop: options.AlwaysOnTop}
+}
+
+func translatePermissions(input map[uint8]uint8) map[application.PermissionType]application.Permission {
+	if len(input) == 0 {
+		return nil
+	}
+	output := make(map[application.PermissionType]application.Permission, len(input))
+	for kind, policy := range input {
+		output[application.PermissionType(kind)] = application.Permission(policy)
+	}
+	return output
 }
 
 // subscribeToNavigationFinished wires a handler that runs on each page-load
@@ -442,20 +494,25 @@ func (ww *wailsWindow) OnWindowEvent(handler func(event WindowEvent)) {
 
 	// Map common Wails window events to our WindowEvent type.
 	eventMap := map[events.WindowEventType]string{
-		events.Common.WindowFocus:        "focus",
-		events.Common.WindowLostFocus:    "blur",
-		events.Common.WindowDidMove:      "move",
-		events.Common.WindowDidResize:    "resize",
-		events.Common.WindowClosing:      "close",
-		events.Common.WindowHide:         "hide",
-		events.Common.WindowShow:         "show",
-		events.Common.WindowMinimise:     "minimise",
-		events.Common.WindowUnMinimise:   "unminimise",
-		events.Common.WindowMaximise:     "maximise",
-		events.Common.WindowUnMaximise:   "unmaximise",
-		events.Common.WindowFullscreen:   "fullscreen",
-		events.Common.WindowUnFullscreen: "unfullscreen",
-		events.Common.WindowRuntimeReady: "ready",
+		events.Common.WindowFocus:                "focus",
+		events.Common.WindowLostFocus:            "blur",
+		events.Common.WindowDidMove:              "move",
+		events.Common.WindowDidResize:            "resize",
+		events.Common.WindowClosing:              "close",
+		events.Common.WindowHide:                 "hide",
+		events.Common.WindowShow:                 "show",
+		events.Common.WindowMinimise:             "minimise",
+		events.Common.WindowUnMinimise:           "unminimise",
+		events.Common.WindowMaximise:             "maximise",
+		events.Common.WindowUnMaximise:           "unmaximise",
+		events.Common.WindowFullscreen:           "fullscreen",
+		events.Common.WindowUnFullscreen:         "unfullscreen",
+		events.Common.WindowRuntimeReady:         "ready",
+		events.Windows.WindowNonClientHit:        "nonclient-hit",
+		events.Windows.WindowNonClientMouseDown:  "nonclient-mouse-down",
+		events.Windows.WindowNonClientMouseUp:    "nonclient-mouse-up",
+		events.Windows.WindowNonClientMouseMove:  "nonclient-mouse-move",
+		events.Windows.WindowNonClientMouseLeave: "nonclient-mouse-leave",
 	}
 
 	for eventType, eventName := range eventMap {

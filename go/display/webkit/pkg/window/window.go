@@ -14,6 +14,7 @@ type Window struct {
 	URL                        string
 	HTML                       string
 	JS                         string
+	CSS                        string
 	Width, Height              int
 	X, Y                       int
 	MinWidth, MinHeight        int
@@ -27,6 +28,36 @@ type Window struct {
 	HideOnEscape               bool
 	HideOnFocusLost            bool
 	DefaultContextMenuDisabled bool
+	// StartState mirrors Wails WindowState: 0 normal, 1 minimised,
+	// 2 maximised, 3 fullscreen.
+	StartState int
+	// BackgroundType mirrors Wails BackgroundType: 0 solid,
+	// 1 transparent, 2 translucent.
+	BackgroundType int
+	// ScreenID targets initial placement at a Wails screen without
+	// leaking *application.Screen through the adapter boundary.
+	ScreenID string
+	// Zoom and ZoomControlEnabled configure the initial WebView zoom.
+	Zoom               float64
+	ZoomControlEnabled bool
+	// Permissions maps Wails permission-kind values to policy values.
+	// Kinds: 0 microphone, 1 camera, 2 geolocation,
+	// 3 notifications, 4 clipboard-read. Policies: 0 default,
+	// 1 allow, 2 deny.
+	Permissions map[uint8]uint8
+	// OpenInspectorOnStartup and DevToolsEnabled control developer tools.
+	OpenInspectorOnStartup bool
+	DevToolsEnabled        bool
+	// Native window-button states: 0 enabled, 1 disabled, 2 hidden.
+	MinimiseButtonState   int
+	MaximiseButtonState   int
+	CloseButtonState      int
+	FullscreenButtonState int
+	// IgnoreMouseEvents enables click-through windows on macOS/Windows.
+	IgnoreMouseEvents bool
+	// UseApplicationMenu opts this window into the application menu on
+	// Windows and Linux.
+	UseApplicationMenu bool
 	// HideOnClose: the OS close button hides the window instead of
 	// destroying it. The window stays registered + can be re-shown
 	// via set_visibility. Tray-rooted apps + steady-state windows
@@ -58,10 +89,21 @@ type Window struct {
 // MacWindow holds macOS-specific window options. Zero values mean
 // platform default.
 type MacWindow struct {
-	WindowLevel             MacWindowLevel
-	CollectionBehavior      MacCollectionBehavior
-	InvisibleTitleBarHeight int
-	DisableBackForwardNav   bool
+	WindowLevel                     MacWindowLevel
+	CollectionBehavior              MacCollectionBehavior
+	InvisibleTitleBarHeight         int
+	DisableBackForwardNav           bool
+	Backdrop                        int
+	DisableShadow                   bool
+	TabbingMode                     int
+	DisableEscapeExitsFullscreen    bool
+	EnableAutoplayWithoutUserAction bool
+	LiquidGlassStyle                int
+	LiquidGlassMaterial             int
+	LiquidGlassCornerRadius         float64
+	LiquidGlassTintColour           *[4]uint8
+	LiquidGlassGroupID              string
+	LiquidGlassGroupSpacing         float64
 }
 
 // LinuxWindow holds Linux-specific window options.
@@ -71,7 +113,12 @@ type LinuxWindow struct {
 
 // WindowsWindow holds Windows-specific window options.
 type WindowsWindow struct {
-	HiddenOnTaskbar bool
+	HiddenOnTaskbar            bool
+	DisableMenu                bool
+	Theme                      int
+	NonClientRegionSupport     bool
+	WebView2CompositionHosting bool
+	WindowDidMoveDebounceMS    uint16
 }
 
 // MacWindowLevel mirrors application.MacWindowLevel (string-typed
@@ -102,7 +149,7 @@ const (
 // ToPlatformOptions converts a Window to PlatformWindowOptions for the backend.
 func (w *Window) ToPlatformOptions() PlatformWindowOptions {
 	return PlatformWindowOptions{
-		Name: w.Name, Title: w.Title, URL: w.URL, HTML: w.HTML, JS: w.JS,
+		Name: w.Name, Title: w.Title, URL: w.URL, HTML: w.HTML, JS: w.JS, CSS: w.CSS,
 		Width: w.Width, Height: w.Height, X: w.X, Y: w.Y,
 		MinWidth: w.MinWidth, MinHeight: w.MinHeight,
 		MaxWidth: w.MaxWidth, MaxHeight: w.MaxHeight,
@@ -112,6 +159,21 @@ func (w *Window) ToPlatformOptions() PlatformWindowOptions {
 		HideOnEscape:               w.HideOnEscape,
 		HideOnFocusLost:            w.HideOnFocusLost,
 		DefaultContextMenuDisabled: w.DefaultContextMenuDisabled,
+		StartState:                 w.StartState,
+		BackgroundType:             w.BackgroundType,
+		ScreenID:                   w.ScreenID,
+		Zoom:                       w.Zoom,
+		ZoomControlEnabled:         w.ZoomControlEnabled,
+		Permissions:                w.Permissions,
+		OpenInspectorOnStartup:     w.OpenInspectorOnStartup,
+		MinimiseButtonState:        w.MinimiseButtonState,
+		MaximiseButtonState:        w.MaximiseButtonState,
+		CloseButtonState:           w.CloseButtonState,
+		FullscreenButtonState:      w.FullscreenButtonState,
+		DevToolsEnabled:            w.DevToolsEnabled,
+		IgnoreMouseEvents:          w.IgnoreMouseEvents,
+		ContentProtection:          w.ContentProtection,
+		UseApplicationMenu:         w.UseApplicationMenu,
 		Mac:                        w.Mac,
 		Linux:                      w.Linux,
 		Windows:                    w.Windows,
