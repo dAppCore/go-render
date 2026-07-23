@@ -1,0 +1,25 @@
+# Scalar Data bindings -- a bare {{page.title}} and a mixed static+dynamic
+# run ("Status: {{user.status}}"), both from a dotted Data key, then TWO
+# Data re-drives proving each key updates independently in place.
+
+Source scalar.ctml
+Set Width 80
+Data page.title "Dashboard"
+Data user.status "Online"
+
+Expect Text "Dashboard"
+Expect Text "Status: Online"
+Expect Box page-title
+Expect Box user-status
+
+# Re-drive: page.title changes, user.status is untouched.
+Data page.title "Reports"
+Expect Text "Reports"
+Expect NotText "Dashboard"
+Expect Text "Status: Online"
+
+# Re-drive: user.status changes, page.title holds its last value.
+Data user.status "Away"
+Expect Text "Status: Away"
+Expect NotText "Status: Online"
+Expect Text "Reports"

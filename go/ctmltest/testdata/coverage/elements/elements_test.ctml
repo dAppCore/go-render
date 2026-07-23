@@ -1,0 +1,40 @@
+# Core render-surface coverage: headings, ul/ol lists, a table, <progress>,
+# a <pre><raw> code block, a card (div.card), and a link -- one fixture
+# walking the element set docs/architecture.md and term.go both describe.
+# Every id here names a BLOCK-level element, so each gets an Expect Box;
+# li/td/tr rows do not (they render through the list/table path, which
+# does not record per-item boxes -- docs/ctml.md S:S14).
+
+Source elements.ctml
+Set Width 80
+
+Expect Text "Coverage Elements"
+Expect Box page-title
+
+Expect Text "Apple"
+Expect Text "Banana"
+Expect Text "Cherry"
+Expect Box fruit-list
+
+Expect Text "First step"
+Expect Text "Second step"
+Expect Box steps-list
+
+Expect Text "Basic"
+Expect Text "Pro"
+Expect Box pricing-table
+
+Expect Text "65%"
+Expect Box upload-progress
+
+Expect Text "func main"
+Expect Box code-block
+
+Expect Text "Feature title"
+Expect Text "Feature description text"
+Expect Box feature-card
+
+Expect Text "the docs"
+Expect Box link-paragraph
+
+Expect Fits

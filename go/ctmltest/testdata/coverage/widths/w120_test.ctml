@@ -1,0 +1,9 @@
+# Fits at width 120 -- comfortably above the wide-band threshold, C's
+# share of the middle band widest here. Same fixture as w40_test.ctml and
+# w80_test.ctml.
+
+Source page.ctml
+Set Width 120
+
+Expect Text "Main Content Area"
+Expect Fits

@@ -1,0 +1,13 @@
+# HLCRF variant "C" -- content only, the minimal single-slot page.
+
+Source c.ctml
+Set Width 80
+
+Expect Text "Content slot content"
+Expect NotText "Header slot content"
+Expect NotText "Left slot content"
+Expect NotText "Right slot content"
+Expect NotText "Footer slot content"
+
+Expect Box C
+Expect Fits

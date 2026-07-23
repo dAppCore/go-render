@@ -1,0 +1,11 @@
+# Fits at width 40 -- below the 80-column wide-band threshold
+# (docs/ctml.md S:S15.1), so the L/C/R middle band stacks vertically at
+# full width instead of side by side. The narrowest of the three widths
+# this fixture is rendered at (see w80_test.ctml, w120_test.ctml) --
+# the one most likely to overflow the prose paragraph and the table.
+
+Source page.ctml
+Set Width 40
+
+Expect Text "Main Content Area"
+Expect Fits
