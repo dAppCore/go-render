@@ -53,15 +53,17 @@ func matchTapes(glob string) ([]string, error) {
 // RunFile parses and runs one _test.ctml tape: prepareRun performs every
 // fallible step up to and including the tape's INITIAL render (read the
 // tape, parseTape it, buildConfig the Source/Set/Data/Rows commands that
-// precede the tape's first render-reading command -- Expect, Golden, or
-// Click, see isRenderRead -- into a ctml.Bindings and a html.TermOptions,
-// read the Source .ctml, and renderCTML it once); any failure there fails
-// the whole tape (t.Fatalf) since there is nothing left to assert.
+// precede the tape's first render-reading command -- Expect, Golden,
+// Click, Snapshot, or Image, see isRenderRead -- into a ctml.Bindings and a
+// html.TermOptions, read the Source .ctml, and renderCTML it once); any
+// failure there fails the whole tape (t.Fatalf) since there is nothing left
+// to assert.
 //
 // RunFile then walks every remaining command in tape order, threading a
-// driveState seeded from that initial render. Expect/Golden/Click assert
-// against the CURRENT frame/boxes (t.Errorf on a mismatch, so one failing
-// assertion does not hide the next). A Data command reached from this
+// driveState seeded from that initial render. Expect/Golden/Click/Snapshot/
+// Image assert against (or, for Snapshot/Image, capture) the CURRENT frame/
+// boxes (t.Errorf on a mismatch, so one failing assertion does not hide the
+// next). A Data command reached from this
 // point on is a re-drive trigger, not initial config: it merges into the
 // running values and re-renders (driveState.redrive), replacing the
 // current frame/boxes, so every assertion after it in the tape sees the
@@ -99,6 +101,12 @@ func RunFile(t *testing.T, tapePath string) {
 		case "Golden":
 			seenAssertion = true
 			runGolden(t, tapePath, result.tapeDir, cmd, drive.frame)
+		case "Snapshot":
+			seenAssertion = true
+			runSnapshot(t, tapePath, result.tapeDir, cmd, drive.frame, result.fitWidth)
+		case "Image":
+			seenAssertion = true
+			runImage(t, tapePath, result.tapeDir, cmd, drive.frame, result.fitWidth)
 		}
 	}
 }

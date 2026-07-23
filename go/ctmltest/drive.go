@@ -11,18 +11,18 @@ import (
 )
 
 // isRenderRead reports whether verb reads the tape's current render state
-// -- Expect, Golden, and Click all need a render to already exist before
-// they can assert against it. This one boundary does double duty in
-// RunFile's command loop: cmdsBeforeFirstAssertion uses it to decide which
-// leading Source/Set/Data/Rows commands seed the tape's INITIAL render,
-// and RunFile's own walk uses the identical rule to decide when a Data
-// command has moved from "seeds the initial render" to "re-drives a later
-// one" (see driveState.redrive). The two call sites sharing one predicate
-// is what keeps the cutoff consistent: prepareRun and RunFile can never
-// disagree about where a tape's initial render ends.
+// -- Expect, Golden, Click, Snapshot, and Image all need a render to
+// already exist before they can assert against (or capture) it. This one
+// boundary does double duty in RunFile's command loop: cmdsBeforeFirstAssertion
+// uses it to decide which leading Source/Set/Data/Rows commands seed the
+// tape's INITIAL render, and RunFile's own walk uses the identical rule to
+// decide when a Data command has moved from "seeds the initial render" to
+// "re-drives a later one" (see driveState.redrive). The two call sites
+// sharing one predicate is what keeps the cutoff consistent: prepareRun and
+// RunFile can never disagree about where a tape's initial render ends.
 func isRenderRead(verb string) bool {
 	switch verb {
-	case "Expect", "Golden", "Click":
+	case "Expect", "Golden", "Click", "Snapshot", "Image":
 		return true
 	default:
 		return false

@@ -20,6 +20,8 @@ func TestIsRenderRead(t *testing.T) {
 		{"Expect", true},
 		{"Golden", true},
 		{"Click", true},
+		{"Snapshot", true},
+		{"Image", true},
 		{"Source", false},
 		{"Set", false},
 		{"Data", false},
