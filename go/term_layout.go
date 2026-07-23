@@ -7,7 +7,7 @@ package html
 import (
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // term_layout.go: the HLCRF terminal frame. The same Layout that renders
@@ -249,10 +249,11 @@ func termChrome(style lipgloss.Style) int {
 func (l *Layout) renderTermBox(r *termRenderer, slot byte, width int, style lipgloss.Style) string {
 	innerWidth := max(termMinWidth, width-termChrome(style))
 	content := strings.Join(r.blocks(l.slots[slot], innerWidth), "\n")
-	// lipgloss Width covers the content and its padding; the border is drawn
-	// outside it, so the rendered box is Width + border wide. Subtract the border
-	// to land the box on `width` exactly, whatever border the theme's style sets.
-	return style.Width(width - style.GetHorizontalBorderSize()).Render(content)
+	// lipgloss v2's Width is the TOTAL rendered box width -- border and padding
+	// included, subtracted internally before the content wraps -- so passing
+	// `width` straight through lands the box on `width` exactly, whatever
+	// border/padding the theme's style sets.
+	return style.Width(width).Render(content)
 }
 
 // renderTermContent renders the C slot inside the theme's Content style. Its
@@ -265,7 +266,7 @@ func (l *Layout) renderTermContent(r *termRenderer, width int) string {
 	style := r.theme.Content
 	innerWidth := max(termMinWidth, width-termChrome(style))
 	content := strings.Join(r.blocks(l.slots['C'], innerWidth), "\n")
-	return style.Width(width - style.GetHorizontalBorderSize()).Render(content)
+	return style.Width(width).Render(content)
 }
 
 // renderTermMiddleFit lays the L/C/R middle band out content-sized (FitSlots):

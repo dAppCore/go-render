@@ -4,7 +4,11 @@
 
 package html
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"os"
+
+	"charm.land/lipgloss/v2"
+)
 
 // term_theme.go: TermTheme carries the lipgloss styles the terminal renderer
 // applies per element role, plus the class → style token map.
@@ -71,19 +75,26 @@ type TermTheme struct {
 }
 
 // term_theme.go: DefaultTermTheme returns the house terminal theme: a muted,
-// dark-first palette with adaptive values so light terminals stay readable.
+// dark-first palette that picks a light- or dark-terminal value per colour so
+// light terminals stay readable. isDark is determined once, from lipgloss's
+// own terminal background query -- true (the theme's dark-first default) when
+// stdin/stdout are not a terminal it can query (WASM never links this file, a
+// test binary's redirected I/O, a pipe) or the query otherwise fails.
 // Example: out := RenderTerm(page, ctx, TermOptions{Theme: DefaultTermTheme()})
 func DefaultTermTheme() *TermTheme {
+	isDark := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
+	ld := lipgloss.LightDark(isDark)
+
 	var (
-		muted  = lipgloss.AdaptiveColor{Light: "#6b7089", Dark: "#787c99"}
-		accent = lipgloss.AdaptiveColor{Light: "#2e5cc5", Dark: "#7aa2f7"}
-		violet = lipgloss.AdaptiveColor{Light: "#6d28d9", Dark: "#bb9af7"}
-		cyan   = lipgloss.AdaptiveColor{Light: "#0e7490", Dark: "#7dcfff"}
-		green  = lipgloss.AdaptiveColor{Light: "#4d7c0f", Dark: "#9ece6a"}
-		amber  = lipgloss.AdaptiveColor{Light: "#b45309", Dark: "#e0af68"}
-		red    = lipgloss.AdaptiveColor{Light: "#b91c1c", Dark: "#f7768e"}
-		border = lipgloss.AdaptiveColor{Light: "#d0d3dc", Dark: "#3b4261"}
-		codeBg = lipgloss.AdaptiveColor{Light: "#eef1f6", Dark: "#1f2335"}
+		muted  = ld(lipgloss.Color("#6b7089"), lipgloss.Color("#787c99"))
+		accent = ld(lipgloss.Color("#2e5cc5"), lipgloss.Color("#7aa2f7"))
+		violet = ld(lipgloss.Color("#6d28d9"), lipgloss.Color("#bb9af7"))
+		cyan   = ld(lipgloss.Color("#0e7490"), lipgloss.Color("#7dcfff"))
+		green  = ld(lipgloss.Color("#4d7c0f"), lipgloss.Color("#9ece6a"))
+		amber  = ld(lipgloss.Color("#b45309"), lipgloss.Color("#e0af68"))
+		red    = ld(lipgloss.Color("#b91c1c"), lipgloss.Color("#f7768e"))
+		border = ld(lipgloss.Color("#d0d3dc"), lipgloss.Color("#3b4261"))
+		codeBg = ld(lipgloss.Color("#eef1f6"), lipgloss.Color("#1f2335"))
 	)
 
 	theme := &TermTheme{

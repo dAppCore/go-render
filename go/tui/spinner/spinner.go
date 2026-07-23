@@ -1,10 +1,12 @@
 // Package spinner re-exports charmbracelet/bubbles/spinner through go-html's
 // tui seam — an animated activity indicator. Swap the import path
 // (bubbles/spinner → html/tui/spinner) and keep every spinner.Model /
-// spinner.New / spinner.MiniDot reference unchanged.
+// spinner.New / spinner.MiniDot reference unchanged. Tick is a Model method
+// (m.Tick()), not a package function, so it needs no re-export here — it
+// comes along for free since Model is a genuine alias.
 package spinner
 
-import "github.com/charmbracelet/bubbles/spinner"
+import "charm.land/bubbles/v2/spinner"
 
 type (
 	Model   = spinner.Model
@@ -14,7 +16,6 @@ type (
 
 var (
 	New         = spinner.New
-	Tick        = spinner.Tick
 	MiniDot     = spinner.MiniDot
 	WithSpinner = spinner.WithSpinner
 	Ellipsis    = spinner.Ellipsis

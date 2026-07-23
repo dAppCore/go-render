@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/table"
 )
 
 // term.go: the terminal renderer. The same node trees that render semantic
@@ -490,7 +490,9 @@ func (r *termRenderer) blockEl(el *elNode, width int) []string {
 		if r.hasClassToken(el, "card") {
 			innerWidth := max(termMinWidth, width-4)
 			inner := strings.Join(r.blocks(el.children, innerWidth), "\n")
-			return []string{r.theme.Card.Width(width - 2).Render(inner), ""}
+			// lipgloss v2's Width is the box's total width (border+padding
+			// included), so `width` lands the card on `width` exactly.
+			return []string{r.theme.Card.Width(width).Render(inner), ""}
 		}
 		return r.blocks(el.children, width)
 	default:

@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	colorful "github.com/lucasb-eyer/go-colorful"
 	"github.com/muesli/termenv"
 )
 
@@ -66,7 +67,7 @@ func TestInit_Good(t *testing.T) {
 
 func TestView_Good(t *testing.T) {
 	a := New(80, "Generating")
-	if got := a.View(); len(got) == 0 {
+	if got := a.View().Content; len(got) == 0 {
 		t.Fatal("View() on a fresh Anim was empty, want frame-0 output")
 	}
 }
@@ -75,7 +76,7 @@ func TestView_Ugly(t *testing.T) {
 	// No cycling characters and no label: nothing to cycle, nothing to
 	// settle into, and the ellipsis spinner's own frame 0 is blank.
 	a := New(0, "")
-	if got := a.View(); got != "" {
+	if got := a.View().Content; got != "" {
 		t.Fatalf("View() = %q, want empty for a size-0, label-less Anim", got)
 	}
 }
@@ -84,7 +85,7 @@ func TestView_Ugly(t *testing.T) {
 
 func TestUpdate_Good(t *testing.T) {
 	a := New(80, "Generating")
-	before := a.View()
+	before := a.View().Content
 
 	updated, cmd := a.Update(stepCharsMsg{})
 	next, ok := updated.(Anim)
@@ -92,7 +93,7 @@ func TestUpdate_Good(t *testing.T) {
 		t.Fatalf("Update(stepCharsMsg{}) returned %T, want Anim", updated)
 	}
 
-	if after := next.View(); after == before {
+	if after := next.View().Content; after == before {
 		t.Fatalf("View() unchanged after stepCharsMsg: %q", after)
 	}
 	if cmd == nil {
@@ -124,7 +125,7 @@ func TestUpdate_Ugly(t *testing.T) {
 	type unknownMsg struct{}
 
 	a := New(80, "Generating")
-	before := a.View()
+	before := a.View().Content
 
 	updated, cmd := a.Update(unknownMsg{})
 	next, ok := updated.(Anim)
@@ -135,7 +136,7 @@ func TestUpdate_Ugly(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("Update(unknownMsg{}) returned a non-nil Cmd, want nil")
 	}
-	if after := next.View(); after != before {
+	if after := next.View().Content; after != before {
 		t.Fatalf("View() changed on an unrecognised message: before %q after %q", before, after)
 	}
 }
@@ -208,7 +209,11 @@ func TestMakeGradientRamp_Good(t *testing.T) {
 			t.Fatalf("makeGradientRamp(%d) len = %d, want %d", n, got, n)
 		}
 		for _, colour := range ramp {
-			s := string(colour)
+			cf, ok := colour.(colorful.Color)
+			if !ok {
+				t.Fatalf("makeGradientRamp(%d) produced %T, want colorful.Color", n, colour)
+			}
+			s := cf.Hex()
 			if len(s) != 7 || s[0] != '#' {
 				t.Fatalf("makeGradientRamp(%d) produced a non-hex colour %q", n, s)
 			}

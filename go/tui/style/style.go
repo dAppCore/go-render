@@ -11,7 +11,7 @@
 //	w := style.Measure(line)
 package style
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 // Style is a chainable terminal text style. Build it up — Foreground,
 // Background, Width, Bold, Border, Padding — then Render(s) paints the result.

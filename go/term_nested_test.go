@@ -16,9 +16,6 @@ import (
 // another frame's slot and renders width-bounded within the parent column —
 // the same clone-on-render nesting the HTML compositor performs.
 func TestTermLayout_RenderTerm_Nested(t *testing.T) {
-	restore := asciiProfile()
-	defer restore()
-
 	inner := NewLayout("HCF").
 		H(Text("in.h")).
 		C(El("p", Text("in.c"))).

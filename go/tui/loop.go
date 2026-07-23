@@ -1,6 +1,6 @@
 package tui
 
-import tea "github.com/charmbracelet/bubbletea"
+import tea "charm.land/bubbletea/v2"
 
 // Event-loop primitives — the bubbletea Program/Model/Msg/Cmd surface. A
 // consumer aliases this package as `tea` and keeps every tea.Program /
@@ -10,39 +10,53 @@ type (
 	Model         = tea.Model
 	Cmd           = tea.Cmd
 	Msg           = tea.Msg
+	View          = tea.View
+	ProgramOption = tea.ProgramOption
+
+	// Key events. KeyMsg is an interface covering both presses and releases;
+	// KeyPressMsg and KeyReleaseMsg are the concrete types a type switch
+	// matches, and Key is the event payload both share (Code/Text/Mod).
 	KeyMsg        = tea.KeyMsg
-	KeyType       = tea.KeyType
-	MouseMsg      = tea.MouseMsg
-	MouseButton   = tea.MouseButton
-	MouseAction   = tea.MouseAction
+	KeyPressMsg   = tea.KeyPressMsg
+	KeyReleaseMsg = tea.KeyReleaseMsg
+	Key           = tea.Key
+	KeyMod        = tea.KeyMod
+
+	// Mouse events. MouseMsg is an interface -- call .Mouse() for the
+	// coordinates/button/modifiers; MouseClickMsg, MouseReleaseMsg,
+	// MouseMotionMsg and MouseWheelMsg are the concrete types a type switch
+	// matches.
+	MouseMsg        = tea.MouseMsg
+	MouseClickMsg   = tea.MouseClickMsg
+	MouseReleaseMsg = tea.MouseReleaseMsg
+	MouseMotionMsg  = tea.MouseMotionMsg
+	MouseWheelMsg   = tea.MouseWheelMsg
+	Mouse           = tea.Mouse
+	MouseButton     = tea.MouseButton
+	MouseMode       = tea.MouseMode
+
 	WindowSizeMsg = tea.WindowSizeMsg
 	QuitMsg       = tea.QuitMsg
 	BatchMsg      = tea.BatchMsg
-	ProgramOption = tea.ProgramOption
 )
 
-// Program constructors and commands.
+// Program constructors, the View builder, and commands. AltScreen and mouse
+// mode are no longer NewProgram options — v2 moved them onto View (set
+// view.AltScreen / view.MouseMode from Model.View), so there is nothing to
+// re-export for them here.
 var (
-	NewProgram          = tea.NewProgram
-	Batch               = tea.Batch
-	Quit                = tea.Quit
-	Tick                = tea.Tick
-	WithAltScreen       = tea.WithAltScreen
-	WithContext         = tea.WithContext
-	WithMouseCellMotion = tea.WithMouseCellMotion
+	NewProgram  = tea.NewProgram
+	NewView     = tea.NewView
+	Batch       = tea.Batch
+	Sequence    = tea.Sequence
+	Quit        = tea.Quit
+	Tick        = tea.Tick
+	WithContext = tea.WithContext
 )
 
-// Key identities (tea.KeyType), surfaced on KeyMsg.Type.
+// Key identities (Key.Code), surfaced on KeyPressMsg/KeyReleaseMsg.
 const (
 	KeyBackspace = tea.KeyBackspace
-	KeyCtrlC     = tea.KeyCtrlC
-	KeyCtrlF     = tea.KeyCtrlF
-	KeyCtrlK     = tea.KeyCtrlK
-	KeyCtrlN     = tea.KeyCtrlN
-	KeyCtrlO     = tea.KeyCtrlO
-	KeyCtrlP     = tea.KeyCtrlP
-	KeyCtrlS     = tea.KeyCtrlS
-	KeyCtrlT     = tea.KeyCtrlT
 	KeyDown      = tea.KeyDown
 	KeyEnd       = tea.KeyEnd
 	KeyEnter     = tea.KeyEnter
@@ -52,16 +66,32 @@ const (
 	KeyLeft      = tea.KeyLeft
 	KeyPgDown    = tea.KeyPgDown
 	KeyRight     = tea.KeyRight
-	KeyRunes     = tea.KeyRunes
-	KeyShiftTab  = tea.KeyShiftTab
 	KeyTab       = tea.KeyTab
 	KeyUp        = tea.KeyUp
 )
 
-// Mouse identities.
+// Modifier identities (Key.Mod / Mouse.Mod), combined with KeyMod.Contains,
+// e.g. key.Mod.Contains(tui.ModCtrl). There is no more KeyCtrlC/KeyShiftTab
+// family of combo constants — match msg.String() (e.g. "ctrl+c", "shift+tab")
+// or the Code+Mod pair directly instead.
 const (
-	MouseActionPress     = tea.MouseActionPress
-	MouseButtonLeft      = tea.MouseButtonLeft
-	MouseButtonWheelUp   = tea.MouseButtonWheelUp
-	MouseButtonWheelDown = tea.MouseButtonWheelDown
+	ModShift = tea.ModShift
+	ModAlt   = tea.ModAlt
+	ModCtrl  = tea.ModCtrl
+)
+
+// Mouse button identities, surfaced on Mouse.Button.
+const (
+	MouseLeft      = tea.MouseLeft
+	MouseRight     = tea.MouseRight
+	MouseMiddle    = tea.MouseMiddle
+	MouseWheelUp   = tea.MouseWheelUp
+	MouseWheelDown = tea.MouseWheelDown
+)
+
+// Mouse mode identities, set on View.MouseMode.
+const (
+	MouseModeNone       = tea.MouseModeNone
+	MouseModeCellMotion = tea.MouseModeCellMotion
+	MouseModeAllMotion  = tea.MouseModeAllMotion
 )
