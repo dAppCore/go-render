@@ -32,3 +32,15 @@ func ExampleBlend1D() {
 	// Output:
 	// true
 }
+
+// ExampleAdaptiveColor_Resolve keeps one light/dark colour pair and resolves it
+// for a dark terminal — the per-frame replacement for lipgloss v1's implicit
+// AdaptiveColor, which v2 removed.
+func ExampleAdaptiveColor_Resolve() {
+	accent := style.AdaptiveColor{Light: "#000000", Dark: "#ffffff"}
+
+	r, g, b, _ := accent.Resolve(true).RGBA()
+	fmt.Printf("%d %d %d\n", r, g, b)
+	// Output:
+	// 65535 65535 65535
+}
