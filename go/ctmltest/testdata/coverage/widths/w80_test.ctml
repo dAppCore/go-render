@@ -1,0 +1,9 @@
+# Fits at width 80 -- exactly the wide-band threshold (docs/ctml.md
+# S:S15.1): L/C/R render side by side with L fixed at 24 and R fixed at 28
+# columns. Same fixture as w40_test.ctml and w120_test.ctml.
+
+Source page.ctml
+Set Width 80
+
+Expect Text "Main Content Area"
+Expect Fits

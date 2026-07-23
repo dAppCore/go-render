@@ -1,0 +1,16 @@
+# HLCRF variant "HCF" -- header, content, footer, no sidebars. Same
+# five-slot fixture as h_test.ctml; here L and R are the ones proven absent.
+
+Source hcf.ctml
+Set Width 80
+
+Expect Text "Header slot content"
+Expect Text "Content slot content"
+Expect Text "Footer slot content"
+Expect NotText "Left slot content"
+Expect NotText "Right slot content"
+
+Expect Box H
+Expect Box C
+Expect Box F
+Expect Fits

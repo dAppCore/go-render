@@ -1,0 +1,29 @@
+# Rows/Each -- a <ul><each>...<li> list (rows nested inside a <ul>, no
+# per-row box: docs/ctml.md S:S14) alongside a top-level <each> of <div id=
+# "todo-{{row.index}}"> rows, which DOES record one box per row because
+# each div reaches the block walker directly, not through the list path.
+# A trailing Data re-drive on the unrelated scalar list.title proves the
+# row sequence -- fixed at Rows-build time -- survives a re-drive untouched
+# (Rows itself cannot re-drive mid-tape, only Data can -- see doc.go).
+
+Source rows.ctml
+Set Width 80
+Data list.title "Today"
+Rows todos 3
+
+Expect Text "Today"
+Expect Text "Row 1"
+Expect Text "Row 2"
+Expect Text "Row 3"
+Expect Box todo-list
+Expect Box todo-0
+Expect Box todo-1
+Expect Box todo-2
+Expect Fits
+
+# Re-drive: only the scalar title changes; the row sequence is untouched.
+Data list.title "Archive"
+Expect Text "Archive"
+Expect NotText "Today"
+Expect Text "Row 1"
+Expect Text "Row 3"

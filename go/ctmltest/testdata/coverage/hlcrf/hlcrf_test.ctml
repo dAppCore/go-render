@@ -1,0 +1,18 @@
+# HLCRF variant "HLCRF" -- all five slots render. The full-house case: every
+# slot's content is present and every slot has a recorded box.
+
+Source hlcrf.ctml
+Set Width 80
+
+Expect Text "Header slot content"
+Expect Text "Left slot content"
+Expect Text "Content slot content"
+Expect Text "Right slot content"
+Expect Text "Footer slot content"
+
+Expect Box H
+Expect Box L
+Expect Box C
+Expect Box R
+Expect Box F
+Expect Fits

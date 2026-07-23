@@ -1,0 +1,20 @@
+<layout variant="HLCRF">
+  <h><p>Site Header Navigation Bar</p></h>
+  <l>
+    <ul>
+      <li>Dashboard</li>
+      <li>Reports</li>
+      <li>Settings</li>
+    </ul>
+  </l>
+  <c>
+    <h1>Main Content Area</h1>
+    <p>This paragraph carries enough running prose text that it must wrap across several lines at a narrow terminal width, exercising the renderer's own word-wrap boundary instead of a short one-line fixture that never risks overflow.</p>
+    <table>
+      <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+      <tbody><tr><td>Uptime</td><td>99.9</td></tr></tbody>
+    </table>
+  </c>
+  <r><p>Related links and sidebar notes go here</p></r>
+  <f><p>Footer copyright notice text</p></f>
+</layout>

@@ -1,0 +1,7 @@
+<layout variant="HCF">
+  <h><p>Header slot content</p></h>
+  <l><p>Left slot content</p></l>
+  <c><p>Content slot content</p></c>
+  <r><p>Right slot content</p></r>
+  <f><p>Footer slot content</p></f>
+</layout>

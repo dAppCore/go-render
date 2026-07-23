@@ -1,0 +1,18 @@
+# HLCRF variant "H" -- only the Header slot renders. h.ctml appends content
+# to all five slots so this tape proves NewLayout's own documented
+# behaviour: a slot letter absent from the variant string is silently
+# skipped even though nodes were appended to it (docs/architecture.md
+# "Variant String"). NotText on the other four slots' distinct content is
+# the only way to prove a slot did NOT render -- there is no Expect NotBox.
+
+Source h.ctml
+Set Width 80
+
+Expect Text "Header slot content"
+Expect NotText "Left slot content"
+Expect NotText "Content slot content"
+Expect NotText "Right slot content"
+Expect NotText "Footer slot content"
+
+Expect Box H
+Expect Fits

@@ -1,0 +1,42 @@
+<div>
+  <h1 id="page-title">Coverage Elements</h1>
+
+  <h2 id="section-lists">Lists</h2>
+  <ul id="fruit-list">
+    <li>Apple</li>
+    <li>Banana</li>
+    <li>Cherry</li>
+  </ul>
+  <ol id="steps-list">
+    <li>First step</li>
+    <li>Second step</li>
+  </ol>
+
+  <h2 id="section-table">Table</h2>
+  <table id="pricing-table">
+    <thead>
+      <tr><th>Plan</th><th>Price</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Basic</td><td>5</td></tr>
+      <tr><td>Pro</td><td>15</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="section-progress">Progress</h2>
+  <progress id="upload-progress" value="65" max="100"/>
+
+  <h2 id="section-code">Code</h2>
+  <pre id="code-block"><raw>func main() {
+    fmt.Println("hi")
+}</raw></pre>
+
+  <h2 id="section-card">Card</h2>
+  <div id="feature-card" class="card">
+    <h3>Feature title</h3>
+    <p>Feature description text</p>
+  </div>
+
+  <h2 id="section-link">Link</h2>
+  <p id="link-paragraph">Visit <a href="https://example.com">the docs</a> for more.</p>
+</div>
