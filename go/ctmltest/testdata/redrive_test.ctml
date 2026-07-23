@@ -1,0 +1,35 @@
+# Data re-drive -- a Data line reached AFTER the tape's first
+# render-reading command (Expect, Golden, or Click) updates the running
+# binding set and RE-RENDERS: every Expect from that point on asserts
+# against the NEW frame, not the one the tape opened with. Source is the
+# same sample.ctml the core DSL example (sample_test.ctml) renders.
+
+Source sample.ctml
+Set Width 40
+Data session.title "Welcome"
+Data version "1.0"
+Rows items 3
+
+# Initial render: version 1.0.
+Expect Text "Build 1.0"
+Expect NotText "Build 2.0"
+
+# Re-drive: version becomes 2.0 -- the tape re-renders from here on.
+Data version "2.0"
+Expect Text "Build 2.0"
+Expect NotText "Build 1.0"
+
+# A second re-drive, proving this is not a one-shot special case.
+Data version "3.0"
+Expect Text "Build 3.0"
+Expect NotText "Build 2.0"
+
+# A dotted-path bind (session.title) re-drives correctly too.
+Data session.title "Goodbye"
+Expect Text "Goodbye"
+Expect NotText "Welcome"
+
+# The row sequence built before the first render survives every re-drive
+# unchanged -- re-drive is Data-only, Rows is not re-applied.
+Expect Text "Row 1"
+Expect Text "Row 3"

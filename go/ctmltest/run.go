@@ -51,15 +51,25 @@ func matchTapes(glob string) ([]string, error) {
 }
 
 // RunFile parses and runs one _test.ctml tape: prepareRun performs every
-// fallible step up to and including the render (read the tape, parseTape
-// it, buildConfig its Source/Set/Data/Rows commands into a ctml.Bindings
-// and a html.TermOptions, read + ctml.Parse the Source .ctml -- binds
-// resolve at parse time, so this is where Data/Rows actually take effect,
-// not at render time -- and html.RenderTermBoxes it once); any failure
-// there fails the whole tape (t.Fatalf) since there is nothing left to
-// assert. Every Expect/Golden command in the tape then asserts against
-// that single render (t.Errorf on a mismatch, so one failing assertion
-// does not hide the next).
+// fallible step up to and including the tape's INITIAL render (read the
+// tape, parseTape it, buildConfig the Source/Set/Data/Rows commands that
+// precede the tape's first render-reading command -- Expect, Golden, or
+// Click, see isRenderRead -- into a ctml.Bindings and a html.TermOptions,
+// read the Source .ctml, and renderCTML it once); any failure there fails
+// the whole tape (t.Fatalf) since there is nothing left to assert.
+//
+// RunFile then walks every remaining command in tape order, threading a
+// driveState seeded from that initial render. Expect/Golden/Click assert
+// against the CURRENT frame/boxes (t.Errorf on a mismatch, so one failing
+// assertion does not hide the next). A Data command reached from this
+// point on is a re-drive trigger, not initial config: it merges into the
+// running values and re-renders (driveState.redrive), replacing the
+// current frame/boxes, so every assertion after it in the tape sees the
+// NEW render -- a tape can walk a .ctml through more than one data state
+// without a second tape. A re-drive's own render failure fails the whole
+// tape (t.Fatalf), matching prepareRun's own render-failure handling,
+// though see redrive's doc comment for why that path is effectively
+// unreachable from a Data change alone.
 //
 // Usage example: ctmltest.RunFile(t, "testdata/sample_test.ctml")
 func RunFile(t *testing.T, tapePath string) {
@@ -70,33 +80,57 @@ func RunFile(t *testing.T, tapePath string) {
 		t.Fatalf("%v", err)
 	}
 
+	drive := newDriveState(tapePath, result)
+	seenAssertion := false
 	for _, cmd := range result.cmds {
 		switch cmd.Verb {
+		case "Data":
+			if seenAssertion {
+				if err := drive.redrive(cmd); err != nil {
+					t.Fatalf("%v", err)
+				}
+			}
 		case "Expect":
-			runExpect(t, tapePath, cmd, result.frame, result.boxes, result.fitWidth)
+			seenAssertion = true
+			runExpect(t, tapePath, cmd, drive.frame, drive.boxes, result.fitWidth)
+		case "Click":
+			seenAssertion = true
+			runClick(t, tapePath, cmd, drive.frame, drive.boxes)
 		case "Golden":
-			runGolden(t, tapePath, result.tapeDir, cmd, result.frame)
+			seenAssertion = true
+			runGolden(t, tapePath, result.tapeDir, cmd, drive.frame)
 		}
 	}
 }
 
-// renderResult is prepareRun's output: everything RunFile's Expect/Golden
-// loop needs, plus tapeDir (Golden's paths, like Source's, resolve
-// relative to the tape's own directory) and cmds itself, since prepareRun
-// is also where the tape gets parsed.
+// renderResult is prepareRun's output: everything RunFile's command loop
+// needs to run the rest of the tape, plus tapeDir (Golden's paths, like
+// Source's, resolve relative to the tape's own directory) and cmds itself,
+// since prepareRun is also where the tape gets parsed. cfg and ctmlSrc
+// carry the initial render's resolved inputs forward -- see driveState --
+// so a Data re-drive later in the tape can re-Parse without re-reading the
+// Source file or re-walking the tape's leading commands.
 type renderResult struct {
 	cmds     []command
 	tapeDir  string
 	frame    string
 	boxes    html.BoxMap
 	fitWidth int
+
+	cfg     tapeConfig
+	ctmlSrc []byte
 }
 
 // prepareRun performs every fallible step of RunFile up to and including
-// the render, returning a plain error instead of calling t.Fatalf so it is
-// unit-testable without a real *testing.T (see runExpect's doc comment for
-// why that matters: a real (sub)test that is made to fail always
-// propagates the failure to its ancestors and the process exit code).
+// the tape's INITIAL render, returning a plain error instead of calling
+// t.Fatalf so it is unit-testable without a real *testing.T (see
+// runExpect's doc comment for why that matters: a real (sub)test that is
+// made to fail always propagates the failure to its ancestors and the
+// process exit code). The initial render's config folds only the
+// Source/Set/Data/Rows commands BEFORE the tape's first render-reading
+// command (cmdsBeforeFirstAssertion) -- a Data line at or after that point
+// is not initial config, it is a re-drive trigger RunFile's own walk
+// applies later (see driveState.redrive).
 func prepareRun(tapePath string) (renderResult, error) {
 	raw, err := coreio.Local.Read(tapePath)
 	if err != nil {
@@ -108,7 +142,7 @@ func prepareRun(tapePath string) (renderResult, error) {
 	}
 
 	tapeDir := core.PathDir(tapePath)
-	cfg := buildConfig(tapeDir, cmds)
+	cfg := buildConfig(tapeDir, cmdsBeforeFirstAssertion(cmds))
 	if cfg.sourcePath == "" {
 		return renderResult{}, core.E("ctmltest.RunFile", tapePath+": missing Source verb", nil)
 	}
@@ -118,19 +152,35 @@ func prepareRun(tapePath string) (renderResult, error) {
 		return renderResult{}, core.E("ctmltest.RunFile", sourceRef(tapePath, cfg)+": reading Source "+cfg.sourcePath, err)
 	}
 
-	node, err := ctml.Parse([]byte(ctmlSrc), ctml.Bindings{Values: cfg.values, Sequences: cfg.sequences})
+	frame, boxes, err := renderCTML(sourceRef(tapePath, cfg), cfg.sourcePath, []byte(ctmlSrc), cfg.width, cfg.values, cfg.sequences)
 	if err != nil {
-		return renderResult{}, core.E("ctmltest.RunFile", sourceRef(tapePath, cfg)+": parsing Source "+cfg.sourcePath, err)
+		return renderResult{}, err
 	}
-
-	frame, boxes := html.RenderTermBoxes(node, html.NewContext(), html.TermOptions{Width: cfg.width})
 
 	fitWidth := cfg.width
 	if fitWidth <= 0 {
 		fitWidth = defaultTermWidth
 	}
 
-	return renderResult{cmds: cmds, tapeDir: tapeDir, frame: frame, boxes: boxes, fitWidth: fitWidth}, nil
+	return renderResult{
+		cmds: cmds, tapeDir: tapeDir, frame: frame, boxes: boxes, fitWidth: fitWidth,
+		cfg: cfg, ctmlSrc: []byte(ctmlSrc),
+	}, nil
+}
+
+// renderCTML parses ctmlSrc against the given Bindings -- resolved at
+// PARSE time, not from a live reference read later at render time (see
+// dappco.re/go/html/ctml's package doc) -- and RenderTermBoxes the result
+// once. Shared by prepareRun's initial render and driveState.redrive's
+// mid-tape re-render: the same two steps (parse, render) and the same
+// failure shape (naming tapeRef), from two call sites.
+func renderCTML(tapeRef, sourcePath string, ctmlSrc []byte, width int, values map[string]any, sequences map[string][]map[string]any) (frame string, boxes html.BoxMap, err error) {
+	node, err := ctml.Parse(ctmlSrc, ctml.Bindings{Values: values, Sequences: sequences})
+	if err != nil {
+		return "", nil, core.E("ctmltest.RunFile", tapeRef+": parsing Source "+sourcePath, err)
+	}
+	frame, boxes = html.RenderTermBoxes(node, html.NewContext(), html.TermOptions{Width: width})
+	return frame, boxes, nil
 }
 
 func sourceRef(tapePath string, cfg tapeConfig) string {

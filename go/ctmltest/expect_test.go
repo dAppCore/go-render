@@ -5,6 +5,7 @@
 package ctmltest
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -30,6 +31,116 @@ func TestMatchText(t *testing.T) {
 	t.Run("ugly: an empty substring always matches", func(t *testing.T) {
 		ok, _ := matchText("anything", "")
 		assert.True(t, ok)
+	})
+}
+
+func TestMatchNotText(t *testing.T) {
+	t.Run("good: the substring is absent", func(t *testing.T) {
+		ok, detail := matchNotText("hello world", "goodbye")
+		assert.True(t, ok)
+		assert.Empty(t, detail)
+	})
+
+	t.Run("bad: the substring is present", func(t *testing.T) {
+		ok, detail := matchNotText("hello world", "world")
+		assert.False(t, ok)
+		assert.Contains(t, detail, `"world"`)
+	})
+
+	t.Run("ugly: an empty substring is always \"present\", so NotText \"\" always fails", func(t *testing.T) {
+		ok, _ := matchNotText("anything", "")
+		assert.False(t, ok)
+	})
+}
+
+func TestMatchLine(t *testing.T) {
+	frame := "Welcome   \nBuild 1.0\nlast"
+
+	t.Run("good: line 0 matches after trailing space is trimmed", func(t *testing.T) {
+		ok, detail := matchLine(frame, 0, "Welcome")
+		assert.True(t, ok)
+		assert.Empty(t, detail)
+	})
+
+	t.Run("good: a middle line matches exactly", func(t *testing.T) {
+		ok, _ := matchLine(frame, 1, "Build 1.0")
+		assert.True(t, ok)
+	})
+
+	t.Run("bad: a mismatched line reports got and want", func(t *testing.T) {
+		ok, detail := matchLine(frame, 1, "Build 2.0")
+		assert.False(t, ok)
+		assert.Contains(t, detail, `got: "Build 1.0"`)
+		assert.Contains(t, detail, `want: "Build 2.0"`)
+	})
+
+	t.Run("bad: a line number past the end of the frame fails and says how many lines there are", func(t *testing.T) {
+		ok, detail := matchLine(frame, 9, "anything")
+		assert.False(t, ok)
+		assert.Contains(t, detail, "only 3 line(s)")
+	})
+
+	t.Run("ugly: a negative line number fails the same way as one past the end", func(t *testing.T) {
+		ok, detail := matchLine(frame, -1, "anything")
+		assert.False(t, ok)
+		assert.Contains(t, detail, "Expect Line -1")
+	})
+
+	t.Run("ugly: only trailing space is trimmed, not leading space", func(t *testing.T) {
+		ok, _ := matchLine("  indented   ", 0, "  indented")
+		assert.True(t, ok)
+	})
+}
+
+func TestMatchWidth(t *testing.T) {
+	t.Run("good: the widest line matches want exactly", func(t *testing.T) {
+		ok, detail := matchWidth("short\nlonger line", 11)
+		assert.True(t, ok)
+		assert.Empty(t, detail)
+	})
+
+	t.Run("bad: a mismatch reports the actual width", func(t *testing.T) {
+		ok, detail := matchWidth("1234567890", 5)
+		assert.False(t, ok)
+		assert.Contains(t, detail, "Expect Width 5")
+		assert.Contains(t, detail, "is 10 cell(s) wide")
+	})
+
+	t.Run("ugly: a frame narrower than want fails too -- Width pins exactly, Fits only ceils", func(t *testing.T) {
+		ok, _ := matchWidth("12345", 10)
+		assert.False(t, ok)
+	})
+}
+
+func TestFrameWidth(t *testing.T) {
+	t.Run("good: returns the widest line's display width", func(t *testing.T) {
+		assert.Equal(t, 11, frameWidth("short\nlonger line\nmid"))
+	})
+
+	t.Run("ugly: an empty frame has zero width", func(t *testing.T) {
+		assert.Equal(t, 0, frameWidth(""))
+	})
+}
+
+func TestHitBox(t *testing.T) {
+	boxes := html.BoxMap{"banner": {Row: 0, Col: 0, Width: 10, Height: 1}}
+
+	t.Run("good: a recorded, non-empty box hits", func(t *testing.T) {
+		hit, have := hitBox(boxes, "banner")
+		assert.True(t, hit)
+		assert.Empty(t, have)
+	})
+
+	t.Run("bad: an id absent from the box map misses and lists what was recorded", func(t *testing.T) {
+		hit, have := hitBox(boxes, "missing")
+		assert.False(t, hit)
+		assert.Contains(t, have, "banner")
+	})
+
+	t.Run("ugly: a recorded id with a zero-area rectangle misses like an absent one", func(t *testing.T) {
+		zero := html.BoxMap{"empty": {Row: 0, Col: 0, Width: 0, Height: 0}}
+		hit, _ := hitBox(zero, "empty")
+		assert.False(t, hit)
 	})
 }
 
@@ -128,6 +239,23 @@ func TestEvalExpect(t *testing.T) {
 
 	t.Run("good: Expect Fits dispatches to matchFits using fitWidth", func(t *testing.T) {
 		ok, _ := evalExpect("tape.ctml", command{Args: []string{"Fits"}, Line: 1}, frame, boxes, 80)
+		assert.True(t, ok)
+	})
+
+	t.Run("good: Expect NotText dispatches to matchNotText", func(t *testing.T) {
+		ok, _ := evalExpect("tape.ctml", command{Args: []string{"NotText", "nope"}, Line: 1}, frame, boxes, 80)
+		assert.True(t, ok)
+	})
+
+	t.Run("bad: Expect Line dispatches to matchLine using the parsed line number", func(t *testing.T) {
+		ok, msg := evalExpect("tape.ctml", command{Args: []string{"Line", "1", "nope"}, Line: 4}, frame, boxes, 80)
+		assert.False(t, ok)
+		assert.Contains(t, msg, "tape.ctml:4:")
+		assert.Contains(t, msg, `want: "nope"`)
+	})
+
+	t.Run("good: Expect Width dispatches to matchWidth using the parsed width", func(t *testing.T) {
+		ok, _ := evalExpect("tape.ctml", command{Args: []string{"Width", strconv.Itoa(frameWidth(frame))}, Line: 1}, frame, boxes, 80)
 		assert.True(t, ok)
 	})
 }

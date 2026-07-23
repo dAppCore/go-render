@@ -54,6 +54,14 @@ func evalExpect(tapePath string, cmd command, frame string, boxes html.BoxMap, f
 	switch cmd.Args[0] {
 	case "Text":
 		ok, detail = matchText(frame, cmd.Args[1])
+	case "NotText":
+		ok, detail = matchNotText(frame, cmd.Args[1])
+	case "Line":
+		n, _ := strconv.Atoi(cmd.Args[1]) // parseTape's validateExpectLine guarantees this parses
+		ok, detail = matchLine(frame, n, cmd.Args[2])
+	case "Width":
+		n, _ := strconv.Atoi(cmd.Args[1]) // parseTape's validateExpectWidth guarantees this parses
+		ok, detail = matchWidth(frame, n)
 	case "Box":
 		ok, detail = matchBox(boxes, cmd.Args[1])
 	case "Fits":
@@ -77,10 +85,72 @@ func matchText(frame, substr string) (ok bool, detail string) {
 	return false, "Expect Text " + strconv.Quote(substr) + ": not found in the rendered frame"
 }
 
-// matchBox reports whether id names a recorded, non-empty rectangle in
-// boxes -- Expect Box. The failure detail lists every id actually
-// recorded, sorted, so a typo'd id is obvious without re-running with -v.
-func matchBox(boxes html.BoxMap, id string) (ok bool, detail string) {
+// matchNotText reports whether frame does NOT contain substr -- Expect
+// NotText, the negation of Expect Text (see matchText). It proves an
+// element is genuinely absent from the render (a conditional branch that
+// should not have fired, text a Data re-drive should have replaced), which
+// asserting on what IS present cannot: a frame can contain plenty of other
+// text while still containing the one substring it must not.
+func matchNotText(frame, substr string) (ok bool, detail string) {
+	if !strings.Contains(frame, substr) {
+		return true, ""
+	}
+	return false, "Expect NotText " + strconv.Quote(substr) + ": found in the rendered frame"
+}
+
+// matchLine reports whether frame's line n (0-indexed), trimmed of
+// trailing space, equals want exactly -- Expect Line. Trailing space is
+// trimmed because the terminal renderer right-pads block content to its
+// box width (see term.go); a line number at or past the end of the frame
+// fails and says how many lines the frame actually has, rather than
+// panicking or silently comparing against "".
+func matchLine(frame string, n int, want string) (ok bool, detail string) {
+	lines := strings.Split(frame, "\n")
+	if n < 0 || n >= len(lines) {
+		return false, "Expect Line " + strconv.Itoa(n) + ": frame has only " + strconv.Itoa(len(lines)) + " line(s)"
+	}
+	got := strings.TrimRight(lines[n], " ")
+	if got == want {
+		return true, ""
+	}
+	return false, "Expect Line " + strconv.Itoa(n) + ": got: " + strconv.Quote(got) + ", want: " + strconv.Quote(want)
+}
+
+// matchWidth reports whether frame's display width -- its widest line,
+// measured the same ANSI- and wide-rune-aware way Expect Fits measures
+// (lipgloss.Width, see frameWidth) -- equals want exactly. Where Expect
+// Fits is a ceiling (every line AT OR UNDER a budget), Expect Width pins
+// the exact figure, e.g. proving a Set Width did what it said.
+func matchWidth(frame string, want int) (ok bool, detail string) {
+	got := frameWidth(frame)
+	if got == want {
+		return true, ""
+	}
+	return false, "Expect Width " + strconv.Itoa(want) + ": frame is " + strconv.Itoa(got) + " cell(s) wide"
+}
+
+// frameWidth returns the widest line in frame, in display cells
+// (github.com/charmbracelet/lipgloss.Width) -- the same per-line measure
+// matchFits checks against a budget and matchWidth checks against an exact
+// figure.
+func frameWidth(frame string) int {
+	width := 0
+	for _, line := range strings.Split(frame, "\n") {
+		if w := lipgloss.Width(line); w > width {
+			width = w
+		}
+	}
+	return width
+}
+
+// hitBox reports whether id names a recorded, non-empty rectangle in boxes
+// -- present, with positive width and height. The shared hit-test Expect
+// Box (matchBox) and Click (evalClick, click.go) both make: a box that is
+// merely present but zero-area (recorded, but nothing there to see or
+// click) fails exactly like an absent one. availableIDs lists every id
+// actually recorded, sorted, so a caller's failure message can name what
+// WAS there without re-running with -v.
+func hitBox(boxes html.BoxMap, id string) (ok bool, availableIDs string) {
 	box, present := boxes[id]
 	if present && box.Width > 0 && box.Height > 0 {
 		return true, ""
@@ -90,7 +160,18 @@ func matchBox(boxes html.BoxMap, id string) (ok bool, detail string) {
 		ids = append(ids, k)
 	}
 	slices.Sort(ids)
-	return false, "Expect Box " + strconv.Quote(id) + ": not recorded (have: " + strings.Join(ids, ", ") + ")"
+	return false, strings.Join(ids, ", ")
+}
+
+// matchBox reports whether id names a recorded, non-empty rectangle in
+// boxes -- Expect Box. The failure detail lists every id actually
+// recorded, sorted, so a typo'd id is obvious without re-running with -v.
+func matchBox(boxes html.BoxMap, id string) (ok bool, detail string) {
+	hit, have := hitBox(boxes, id)
+	if hit {
+		return true, ""
+	}
+	return false, "Expect Box " + strconv.Quote(id) + ": not recorded (have: " + have + ")"
 }
 
 // matchFits reports whether every line of frame fits within width display
