@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"dappco.re/go/html/display/tui/style"
-	"dappco.re/go/html/display/tui/style/list"
+	"dappco.re/go/render/display/tui/style"
+	"dappco.re/go/render/display/tui/style/list"
 )
 
 // TestNew_BuildsAndRenders builds a flat list and confirms every item and

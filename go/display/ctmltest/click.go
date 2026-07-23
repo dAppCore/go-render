@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // runClick dispatches one Click command and reports a failure through t --

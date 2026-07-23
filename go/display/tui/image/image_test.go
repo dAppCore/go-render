@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	tuiimage "dappco.re/go/html/display/tui/image"
+	tuiimage "dappco.re/go/render/display/tui/image"
 )
 
 // newCheckerboard builds a deterministic n-by-n RGBA image — a two-colour

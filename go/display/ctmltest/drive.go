@@ -7,7 +7,7 @@ package ctmltest
 import (
 	"strconv"
 
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // isRenderRead reports whether verb reads the tape's current render state
@@ -74,7 +74,7 @@ type driveState struct {
 // newDriveState seeds a driveState from tapePath and prepareRun's result.
 // The live values/sequences maps are result.cfg's own, not a copy -- safe,
 // because ctml.Parse resolves Bindings at PARSE time, not from a live
-// reference read later at render time (see dappco.re/go/html/ctml's
+// reference read later at render time (see dappco.re/go/render/ctml's
 // package doc), so mutating values after a Parse call has already returned
 // can never reach back into a frame that call already produced.
 func newDriveState(tapePath string, result renderResult) *driveState {

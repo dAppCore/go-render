@@ -11,9 +11,9 @@ import (
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
 	core "dappco.re/go"
-	tea "dappco.re/go/html/display/tui"
-	"dappco.re/go/html/display/tui/filepicker"
-	"dappco.re/go/html/display/tui/style"
+	tea "dappco.re/go/render/display/tui"
+	"dappco.re/go/render/display/tui/filepicker"
+	"dappco.re/go/render/display/tui/style"
 	coreio "dappco.re/go/io"
 )
 

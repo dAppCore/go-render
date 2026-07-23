@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"dappco.re/go/html/display/tui/motion"
+	"dappco.re/go/render/display/tui/motion"
 )
 
 const epsilon = 1e-9

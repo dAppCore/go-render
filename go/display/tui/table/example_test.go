@@ -5,7 +5,7 @@ package table_test
 import (
 	"fmt"
 
-	"dappco.re/go/html/display/tui/table"
+	"dappco.re/go/render/display/tui/table"
 )
 
 // ExampleNew builds a two-row table and reads back its selected row: the

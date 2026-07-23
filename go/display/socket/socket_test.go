@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	core "dappco.re/go"
-	httpdisplay "dappco.re/go/html/display/http"
+	httpdisplay "dappco.re/go/render/display/http"
 )
 
 type socketRenderer struct {

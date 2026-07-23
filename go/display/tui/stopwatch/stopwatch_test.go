@@ -9,8 +9,8 @@ import (
 
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	tea "dappco.re/go/html/display/tui"
-	"dappco.re/go/html/display/tui/stopwatch"
+	tea "dappco.re/go/render/display/tui"
+	"dappco.re/go/render/display/tui/stopwatch"
 )
 
 // TestNew builds a stopwatch and confirms its zero state: no elapsed time,

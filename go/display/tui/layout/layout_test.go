@@ -6,7 +6,7 @@ import (
 	"image"
 	"testing"
 
-	"dappco.re/go/html/display/tui/layout"
+	"dappco.re/go/render/display/tui/layout"
 )
 
 // TestNew builds a Layout for each Direction and checks the fields New sets

@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
-	tea "dappco.re/go/html/display/tui"
-	"dappco.re/go/html/display/tui/spinner"
-	"dappco.re/go/html/display/tui/style"
+	tea "dappco.re/go/render/display/tui"
+	"dappco.re/go/render/display/tui/spinner"
+	"dappco.re/go/render/display/tui/style"
 	colorful "github.com/lucasb-eyer/go-colorful"
 	"github.com/muesli/termenv"
 )

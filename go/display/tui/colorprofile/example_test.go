@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"dappco.re/go/html/display/tui/colorprofile"
+	"dappco.re/go/render/display/tui/colorprofile"
 )
 
 // ExampleWriter builds a Writer fixed to the ANSI256 profile and writes a

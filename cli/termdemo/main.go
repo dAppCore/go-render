@@ -14,7 +14,7 @@ import (
 	"os"
 	"strconv"
 
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // demoTranslator resolves the demo's Text keys from a fixed catalogue — the

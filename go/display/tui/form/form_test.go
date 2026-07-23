@@ -5,7 +5,7 @@ package form_test
 import (
 	"testing"
 
-	"dappco.re/go/html/display/tui/form"
+	"dappco.re/go/render/display/tui/form"
 )
 
 // TestNewForm_Good builds a real form through the wrap — a generic Select and

@@ -5,7 +5,7 @@ package ctml
 import (
 	"testing"
 
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,7 @@ import (
 // caller would get by calling html.FormatValue directly: ctml's pipe wiring
 // is what is under test here, not go-i18n's own formatting correctness
 // (that is covered directly, with pinned expected strings, in
-// dappco.re/go/html's own formatter_test.go).
+// dappco.re/go/render's own formatter_test.go).
 func TestParse_Pipe_BuiltinNamesGood(t *testing.T) {
 	tests := []struct {
 		name string

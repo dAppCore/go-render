@@ -3,7 +3,7 @@ package tui_test
 import (
 	"fmt"
 
-	htui "dappco.re/go/html/display/tui"
+	htui "dappco.re/go/render/display/tui"
 )
 
 // houseModel is the smallest tea.Model that turns on the two capabilities a
@@ -27,7 +27,7 @@ func (houseModel) View() htui.View {
 // ExampleNewProgram builds a Program with a couple of this file's house
 // options — WithoutSignalHandler and WithFPS — and a Model whose View turns
 // on the alternate screen and mouse tracking, entirely through
-// dappco.re/go/html/display/tui: no charmbracelet import anywhere in this file.
+// dappco.re/go/render/display/tui: no charmbracelet import anywhere in this file.
 func ExampleNewProgram() {
 	p := htui.NewProgram(houseModel{}, htui.WithoutSignalHandler(), htui.WithFPS(30))
 	fmt.Println(p != nil)

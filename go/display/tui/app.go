@@ -15,7 +15,7 @@
 package tui
 
 import (
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 // App is the root manager Model: each frame it renders a .ctml node tree to the
@@ -48,7 +48,7 @@ func WithRenderContext(ctx *html.Context) AppOption { return func(a *App) { a.ct
 func WithQuitKeys(pred func(KeyPressMsg) bool) AppOption { return func(a *App) { a.quit = pred } }
 
 // NewApp builds a manager around a parsed .ctml node tree (see
-// dappco.re/go/html/engine/ctml.Parse). Options tune the theme, render context,
+// dappco.re/go/render/engine/ctml.Parse). Options tune the theme, render context,
 // and quit keys; the defaults render the house theme and quit on ctrl+c / q.
 func NewApp(node html.Node, opts ...AppOption) *App {
 	a := &App{

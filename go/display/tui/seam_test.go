@@ -3,15 +3,15 @@ package tui_test
 import (
 	"testing"
 
-	htui "dappco.re/go/html/display/tui"
-	"dappco.re/go/html/display/tui/help"
-	"dappco.re/go/html/display/tui/key"
-	"dappco.re/go/html/display/tui/list"
-	"dappco.re/go/html/display/tui/markdown"
-	"dappco.re/go/html/display/tui/spinner"
-	"dappco.re/go/html/display/tui/textarea"
-	"dappco.re/go/html/display/tui/textinput"
-	"dappco.re/go/html/display/tui/viewport"
+	htui "dappco.re/go/render/display/tui"
+	"dappco.re/go/render/display/tui/help"
+	"dappco.re/go/render/display/tui/key"
+	"dappco.re/go/render/display/tui/list"
+	"dappco.re/go/render/display/tui/markdown"
+	"dappco.re/go/render/display/tui/spinner"
+	"dappco.re/go/render/display/tui/textarea"
+	"dappco.re/go/render/display/tui/textinput"
+	"dappco.re/go/render/display/tui/viewport"
 )
 
 // TestSeam_ConstructsEveryWidget is the acceptance that a consumer can drop

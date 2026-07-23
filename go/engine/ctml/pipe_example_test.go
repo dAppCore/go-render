@@ -4,7 +4,7 @@ package ctml
 
 import (
 	core "dappco.re/go"
-	html "dappco.re/go/html/engine/html"
+	html "dappco.re/go/render/engine/html"
 )
 
 func ExampleParse_pipe() {

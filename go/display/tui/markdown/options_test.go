@@ -10,7 +10,7 @@ import (
 	core "dappco.re/go"
 	coreio "dappco.re/go/io"
 
-	"dappco.re/go/html/display/tui/markdown"
+	"dappco.re/go/render/display/tui/markdown"
 )
 
 // render builds a Renderer with opts and renders md, failing the test on any

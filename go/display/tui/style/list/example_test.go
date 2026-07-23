@@ -3,7 +3,7 @@ package list_test
 import (
 	"fmt"
 
-	"dappco.re/go/html/display/tui/style/list"
+	"dappco.re/go/render/display/tui/style/list"
 )
 
 // ExampleNew builds a small grocery list with one nested, roman-numbered

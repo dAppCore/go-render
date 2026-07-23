@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"image"
 
-	"dappco.re/go/html/display/tui/layout"
+	"dappco.re/go/render/display/tui/layout"
 )
 
 // ExampleLayout_Split partitions a 10x10 rect into a 3-tall header and a

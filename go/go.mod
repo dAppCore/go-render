@@ -1,4 +1,4 @@
-module dappco.re/go/html
+module dappco.re/go/render
 
 go 1.26.2
 

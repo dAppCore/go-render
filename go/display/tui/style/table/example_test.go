@@ -3,7 +3,7 @@ package table_test
 import (
 	"fmt"
 
-	"dappco.re/go/html/display/tui/style/table"
+	"dappco.re/go/render/display/tui/style/table"
 )
 
 // ExampleNew builds a two-column, two-row table and prints it: the shape a
