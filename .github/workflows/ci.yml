@@ -1,25 +1,37 @@
-# Template CI workflow for Core ecosystem Go repos
-# Copy to .github/workflows/ci.yml in each repo
-#
-# Triggers:
-#   - Push to main/dev → full test
-#   - PR to main       → full test
-#
+# CI for go-html. The Go module lives at go/ (this is a polyglot repo), so the
+# shared dAppCore/build/actions/build/core action — which builds from the repo
+# root — can't be used here; the steps are inlined against go/ instead.
+# The repo commits a go.work for local dev, so CI sets GOWORK=off to resolve
+# from released go.mod tags.
 name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      GOWORK: "off"
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dAppCore/build/actions/build/core@dev
+      - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
-          run-vet: "true"
+          cache-dependency-path: go/go.sum
+
+      - name: build
+        working-directory: go
+        run: go build ./...
+
+      - name: vet
+        working-directory: go
+        run: go vet ./...
+
+      - name: test
+        working-directory: go
+        run: go test ./...
