@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	core "dappco.re/go"
+	"dappco.re/go/render/display/http/framework"
 )
 
 type renderStub struct {
@@ -18,6 +19,21 @@ type renderStub struct {
 	calls  int
 	entry  string
 	input  any
+}
+
+type frameworkStub struct {
+	response *framework.Response
+	err      error
+	calls    int
+}
+
+func (s *frameworkStub) Render(_ core.Context, _ *nethttp.Request) (*framework.Response, error) {
+	s.calls++
+	return s.response, s.err
+}
+
+func (s *frameworkStub) Close() error {
+	return nil
 }
 
 func (s *renderStub) Render(_ core.Context, entry string, input any) ([]byte, error) {
@@ -109,4 +125,54 @@ func TestHttp_WithEntry_Ugly(t *testing.T) {
 	core.AssertEqual(t, nethttp.StatusOK, recorder.Code)
 	core.AssertEqual(t, "second.ts", renderer.entry)
 	core.AssertEqual(t, "last wins", recorder.Body.String())
+}
+
+func TestHttp_WithFramework_Good(t *testing.T) {
+	renderer := &frameworkStub{
+		response: &framework.Response{
+			Status: nethttp.StatusCreated,
+			Header: nethttp.Header{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Set-Cookie":   {"first=one", "second=two"},
+				"X-Rendered":   {"Angular"},
+			},
+			Body: []byte("<main>Angular SSR</main>"),
+		},
+	}
+	handler := Handler(nil, "", WithFramework(renderer))
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(nethttp.MethodGet, "https://example.test/account", nil)
+
+	handler.ServeHTTP(recorder, request)
+
+	core.AssertEqual(t, nethttp.StatusCreated, recorder.Code)
+	core.AssertEqual(t, "<main>Angular SSR</main>", recorder.Body.String())
+	core.AssertEqual(t, []string{"first=one", "second=two"}, recorder.Header().Values("Set-Cookie"))
+	core.AssertEqual(t, "Angular", recorder.Header().Get("X-Rendered"))
+	core.AssertEqual(t, 1, renderer.calls)
+}
+
+func TestHttp_WithFramework_Bad(t *testing.T) {
+	renderer := &frameworkStub{err: core.E("test.framework", "render failed", nil)}
+	handler := Handler(nil, "", WithFramework(renderer))
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(nethttp.MethodGet, "https://example.test/", nil)
+
+	handler.ServeHTTP(recorder, request)
+
+	core.AssertEqual(t, nethttp.StatusInternalServerError, recorder.Code)
+	core.AssertContains(t, recorder.Body.String(), "framework render failed")
+	core.AssertEqual(t, 1, renderer.calls)
+}
+
+func TestHttp_WithFramework_Ugly(t *testing.T) {
+	renderer := &frameworkStub{}
+	handler := Handler(nil, "", WithFramework(renderer))
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(nethttp.MethodGet, "https://example.test/unhandled", nil)
+
+	handler.ServeHTTP(recorder, request)
+
+	core.AssertEqual(t, nethttp.StatusNotFound, recorder.Code)
+	core.AssertEqual(t, 1, renderer.calls)
 }

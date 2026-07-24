@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	renderModulePrefix = "go-render-"
-	renderGroupPrefix  = "go-render-ts-"
+	contextModulePrefix = "go-render-context-"
+	renderModulePrefix  = "go-render-"
+	renderGroupPrefix   = "go-render-ts-"
 )
 
 // Renderer is the content-producing contract shared by the server-side
@@ -22,12 +23,13 @@ type Renderer interface {
 
 // Engine owns a CoreTS service and its managed Deno sidecar.
 type Engine struct {
-	mu      core.RWMutex
-	app     *core.Core
-	service *corets.Service
-	tempDir string
-	appRoot string
-	closed  bool
+	mu       core.RWMutex
+	app      *core.Core
+	service  *corets.Service
+	tempDir  string
+	appRoot  string
+	contexts map[*Context]struct{}
+	closed   bool
 }
 
 // New starts a CoreTS service and its configured Deno sidecar.
@@ -87,11 +89,18 @@ func New(opts corets.Options) (*Engine, error) {
 	}
 
 	return &Engine{
-		app:     app,
-		service: service,
-		tempDir: tempDir,
-		appRoot: canonicalPath(opts.AppRoot),
+		app:      app,
+		service:  service,
+		tempDir:  tempDir,
+		appRoot:  canonicalPath(opts.AppRoot),
+		contexts: make(map[*Context]struct{}),
 	}, nil
+}
+
+// Load imports entry once into a resident CoreTS context. The returned context
+// can invoke exported functions repeatedly until it or the engine is closed.
+func (e *Engine) Load(ctx core.Context, entry string) (*Context, error) {
+	return e.loadContext(ctx, entry)
 }
 
 // Render loads a permission-scoped wrapper module in CoreTS, invokes the
@@ -119,7 +128,7 @@ func (e *Engine) Render(ctx core.Context, entry string, input any) ([]byte, erro
 		return nil, core.E("ts.Engine.Render", "engine is closed", nil)
 	}
 
-	entryPoint, entryReads, err := e.entryPoint(entry)
+	entryPoint, entryReads, err := e.entryPoint("ts.Engine.Render", entry)
 	if err != nil {
 		return nil, err
 	}
@@ -208,16 +217,28 @@ func (e *Engine) Close() error {
 	e.closed = true
 
 	var closeErr error
+	for context := range e.contexts {
+		if err := context.close(); err != nil {
+			closeErr = core.ErrorJoin(closeErr, err)
+		}
+	}
+	e.contexts = nil
 	if e.app != nil {
 		shutdownResult := e.app.ServiceShutdown(core.Background())
 		if !shutdownResult.OK {
-			closeErr = core.E("ts.Engine.Close", "stop CoreTS service", resultError(shutdownResult))
+			closeErr = core.ErrorJoin(
+				closeErr,
+				core.E("ts.Engine.Close", "stop CoreTS service", resultError(shutdownResult)),
+			)
 		}
 	}
 	if e.tempDir != "" {
 		removeResult := core.RemoveAll(e.tempDir)
-		if !removeResult.OK && closeErr == nil {
-			closeErr = core.E("ts.Engine.Close", "remove render workspace", resultError(removeResult))
+		if !removeResult.OK {
+			closeErr = core.ErrorJoin(
+				closeErr,
+				core.E("ts.Engine.Close", "remove render workspace", resultError(removeResult)),
+			)
 		}
 	}
 
@@ -227,10 +248,10 @@ func (e *Engine) Close() error {
 	return closeErr
 }
 
-func (e *Engine) entryPoint(entry string) (string, []string, error) {
+func (e *Engine) entryPoint(operation, entry string) (string, []string, error) {
 	entry = core.Trim(entry)
 	if entry == "" {
-		return "", nil, core.E("ts.Engine.Render", "entry is required", nil)
+		return "", nil, core.E(operation, "entry is required", nil)
 	}
 	if core.HasPrefix(entry, "data:") {
 		return entry, nil, nil
@@ -240,43 +261,43 @@ func (e *Engine) entryPoint(entry string) (string, []string, error) {
 	if core.HasPrefix(entry, "file:") {
 		parseResult := core.URLParse(entry)
 		if !parseResult.OK {
-			return "", nil, core.E("ts.Engine.Render", "parse file entry URL", resultError(parseResult))
+			return "", nil, core.E(operation, "parse file entry URL", resultError(parseResult))
 		}
 		parsed := parseResult.Value.(*core.URL)
 		if parsed.Scheme != "file" || (parsed.Host != "" && parsed.Host != "localhost") {
-			return "", nil, core.E("ts.Engine.Render", "entry must be a local file URL", nil)
+			return "", nil, core.E(operation, "entry must be a local file URL", nil)
 		}
 		path = parsed.Path
 	} else if !core.PathIsAbs(entry) {
 		parseResult := core.URLParse(entry)
 		if parseResult.OK && parseResult.Value.(*core.URL).Scheme != "" {
-			return "", nil, core.E("ts.Engine.Render", "remote module entries are not permitted", nil)
+			return "", nil, core.E(operation, "remote module entries are not permitted", nil)
 		}
 	}
 
 	absoluteResult := core.PathAbs(path)
 	if !absoluteResult.OK {
-		return "", nil, core.E("ts.Engine.Render", "resolve module entry", resultError(absoluteResult))
+		return "", nil, core.E(operation, "resolve module entry", resultError(absoluteResult))
 	}
 	absolute := absoluteResult.Value.(string)
 	resolvedResult := core.PathEvalSymlinks(absolute)
 	if !resolvedResult.OK {
-		return "", nil, core.E("ts.Engine.Render", "resolve module entry symlinks", resultError(resolvedResult))
+		return "", nil, core.E(operation, "resolve module entry symlinks", resultError(resolvedResult))
 	}
 	resolved := resolvedResult.Value.(string)
 
 	statResult := core.Stat(resolved)
 	if !statResult.OK {
-		return "", nil, core.E("ts.Engine.Render", "stat module entry", resultError(statResult))
+		return "", nil, core.E(operation, "stat module entry", resultError(statResult))
 	}
 	if statResult.Value.(core.FsFileInfo).IsDir() {
-		return "", nil, core.E("ts.Engine.Render", "module entry is a directory", nil)
+		return "", nil, core.E(operation, "module entry is a directory", nil)
 	}
 
 	readRoot := core.PathDir(resolved)
 	if e.appRoot != "" {
 		if !corets.CheckPath(resolved, []string{e.appRoot}) {
-			return "", nil, core.E("ts.Engine.Render", "module entry is outside CoreTS AppRoot", nil)
+			return "", nil, core.E(operation, "module entry is outside CoreTS AppRoot", nil)
 		}
 		readRoot = e.appRoot
 	}
