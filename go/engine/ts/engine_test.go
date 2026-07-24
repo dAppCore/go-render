@@ -69,6 +69,55 @@ func TestEngine_Render_Ugly(t *testing.T) {
 	core.AssertEqual(t, []byte{0, 1, 2, 255}, output)
 }
 
+func TestEngine_Load_Good(t *testing.T) {
+	engine := newSmokeEngine(t)
+	defer func() { core.AssertNoError(t, engine.Close()) }()
+
+	module, err := engine.Load(core.Background(), inlineModule(`
+		let count = 0;
+		export function increment(by: number) {
+			count += by;
+			return count;
+		}
+	`))
+	core.RequireNoError(t, err)
+	defer func() { core.AssertNoError(t, module.Close()) }()
+
+	var first int
+	core.AssertNoError(t, module.Invoke(core.Background(), "increment", &first, 2))
+	core.AssertEqual(t, 2, first)
+}
+
+func TestEngine_Load_Bad(t *testing.T) {
+	engine := &Engine{closed: true}
+	module, err := engine.Load(core.Background(), inlineModule(`export const ready = true;`))
+	core.AssertNil(t, module)
+	core.AssertError(t, err)
+	core.AssertContains(t, err.Error(), "closed")
+}
+
+func TestEngine_Load_Ugly(t *testing.T) {
+	engine := newSmokeEngine(t)
+	defer func() { core.AssertNoError(t, engine.Close()) }()
+
+	module, err := engine.Load(core.Background(), inlineModule(`
+		let calls = 0;
+		export function next() {
+			calls += 1;
+			return calls;
+		}
+	`))
+	core.RequireNoError(t, err)
+	defer func() { core.AssertNoError(t, module.Close()) }()
+
+	var first int
+	var second int
+	core.AssertNoError(t, module.Invoke(core.Background(), "next", &first))
+	core.AssertNoError(t, module.Invoke(core.Background(), "next", &second))
+	core.AssertEqual(t, 1, first)
+	core.AssertEqual(t, 2, second)
+}
+
 func TestEngine_Close_Good(t *testing.T) {
 	engine := newSmokeEngine(t)
 	sidecar := engine.service.Sidecar()
@@ -156,6 +205,7 @@ try { await Deno.remove(socketPath); } catch (error) {
 const listener = Deno.listen({ transport: "unix", path: socketPath });
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const workers = new Map<string, Worker>();
 
 for await (const connection of listener) {
 	void serve(connection);
@@ -200,9 +250,12 @@ async function dispatch(request: Record<string, unknown>) {
 				(request.permissions ?? {}) as Record<string, string[]>,
 			);
 		case "UnloadModule":
-			return { ok: true };
+			return unloadModule(String(request.code ?? ""));
 		case "ModuleStatus":
-			return { code: String(request.code ?? ""), status: "RUNNING" };
+			return {
+				code: String(request.code ?? ""),
+				status: workers.has(String(request.code ?? "")) ? "RUNNING" : "STOPPED",
+			};
 		default:
 			throw new Error("unknown method: " + request.method);
 	}
@@ -243,14 +296,26 @@ self.onmessage = async (event) => {
 			},
 		},
 	});
-	try {
-		return await new Promise((resolve) => {
-			worker.onmessage = (event) => resolve(event.data);
-			worker.onerror = (event) => resolve({ ok: false, error: event.message });
-			worker.postMessage(entryPoint);
-		});
-	} finally {
+	const result = await new Promise((resolve) => {
+		worker.onmessage = (event) => resolve(event.data);
+		worker.onerror = (event) => resolve({ ok: false, error: event.message });
+		worker.postMessage(entryPoint);
+	});
+	if (result.ok) {
+		const previous = workers.get(code);
+		if (previous) previous.terminate();
+		workers.set(code, worker);
+	} else {
 		worker.terminate();
 	}
+	return result;
+}
+
+function unloadModule(code: string) {
+	const worker = workers.get(code);
+	if (!worker) return { ok: true };
+	worker.terminate();
+	workers.delete(code);
+	return { ok: true };
 }
 `

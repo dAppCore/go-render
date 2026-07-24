@@ -8,6 +8,7 @@ import (
 	nethttp "net/http"
 
 	core "dappco.re/go"
+	"dappco.re/go/render/display/http/framework"
 	tsengine "dappco.re/go/render/engine/ts"
 )
 
@@ -15,13 +16,21 @@ import (
 type Option func(*handlerOptions)
 
 type handlerOptions struct {
-	entry string
+	entry     string
+	framework framework.Renderer
 }
 
 // WithEntry selects the TypeScript or JavaScript SSR entry module.
 func WithEntry(entry string) Option {
 	return func(options *handlerOptions) {
 		options.entry = entry
+	}
+}
+
+// WithFramework mounts a resident server-rendering framework adapter.
+func WithFramework(renderer framework.Renderer) Option {
+	return func(options *handlerOptions) {
+		options.framework = renderer
 	}
 }
 
@@ -47,6 +56,21 @@ func Handler(engine tsengine.Renderer, assetsDir string, opts ...Option) nethttp
 		if assets != nil && isAssetRequest(assetsDir, request) {
 			assets.ServeHTTP(writer, request)
 			return
+		}
+		if options.framework != nil {
+			response, err := options.framework.Render(request.Context(), request)
+			if err != nil {
+				nethttp.Error(writer, "framework render failed", nethttp.StatusInternalServerError)
+				return
+			}
+			if response != nil {
+				writeFrameworkResponse(writer, request, response)
+				return
+			}
+			if engine == nil && core.Trim(options.entry) == "" {
+				nethttp.NotFound(writer, request)
+				return
+			}
 		}
 		if engine == nil {
 			nethttp.Error(writer, "render engine unavailable", nethttp.StatusInternalServerError)
@@ -75,6 +99,33 @@ func Handler(engine tsengine.Renderer, assetsDir string, opts ...Option) nethttp
 		writer.WriteHeader(nethttp.StatusOK)
 		_, _ = writer.Write(output)
 	})
+}
+
+func writeFrameworkResponse(
+	writer nethttp.ResponseWriter,
+	request *nethttp.Request,
+	response *framework.Response,
+) {
+	status := response.Status
+	if status == 0 {
+		status = nethttp.StatusOK
+	}
+	if status < 100 || status > 999 {
+		nethttp.Error(writer, "framework response invalid", nethttp.StatusInternalServerError)
+		return
+	}
+	for name, values := range response.Header {
+		for _, value := range values {
+			writer.Header().Add(name, value)
+		}
+	}
+	writer.WriteHeader(status)
+	if request.Method == nethttp.MethodHead {
+		return
+	}
+	if _, err := writer.Write(response.Body); err != nil {
+		core.Warn("Framework HTTP response write failed", "err", err)
+	}
 }
 
 func isAssetRequest(assetsDir string, request *nethttp.Request) bool {

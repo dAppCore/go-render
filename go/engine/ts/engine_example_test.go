@@ -12,6 +12,10 @@ func ExampleEngine_Render() {
 	_ = (*Engine).Render
 }
 
+func ExampleEngine_Load() {
+	_ = (*Engine).Load
+}
+
 func ExampleEngine_Close() {
 	_ = (*Engine).Close
 }

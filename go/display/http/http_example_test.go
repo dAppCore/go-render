@@ -11,3 +11,7 @@ func ExampleHandler() {
 func ExampleWithEntry() {
 	_ = WithEntry("server.ts")
 }
+
+func ExampleWithFramework() {
+	_ = WithFramework
+}
