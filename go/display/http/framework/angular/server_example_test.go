@@ -13,7 +13,7 @@ import (
 	httpdisplay "dappco.re/go/render/display/http"
 	"dappco.re/go/render/display/http/framework/angular"
 	tsengine "dappco.re/go/render/engine/ts"
-	corets "dappco.re/go/ts"
+	corets "dappco.re/go/render/engine/ts/deno"
 )
 
 func ExampleNew() {
