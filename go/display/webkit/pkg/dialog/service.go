@@ -4,9 +4,9 @@ package dialog
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/webview"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/webview"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 )
 
 type Options struct{}

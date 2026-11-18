@@ -3,9 +3,9 @@
 package webkit
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/contextmenu"
-	"dappco.re/go/render/display/webkit/pkg/events"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/contextmenu"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/events"
 )
 
 // ContextMenu declares one named right-click surface. The Lit

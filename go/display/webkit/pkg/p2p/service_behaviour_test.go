@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // NewService / NewServiceWithDriver wire a router over the driver and expose

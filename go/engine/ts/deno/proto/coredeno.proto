@@ -1,6 +1,6 @@
 syntax = "proto3";
 package coredeno;
-option go_package = "dappco.re/go/render/engine/ts/deno/proto;proto";
+option go_package = "github.com/dappcore/go-render/go/engine/ts/deno/proto;proto";
 
 // CoreService is implemented by CoreGO — Deno calls this for I/O.
 service CoreService {

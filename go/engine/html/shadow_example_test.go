@@ -2,7 +2,7 @@
 
 package html
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleShadowComponent_RenderClass() {
 	sc := &ShadowComponent{Name: "nav-bar", Template: Text("ready")}

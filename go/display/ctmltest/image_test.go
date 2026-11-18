@@ -9,7 +9,7 @@ import (
 	"image/png"
 	"testing"
 
-	coreio "dappco.re/go/io"
+	coreio "github.com/dappcore/go-io/go"
 	"github.com/charmbracelet/x/vttest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

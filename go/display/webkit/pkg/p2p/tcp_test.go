@@ -3,7 +3,7 @@ package p2p
 import (
 	"bufio"
 	"context"
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"net"
 	"time"
 )

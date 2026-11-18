@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"charm.land/lipgloss/v2"
-	core "dappco.re/go"
-	coreio "dappco.re/go/io"
-	html "dappco.re/go/render/engine/html"
+	core "github.com/dappcore/go"
+	coreio "github.com/dappcore/go-io/go"
+	html "github.com/dappcore/go-render/go/engine/html"
 	"github.com/charmbracelet/x/ansi"
 )
 

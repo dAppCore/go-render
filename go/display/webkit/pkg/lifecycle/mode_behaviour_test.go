@@ -1,7 +1,7 @@
 // pkg/lifecycle/mode_behaviour_test.go
 package lifecycle
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // parseAppMode normalises a CORE_APP_MODE value into an AppMode.
 //

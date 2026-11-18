@@ -1,7 +1,7 @@
 package display
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestHLCRF_DefaultHLCRFTag_GoodCase(t *core.T) {

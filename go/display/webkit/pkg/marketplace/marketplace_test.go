@@ -5,7 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"encoding/base64"
 	"encoding/hex"
 	"gopkg.in/yaml.v3"

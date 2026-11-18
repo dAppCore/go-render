@@ -3,7 +3,7 @@ package display
 import (
 	"net/url"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func ExampleNewCoreSchemeHandler() {

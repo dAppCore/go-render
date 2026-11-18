@@ -3,7 +3,7 @@ package html
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestShadowComponent_EscapesControlCharsGood — control characters and quotes in

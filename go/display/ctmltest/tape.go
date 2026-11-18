@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // command is one parsed _test.ctml line: a verb and its arguments, with the

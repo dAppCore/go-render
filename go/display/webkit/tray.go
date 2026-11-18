@@ -5,9 +5,9 @@ package webkit
 import (
 	"runtime"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/lifecycle"
-	"dappco.re/go/render/display/webkit/pkg/systray"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/lifecycle"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/systray"
 )
 
 // TrayItem is an alias for the systray menu item shape. Re-exported so

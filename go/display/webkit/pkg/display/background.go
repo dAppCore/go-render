@@ -5,7 +5,7 @@ import (
 	"sync" // Note: AX-6 — sync.Mutex for registry guard, no core wrapper in pinned core module
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 type BackgroundRegistry struct {

@@ -3,15 +3,15 @@ package tui_test
 import (
 	"testing"
 
-	htui "dappco.re/go/render/display/tui"
-	"dappco.re/go/render/display/tui/help"
-	"dappco.re/go/render/display/tui/key"
-	"dappco.re/go/render/display/tui/list"
-	"dappco.re/go/render/display/tui/markdown"
-	"dappco.re/go/render/display/tui/spinner"
-	"dappco.re/go/render/display/tui/textarea"
-	"dappco.re/go/render/display/tui/textinput"
-	"dappco.re/go/render/display/tui/viewport"
+	htui "github.com/dappcore/go-render/go/display/tui"
+	"github.com/dappcore/go-render/go/display/tui/help"
+	"github.com/dappcore/go-render/go/display/tui/key"
+	"github.com/dappcore/go-render/go/display/tui/list"
+	"github.com/dappcore/go-render/go/display/tui/markdown"
+	"github.com/dappcore/go-render/go/display/tui/spinner"
+	"github.com/dappcore/go-render/go/display/tui/textarea"
+	"github.com/dappcore/go-render/go/display/tui/textinput"
+	"github.com/dappcore/go-render/go/display/tui/viewport"
 )
 
 // TestSeam_ConstructsEveryWidget is the acceptance that a consumer can drop

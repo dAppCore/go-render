@@ -3,7 +3,7 @@ package container
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func lookPath(file string) (string, resultFailure) {

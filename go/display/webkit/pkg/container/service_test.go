@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func newTestContainerService(t *core.T, options TIMOptions) (*Service, *core.Core) {

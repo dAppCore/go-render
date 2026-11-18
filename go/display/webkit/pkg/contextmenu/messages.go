@@ -1,6 +1,6 @@
 package contextmenu
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 var ErrorMenuNotFound = core.E("contextmenu", "menu not found", nil)
 

@@ -1,6 +1,6 @@
 package webview
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func jsonMarshal(value any) ([]byte, resultFailure) {
 	result := core.JSONMarshal(value)

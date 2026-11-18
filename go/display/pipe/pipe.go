@@ -5,8 +5,8 @@
 package pipe
 
 import (
-	core "dappco.re/go"
-	tsengine "dappco.re/go/render/engine/ts"
+	core "github.com/dappcore/go"
+	tsengine "github.com/dappcore/go-render/go/engine/ts"
 )
 
 // Emit renders entry once with a nil input and writes the exact output bytes

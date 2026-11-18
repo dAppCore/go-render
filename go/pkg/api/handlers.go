@@ -5,8 +5,8 @@ package api
 import (
 	"net/http"
 
-	"dappco.re/go/i18n/reversal"
-	html "dappco.re/go/render/engine/html"
+	"github.com/dappcore/go-i18n/go/reversal"
+	html "github.com/dappcore/go-render/go/engine/html"
 	"github.com/gin-gonic/gin"
 )
 

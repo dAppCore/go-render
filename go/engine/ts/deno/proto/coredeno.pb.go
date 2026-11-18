@@ -1609,7 +1609,7 @@ const file_coredeno_proto_rawDesc = "" +
 	"\n" +
 	"LoadModule\x12\x1b.coredeno.LoadModuleRequest\x1a\x1c.coredeno.LoadModuleResponse\x12M\n" +
 	"\fUnloadModule\x12\x1d.coredeno.UnloadModuleRequest\x1a\x1e.coredeno.UnloadModuleResponse\x12M\n" +
-	"\fModuleStatus\x12\x1d.coredeno.ModuleStatusRequest\x1a\x1e.coredeno.ModuleStatusResponseB0Z.dappco.re/go/render/engine/ts/deno/proto;protob\x06proto3"
+	"\fModuleStatus\x12\x1d.coredeno.ModuleStatusRequest\x1a\x1e.coredeno.ModuleStatusResponseB=Z;github.com/dappcore/go-render/go/engine/ts/deno/proto;protob\x06proto3"
 
 var (
 	file_coredeno_proto_rawDescOnce sync.Once

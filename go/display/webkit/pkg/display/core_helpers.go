@@ -3,7 +3,7 @@ package display
 import (
 	"unicode"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 var sidecarWarningWriter core.Writer = core.Stderr()

@@ -200,10 +200,10 @@ All operations are relayed through the Go gRPC server and checked against the mo
 ## Dependency Graph
 
 ```
-dappco.re/go/core/ts
-├── dappco.re/go/core            (DI container, ServiceRuntime)
-├── dappco.re/go/core/io         (Sandboxed Medium, MockMedium, Store)
-├── dappco.re/go/core/scm        (Manifest loading, Marketplace installer)
+github.com/dappcore/go-render/go/engine/ts/deno
+├── github.com/dappcore/go            (DI container, ServiceRuntime)
+├── github.com/dappcore/go-io/go         (Sandboxed Medium, MockMedium, Store)
+├── github.com/dappcore/go-scm/go        (Manifest loading, Marketplace installer)
 ├── google.golang.org/grpc       (gRPC server + client)
 └── google.golang.org/protobuf   (Protocol buffer runtime)
 ```

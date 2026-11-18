@@ -2,7 +2,7 @@
 
 package main
 
-import html "dappco.re/go/render/engine/html"
+import html "github.com/dappcore/go-render/go/engine/html"
 
 // renderLayout renders an HLCRF layout from a slot map.
 //

@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"strconv"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // ContainerRuntime describes the preferred isolated workload runtime for CoreGUI.

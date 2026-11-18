@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/cli/pkg/cli"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/cli/go/pkg/cli"
 )
 
 // bytesReaderForHTTP wraps a []byte as an io.Reader for HTTP request
 // bodies. Equivalent to bytes.NewReader without importing bytes;
-// core.NewBufferReader is not yet in this repo's pinned dappco.re/go
+// core.NewBufferReader is not yet in this repo's pinned github.com/dappcore/go
 // release.
 type bytesReaderForHTTP struct {
 	data []byte

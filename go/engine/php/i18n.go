@@ -5,7 +5,7 @@ import (
 	"embed"
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 //go:embed locales/*.json

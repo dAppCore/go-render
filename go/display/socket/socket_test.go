@@ -8,8 +8,8 @@ import (
 	nethttp "net/http"
 	"testing"
 
-	core "dappco.re/go"
-	httpdisplay "dappco.re/go/render/display/http"
+	core "github.com/dappcore/go"
+	httpdisplay "github.com/dappcore/go-render/go/display/http"
 )
 
 type socketRenderer struct {

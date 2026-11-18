@@ -3,7 +3,7 @@ package marketplace
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func coreResultError(result core.Result, fallback string) resultFailure {

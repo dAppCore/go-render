@@ -11,7 +11,7 @@ import (
 	"path"
 	"strings"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // DefaultIndex is the document an SPA handler falls back to for a

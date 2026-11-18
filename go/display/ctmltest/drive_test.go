@@ -7,7 +7,7 @@ package ctmltest
 import (
 	"testing"
 
-	html "dappco.re/go/render/engine/html"
+	html "github.com/dappcore/go-render/go/engine/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -4,7 +4,7 @@ package window
 import (
 	"sync"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // Window is CoreGUI's own window descriptor — NOT a Wails type alias.

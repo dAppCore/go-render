@@ -9,9 +9,9 @@ import (
 	"sort"    // Note: AX-6 — slice sorting is structural; core has no sort wrapper
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/chat"
-	"dappco.re/go/render/display/webkit/pkg/internal/textutil"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/chat"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/internal/textutil"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 

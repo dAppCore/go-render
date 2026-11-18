@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // callByNamePattern matches a literal first argument to the wails

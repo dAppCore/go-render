@@ -9,11 +9,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	core "dappco.re/go"
-	httpdisplay "dappco.re/go/render/display/http"
-	"dappco.re/go/render/display/http/framework/angular"
-	tsengine "dappco.re/go/render/engine/ts"
-	corets "dappco.re/go/render/engine/ts/deno"
+	core "github.com/dappcore/go"
+	httpdisplay "github.com/dappcore/go-render/go/display/http"
+	"github.com/dappcore/go-render/go/display/http/framework/angular"
+	tsengine "github.com/dappcore/go-render/go/engine/ts"
+	corets "github.com/dappcore/go-render/go/engine/ts/deno"
 )
 
 func ExampleNew() {

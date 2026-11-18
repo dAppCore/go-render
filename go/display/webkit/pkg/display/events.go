@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/events"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/events"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 	"github.com/gorilla/websocket"
 )
 

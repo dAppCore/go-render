@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/internal/coreutil"
-	"dappco.re/go/render/display/webkit/pkg/window"
-	gowebview "dappco.re/go/webview"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/internal/coreutil"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
+	gowebview "github.com/dappcore/go-webview/go"
 )
 
 // connector abstracts go-webview for testing. The real implementation wraps

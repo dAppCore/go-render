@@ -1,6 +1,6 @@
 package preload
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func renderElectronShim(pageURL string) string {
 	meta := map[string]any{

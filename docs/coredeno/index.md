@@ -5,11 +5,11 @@ description: Go service that manages a Deno TypeScript runtime as a sandboxed si
 
 # CoreTS
 
-CoreTS (`dappco.re/go/core/ts`) is a Go package that embeds a **Deno TypeScript runtime** as a managed sidecar process. It provides a bidirectional communication bridge between Go and Deno over Unix sockets, with fine-grained permission gating for filesystem, key-value store, and process operations.
+CoreTS (`github.com/dappcore/go-render/go/engine/ts/deno`) is a Go package that embeds a **Deno TypeScript runtime** as a managed sidecar process. It provides a bidirectional communication bridge between Go and Deno over Unix sockets, with fine-grained permission gating for filesystem, key-value store, and process operations.
 
 The Go side exposes a **CoreService** gRPC server that Deno calls for I/O. The Deno side exposes a **DenoService** JSON-RPC server that Go calls for module lifecycle management. TypeScript modules run in isolated Deno Workers with per-module permission sandboxing.
 
-**Module path:** `dappco.re/go/core/ts`
+**Module path:** `github.com/dappcore/go-render/go/engine/ts/deno`
 
 **Licence:** EUPL-1.2
 
@@ -20,8 +20,8 @@ Register CoreTS as a service in a Core application:
 ```go
 import (
     "context"
-    core "dappco.re/go/core"
-    ts "dappco.re/go/core/ts"
+    core "github.com/dappcore/go"
+    ts "github.com/dappcore/go-render/go/engine/ts/deno"
 )
 
 opts := ts.Options{
@@ -80,11 +80,11 @@ On startup, the service will:
 
 | Module | Purpose |
 |--------|---------|
-| `dappco.re/go/core` | Core framework (DI container, `ServiceRuntime`, lifecycle interfaces) |
-| `dappco.re/go/core/io` | Sandboxed filesystem I/O (`Medium` interface, `MockMedium`) |
-| `dappco.re/go/core/io/store` | SQLite-backed key-value store |
-| `dappco.re/go/core/scm/manifest` | Module manifest loading and ed25519 verification |
-| `dappco.re/go/core/scm/marketplace` | Module installation from Git repositories |
+| `github.com/dappcore/go` | Core framework (DI container, `ServiceRuntime`, lifecycle interfaces) |
+| `github.com/dappcore/go-io/go` | Sandboxed filesystem I/O (`Medium` interface, `MockMedium`) |
+| `github.com/dappcore/go-io/go/store` | SQLite-backed key-value store |
+| `github.com/dappcore/go-scm/go/manifest` | Module manifest loading and ed25519 verification |
+| `github.com/dappcore/go-scm/go/marketplace` | Module installation from Git repositories |
 | `google.golang.org/grpc` | gRPC server and client |
 | `google.golang.org/protobuf` | Protocol buffer runtime |
 | `github.com/stretchr/testify` | Test assertions (dev only) |

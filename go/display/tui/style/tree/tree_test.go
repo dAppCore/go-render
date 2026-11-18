@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"dappco.re/go/render/display/tui/style"
-	"dappco.re/go/render/display/tui/style/tree"
+	"github.com/dappcore/go-render/go/display/tui/style"
+	"github.com/dappcore/go-render/go/display/tui/style/tree"
 )
 
 // Tree and Leaf must satisfy Node; NewStringData must satisfy Children; Style

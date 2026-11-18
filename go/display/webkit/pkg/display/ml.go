@@ -3,8 +3,8 @@ package display
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/chat"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/chat"
 )
 
 type ModelRuntimeState struct {

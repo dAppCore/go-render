@@ -5,8 +5,8 @@ package progress_test
 import (
 	"fmt"
 
-	"dappco.re/go/render/display/tui/progress"
-	"dappco.re/go/render/display/tui/style"
+	"github.com/dappcore/go-render/go/display/tui/progress"
+	"github.com/dappcore/go-render/go/display/tui/style"
 )
 
 // ExampleNew builds a bar and renders it at a fixed percentage with ViewAs —

@@ -5,7 +5,7 @@ package codegen
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestEscapeJSStringLiteral_NamedEscapesGood — backslash, quote and the named

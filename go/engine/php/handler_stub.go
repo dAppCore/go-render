@@ -5,7 +5,7 @@ package php
 import (
 	"net/http"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // Handler implements http.Handler when the embedded FrankenPHP runtime is not built.

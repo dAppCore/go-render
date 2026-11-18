@@ -2,7 +2,7 @@
 
 package window
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // TestRegister_Register_Good asserts the constructor Register returns
 // yields an OK Result carrying a *Service wired to the given platform,

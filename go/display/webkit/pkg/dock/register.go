@@ -1,6 +1,6 @@
 package dock
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // Register(p) binds the dock service to a Core instance.
 // core.WithService(dock.Register(wailsDock))

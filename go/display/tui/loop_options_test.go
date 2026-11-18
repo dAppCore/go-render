@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	htui "dappco.re/go/render/display/tui"
+	htui "github.com/dappcore/go-render/go/display/tui"
 )
 
 // TestProgramOptions_ConstructWithoutPanic bundles every re-exported

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	pb "dappco.re/go/render/engine/ts/deno/proto"
+	pb "github.com/dappcore/go-render/go/engine/ts/deno/proto"
 )
 
 // LocaleGet implements CoreService.LocaleGet by discovering shared locale files

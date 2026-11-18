@@ -2,7 +2,7 @@
 
 package screen
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleRect_Origin() {
 	core.Println("Rect_Origin")

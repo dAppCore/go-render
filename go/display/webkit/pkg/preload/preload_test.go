@@ -1,7 +1,7 @@
 package preload
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 type captureWebview struct {

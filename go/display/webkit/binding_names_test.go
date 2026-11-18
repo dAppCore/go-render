@@ -10,7 +10,7 @@ import (
 )
 
 // bindingPkg is the package path every FQN in this file is built from.
-const bindingPkg = "dappco.re/go/render/display/webkit"
+const bindingPkg = "github.com/dappcore/go-render/go/display/webkit"
 
 // nameProbeService stands in for a consumer's bound domain service. It
 // carries one plain method, one that takes a context (wails allows it),

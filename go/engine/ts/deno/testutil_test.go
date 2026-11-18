@@ -8,12 +8,9 @@ import (
 func shortSocketDir(t *testing.T) string {
 	t.Helper()
 
-	root, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("getwd: %v", err)
-	}
-
-	dir, err := os.MkdirTemp(root, ".cts")
+	// /tmp, not the working directory: socket paths must stay under macOS's
+	// 104-byte sun_path limit however deep the checkout is.
+	dir, err := os.MkdirTemp("/tmp", "cts")
 	if err != nil {
 		t.Fatalf("mktemp: %v", err)
 	}

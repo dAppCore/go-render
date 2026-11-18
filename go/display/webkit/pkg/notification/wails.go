@@ -2,7 +2,7 @@
 package notification
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	wailsnotif "github.com/wailsapp/wails/v3/pkg/services/notifications"
 )

@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 var reservedCustomElementNames = map[string]struct{}{

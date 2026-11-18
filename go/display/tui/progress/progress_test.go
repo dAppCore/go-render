@@ -11,9 +11,9 @@ import (
 
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	tea "dappco.re/go/render/display/tui"
-	"dappco.re/go/render/display/tui/progress"
-	"dappco.re/go/render/display/tui/style"
+	tea "github.com/dappcore/go-render/go/display/tui"
+	"github.com/dappcore/go-render/go/display/tui/progress"
+	"github.com/dappcore/go-render/go/display/tui/style"
 )
 
 // TestNew builds a bar with the package defaults and proves it renders a

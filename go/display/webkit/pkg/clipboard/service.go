@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 type Options struct{}

@@ -1,5 +1,5 @@
 # main
-**Import:** `dappco.re/go/core/html/cmd/wasm`
+**Import:** `github.com/dappcore/go-render/go/cmd/wasm`
 **Files:** 2
 
 ## Types

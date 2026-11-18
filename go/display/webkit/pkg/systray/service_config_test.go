@@ -2,7 +2,7 @@
 package systray
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func newConfigTestSystrayService(t *core.T) (*Service, *Manager) {

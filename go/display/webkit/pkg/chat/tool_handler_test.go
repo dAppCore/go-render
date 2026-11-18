@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync"
 
-	core "dappco.re/go"
-	guimcp "dappco.re/go/render/display/webkit/pkg/mcp"
+	core "github.com/dappcore/go"
+	guimcp "github.com/dappcore/go-render/go/display/webkit/pkg/mcp"
 )
 
 type strictToolExecutor struct {

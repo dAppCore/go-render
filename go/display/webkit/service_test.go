@@ -1,7 +1,7 @@
 package webkit
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestBuildWailsOptions_CurrentWailsFeatures_Good(t *core.T) {

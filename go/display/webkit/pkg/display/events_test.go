@@ -1,13 +1,13 @@
 package display
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"net/http"
 	"net/http/httptest"
 	"time"
 
-	"dappco.re/go/render/display/webkit/pkg/events"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/events"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 	"github.com/gorilla/websocket"
 )
 

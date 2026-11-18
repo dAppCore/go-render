@@ -2,7 +2,7 @@
 
 package marketplace
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleInstaller_FetchManifest() {
 	core.Println("Installer_FetchManifest")

@@ -1,7 +1,7 @@
 package systray
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestMockPlatform_NewTray_Good(t *core.T) {

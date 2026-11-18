@@ -1,6 +1,6 @@
 package lifecycle
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // Register(p) binds the lifecycle service to a Core instance.
 // core.WithService(lifecycle.Register(wailsLifecycle))

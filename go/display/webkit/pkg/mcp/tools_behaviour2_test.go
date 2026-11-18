@@ -4,12 +4,12 @@ package mcp
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/dialog"
-	"dappco.re/go/render/display/webkit/pkg/marketplace"
-	"dappco.re/go/render/display/webkit/pkg/menu"
-	"dappco.re/go/render/display/webkit/pkg/screen"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/dialog"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/marketplace"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/menu"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/screen"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 )
 
 // dialog_open_file / save_file / open_directory / confirm / info / warning /

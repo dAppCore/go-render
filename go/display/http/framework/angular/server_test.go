@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/engine/ts"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/engine/ts"
 )
 
 type loaderStub struct {

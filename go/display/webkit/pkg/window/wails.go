@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"unsafe"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/preload"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/preload"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 )

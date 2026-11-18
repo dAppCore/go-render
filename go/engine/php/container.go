@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 
-	core "dappco.re/go"
-	"dappco.re/go/cli/pkg/cli"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/cli/go/pkg/cli"
 )
 
 // DockerBuildOptions configures Docker image building for PHP projects.

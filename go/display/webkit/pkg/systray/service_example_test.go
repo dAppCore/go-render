@@ -2,7 +2,7 @@
 
 package systray
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleService_OnStartup() {
 	core.Println("Service_OnStartup")

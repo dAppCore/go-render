@@ -1,6 +1,6 @@
 package webkit
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // applyModeDefaults fills Mac / Windows platform fields per the chosen Mode,
 // only touching zero-value fields so explicit caller settings survive.

@@ -6,8 +6,8 @@ import (
 	"sort"
 	"sync"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/internal/coreutil"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/internal/coreutil"
 )
 
 // Options holds configuration for the events service (currently empty).

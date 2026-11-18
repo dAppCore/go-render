@@ -7,7 +7,7 @@ package html
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestNewService_DefaultLocale — empty options falls back to "en".

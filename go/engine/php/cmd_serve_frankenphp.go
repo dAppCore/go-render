@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func init() {
@@ -47,7 +47,7 @@ func runFrankenPHPServe(line phpCommandLine) error { // Result boundary
 	}
 
 	// Graceful shutdown — os.Interrupt + signal.NotifyContext require
-	// chan os.Signal; no core wrapper exists in dappco.re/go v0.9.0.
+	// chan os.Signal; no core wrapper exists in github.com/dappcore/go v0.9.0.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

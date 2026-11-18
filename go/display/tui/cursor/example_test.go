@@ -5,7 +5,7 @@ package cursor_test
 import (
 	"fmt"
 
-	"dappco.re/go/render/display/tui/cursor"
+	"github.com/dappcore/go-render/go/display/tui/cursor"
 )
 
 // ExampleNew builds a cursor and switches it to CursorStatic — the shape a

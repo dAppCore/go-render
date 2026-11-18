@@ -5,11 +5,11 @@
 package html
 
 import (
-	i18n "dappco.re/go/i18n"
+	i18n "github.com/dappcore/go-i18n/go"
 )
 
 // formatDefault implements the builtin v1 pipe vocabulary
-// (docs/ctml.md S:S8.7) over dappco.re/go/i18n's real formatters: number,
+// (docs/ctml.md S:S8.7) over github.com/dappcore/go-i18n/go's real formatters: number,
 // decimal, percent, ordinal, and ago dispatch through i18n.N (its own
 // closed switch over those exact names); size and bytes call i18n.Bytes
 // directly, since "bytes" is not one of i18n.N's own recognised aliases.

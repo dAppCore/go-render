@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/marketplace"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/marketplace"
 )
 
 const marketplaceHTTPTimeout = 30 * time.Second

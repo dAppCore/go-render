@@ -1,7 +1,7 @@
 // pkg/lifecycle/wails_behaviour_test.go
 package lifecycle
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // mapAppEvent bridges the gui EventType enum to Wails application event IDs.
 // EventApplicationStarted maps on every platform; platform-specific events

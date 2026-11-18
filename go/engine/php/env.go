@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // RuntimeEnvironment holds the resolved paths for the running application.
@@ -63,7 +63,7 @@ func PrepareRuntimeEnvironment(laravelRoot, appName string) (*RuntimeEnvironment
 		return nil, core.E("php.PrepareRuntimeEnvironment", "remove extracted storage", r.Value.(error))
 	}
 	persistentStorage := core.PathJoin(dataDir, "storage")
-	// os.Symlink is retained — no core.Symlink wrapper exists in dappco.re/go v0.9.0.
+	// os.Symlink is retained — no core.Symlink wrapper exists in github.com/dappcore/go v0.9.0.
 	// Surface as wrapper gap when bumping core/go module dep.
 	if err := os.Symlink(persistentStorage, extractedStorage); err != nil {
 		return nil, core.E("php.PrepareRuntimeEnvironment", "symlink storage", err)

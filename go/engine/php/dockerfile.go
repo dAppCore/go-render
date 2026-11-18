@@ -4,14 +4,14 @@ import (
 	"maps"
 	"sort"
 
-	core "dappco.re/go"
-	"dappco.re/go/cli/pkg/cli"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/cli/go/pkg/cli"
 )
 
 // dockerfileBuilder accumulates Dockerfile content as a string slice that's
 // joined at the end. Equivalent to strings.Builder for our write-heavy use
 // without importing strings — core.Builder is not yet in the pinned
-// dappco.re/go v0.9.0 release.
+// github.com/dappcore/go v0.9.0 release.
 type dockerfileBuilder []string
 
 func (b *dockerfileBuilder) WriteString(s string) {

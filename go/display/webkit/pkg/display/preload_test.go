@@ -3,9 +3,9 @@ package display
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/chat"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/chat"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 )
 
 func TestDisplay_Good_WindowOpenIncludesPreload(t *core.T) {

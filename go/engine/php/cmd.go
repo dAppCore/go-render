@@ -1,9 +1,9 @@
 package php
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/cli/pkg/cli"
-	"dappco.re/go/io"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/cli/go/pkg/cli"
+	"github.com/dappcore/go-io/go"
 )
 
 // DefaultMedium is the default filesystem medium used by the php package.

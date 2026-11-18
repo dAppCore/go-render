@@ -5,7 +5,7 @@ import (
 	"io"
 	"os/exec"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestOptions configures PHP test execution.

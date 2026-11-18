@@ -3,9 +3,9 @@ package notification
 
 import (
 	"context"
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 
-	"dappco.re/go/render/display/webkit/pkg/dialog"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/dialog"
 )
 
 type mockPlatform struct {

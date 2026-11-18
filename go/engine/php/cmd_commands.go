@@ -33,7 +33,7 @@
 //   - deploy:list: List recent deployments
 package php
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // AddCommands registers the 'php' command and all subcommands.
 func AddCommands(c *core.Core) {

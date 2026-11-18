@@ -24,7 +24,7 @@ package php
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // PhpConfig configures the php service. Empty config gives the default

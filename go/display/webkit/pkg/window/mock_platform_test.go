@@ -1,7 +1,7 @@
 package window
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestMockPlatform_CreateWindow_Good(t *core.T) {

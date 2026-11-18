@@ -4,11 +4,11 @@ package mcp
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/clipboard"
-	"dappco.re/go/render/display/webkit/pkg/dock"
-	"dappco.re/go/render/display/webkit/pkg/environment"
-	"dappco.re/go/render/display/webkit/pkg/events"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/clipboard"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/dock"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/environment"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/events"
 )
 
 // dock_info reads the dock visibility query; dock_set_progress_bar dispatches.

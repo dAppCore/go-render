@@ -1,9 +1,9 @@
 package window
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 
-	"dappco.re/go/render/display/webkit/pkg/screen"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/screen"
 )
 
 func TestTaskLayoutBesideEditor_Good(t *core.T) {

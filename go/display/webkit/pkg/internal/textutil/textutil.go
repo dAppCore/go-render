@@ -1,6 +1,6 @@
 package textutil
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // FirstNonEmpty returns the first value whose trimmed form is not empty.
 func FirstNonEmpty(values ...string) string {

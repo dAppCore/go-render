@@ -1,7 +1,7 @@
 // pkg/systray/menu.go
 package systray
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // SetMenu sets a dynamic menu on the tray from TrayMenuItem descriptors.
 // Use: _ = m.SetMenu([]TrayMenuItem{{Label: "Quit", ActionID: "quit"}})

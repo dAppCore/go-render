@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // BridgeHandler is the interface that the host application implements to

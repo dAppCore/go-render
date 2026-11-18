@@ -1,6 +1,6 @@
 package container
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func TestDetectModeWithEnvironment(t *core.T) {
 	mode := DetectModeWithEnvironment(ModeEnvironment{

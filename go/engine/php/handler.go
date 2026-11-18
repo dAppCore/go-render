@@ -9,7 +9,7 @@ package php
 import (
 	"net/http"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"github.com/dunglas/frankenphp"
 )
 

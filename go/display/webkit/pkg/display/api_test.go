@@ -3,14 +3,14 @@ package display
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/clipboard"
-	"dappco.re/go/render/display/webkit/pkg/dialog"
-	"dappco.re/go/render/display/webkit/pkg/environment"
-	"dappco.re/go/render/display/webkit/pkg/notification"
-	"dappco.re/go/render/display/webkit/pkg/screen"
-	"dappco.re/go/render/display/webkit/pkg/systray"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/clipboard"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/dialog"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/environment"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/notification"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/screen"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/systray"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 )
 
 func newTestDisplayAPIService(t *core.T) (*Service, *core.Core) {

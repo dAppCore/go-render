@@ -5,7 +5,7 @@ package markdown_test
 import (
 	"fmt"
 
-	"dappco.re/go/render/display/tui/markdown"
+	"github.com/dappcore/go-render/go/display/tui/markdown"
 )
 
 // ExampleNew_customStyle builds a small custom theme — a warm accent on

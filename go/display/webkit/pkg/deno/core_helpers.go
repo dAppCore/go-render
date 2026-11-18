@@ -3,7 +3,7 @@ package deno
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func commandContext(ctx context.Context, binary string, args ...string) *core.Cmd {

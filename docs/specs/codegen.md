@@ -1,5 +1,5 @@
 # codegen
-**Import:** `dappco.re/go/core/html/codegen`
+**Import:** `github.com/dappcore/go-render/go/codegen`
 **Files:** 2
 
 ## Types

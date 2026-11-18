@@ -14,9 +14,9 @@ import (
 	"context"
 	"time"
 
-	core "dappco.re/go"
-	coreio "dappco.re/go/io"
-	"dappco.re/go/render/engine/codegen"
+	core "github.com/dappcore/go"
+	coreio "github.com/dappcore/go-io/go"
+	"github.com/dappcore/go-render/go/engine/codegen"
 )
 
 const defaultPollInterval = 250 * time.Millisecond
@@ -197,7 +197,7 @@ func runStdio(emitTypes bool) core.Result {
 }
 
 func newCodegenApp() *core.Core {
-	// core.WithCli() is required from dappco.re/go v0.12.0 onward — the CLI
+	// core.WithCli() is required from github.com/dappcore/go v0.12.0 onward — the CLI
 	// command framework became an opt-in service instead of a default one,
 	// and codegen's -watch/-types dispatch (registerCodegenCommands below)
 	// depends on it being present.

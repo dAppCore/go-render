@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	core "dappco.re/go"
-	webkit "dappco.re/go/render/display/webkit"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	webkit "github.com/dappcore/go-render/go/display/webkit"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 )
 
 // Ports the example uses. They mirror the topology a real hosted

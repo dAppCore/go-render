@@ -2,7 +2,7 @@
 
 package display
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleNewBackgroundRegistry() {
 	core.Println("NewBackgroundRegistry")

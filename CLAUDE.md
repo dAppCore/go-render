@@ -1,14 +1,14 @@
 # CLAUDE.md
 
 Agent instructions for **go-render** (formerly go-html / go-help): a terminal-UI
-**display server**. Library module `dappco.re/go/html` lives at `go/`; the binaries live
-at `cli/` (module `dappco.re/go/html/cli`, a sibling — Library-as-package vs Instantiated
-code). The module path stays `dappco.re/go/html` until the `go/render` graduation.
+**display server**. Library module `github.com/dappcore/go-render/go` lives at `go/`; the binaries live
+at `cli/` (module `github.com/dappcore/go-render/go/cli`, a sibling — Library-as-package vs Instantiated
+code). The module path stays `github.com/dappcore/go-render/go` until the `go/render` graduation.
 
 ## Layout (a display server)
 
 ```
-go/                     library (dappco.re/go/html)
+go/                     library (github.com/dappcore/go-render/go)
 ├── engine/             produce renderable content
 │   ├── html/           node model · HLCRF layout · terminal render (RenderTerm / RenderTermBoxes) · WASM · pipeline · grammar
 │   ├── ctml/           the .ctml parser: ctml.Parse(src) -> html.Node
@@ -18,7 +18,7 @@ go/                     library (dappco.re/go/html)
 │   ├── tui/            charm-free tui layer: widget re-exports + the tui manager (tui.Run / tui.App)
 │   └── ctmltest/       the _test.ctml harness (in-process render + Snapshot / Image backends)
 └── pkg/api/            standalone HTTP handlers/provider
-cli/                    instantiated binaries (dappco.re/go/html/cli): codegen · termdemo · wasm
+cli/                    instantiated binaries (github.com/dappcore/go-render/go/cli): codegen · termdemo · wasm
 # host/{win,pi,riscv} — later
 ```
 
@@ -47,7 +47,7 @@ resolves from a released tag. **No external submodules in go.work** (banned) and
 screen — the "active thing" over the passive engines. `tui.App` is a root Bubble Tea
 Model (render the `.ctml` via `engine/html.RenderTerm`, track window size, set
 altscreen + mouse on the v2 `View`, quit on ctrl+c/q). The `tui/*` subpackages re-export
-charmbracelet (`charm.land/*`) so consumers import `dappco.re/go/html/display/tui/*` and
+charmbracelet (`charm.land/*`) so consumers import `github.com/dappcore/go-render/go/display/tui/*` and
 never touch charmbracelet directly — harnesses included.
 
 ## WASM constraint (engine/html)

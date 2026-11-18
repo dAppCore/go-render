@@ -5,7 +5,7 @@
 package html
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"testing"
 
 	// AX-6-exception: syscall/js is required to exercise the WASM globalThis bridge.

@@ -8,9 +8,9 @@ import (
 	"context"
 	"testing"
 
-	core "dappco.re/go"
-	coreio "dappco.re/go/io"
-	process "dappco.re/go/process"
+	core "github.com/dappcore/go"
+	coreio "github.com/dappcore/go-io/go"
+	process "github.com/dappcore/go-process/go"
 )
 
 const (
