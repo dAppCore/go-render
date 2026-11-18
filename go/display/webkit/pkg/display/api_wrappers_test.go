@@ -3,11 +3,11 @@ package display
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/clipboard"
-	"dappco.re/go/render/display/webkit/pkg/environment"
-	"dappco.re/go/render/display/webkit/pkg/notification"
-	"dappco.re/go/render/display/webkit/pkg/systray"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/clipboard"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/environment"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/notification"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/systray"
 )
 
 type errorOnlyWrapperCase struct {

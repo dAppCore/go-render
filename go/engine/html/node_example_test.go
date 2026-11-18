@@ -2,7 +2,7 @@
 
 package html
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleRaw() {
 	core.Println(Raw("<strong>trusted</strong>").Render(NewContext()))

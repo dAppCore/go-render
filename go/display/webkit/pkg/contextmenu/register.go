@@ -1,6 +1,6 @@
 package contextmenu
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // Register(p) binds the context menu service to a Core instance.
 // core.WithService(contextmenu.Register(wailsContextMenu))

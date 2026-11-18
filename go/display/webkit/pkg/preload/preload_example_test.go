@@ -2,7 +2,7 @@
 
 package preload
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleInjectPreload() {
 	core.Println("InjectPreload")

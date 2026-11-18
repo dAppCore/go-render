@@ -7,8 +7,8 @@ package ts
 import (
 	"testing"
 
-	core "dappco.re/go"
-	corets "dappco.re/go/render/engine/ts/deno"
+	core "github.com/dappcore/go"
+	corets "github.com/dappcore/go-render/go/engine/ts/deno"
 )
 
 func TestEngine_New_Good(t *testing.T) {

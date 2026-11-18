@@ -1,7 +1,7 @@
 package deno
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestSidecar_New_Good(t *core.T) {

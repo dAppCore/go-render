@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // A subscribing driver bound to a real loopback address accepts an inbound

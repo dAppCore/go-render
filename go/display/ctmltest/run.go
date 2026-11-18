@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"testing"
 
-	core "dappco.re/go"
-	coreio "dappco.re/go/io"
-	ctml "dappco.re/go/render/engine/ctml"
-	html "dappco.re/go/render/engine/html"
+	core "github.com/dappcore/go"
+	coreio "github.com/dappcore/go-io/go"
+	ctml "github.com/dappcore/go-render/go/engine/ctml"
+	html "github.com/dappcore/go-render/go/engine/html"
 )
 
 // Run parses and runs every _test.ctml tape matching glob, each as its own
@@ -178,7 +178,7 @@ func prepareRun(tapePath string) (renderResult, error) {
 
 // renderCTML parses ctmlSrc against the given Bindings -- resolved at
 // PARSE time, not from a live reference read later at render time (see
-// dappco.re/go/render/ctml's package doc) -- and RenderTermBoxes the result
+// github.com/dappcore/go-render/go/ctml's package doc) -- and RenderTermBoxes the result
 // once. Shared by prepareRun's initial render and driveState.redrive's
 // mid-tape re-render: the same two steps (parse, render) and the same
 // failure shape (naming tapeRef), from two call sites.

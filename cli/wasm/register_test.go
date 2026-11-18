@@ -5,7 +5,7 @@ package main
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestBuildComponentJS_ValidJSONGood(t *testing.T) {

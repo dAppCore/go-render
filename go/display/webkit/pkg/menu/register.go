@@ -1,7 +1,7 @@
 // pkg/menu/register.go
 package menu
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // Register(p) binds the menu service to a Core instance.
 // core.WithService(menu.Register(wailsMenu))

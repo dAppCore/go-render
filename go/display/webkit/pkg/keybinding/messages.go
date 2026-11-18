@@ -1,6 +1,6 @@
 package keybinding
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 var ErrorAlreadyRegistered = core.E("keybinding", "accelerator already registered", nil)
 var ErrorNotRegistered = core.E("keybinding", "accelerator not registered", nil)

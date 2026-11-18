@@ -26,13 +26,13 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // RunnerService is the conventional receiver shape: a domain service
 // named Service, bound with webkit.Bind, called from the renderer as
 //
-//	Call.ByName('dappco.re/go/render/display/webkit/example/angular.RunnerService.Start', name)
+//	Call.ByName('github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Start', name)
 //
 // Every exported method here is reachable from the renderer, which is
 // exactly why the drift gate matters: renaming this struct rewrites all

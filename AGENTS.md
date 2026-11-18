@@ -7,7 +7,7 @@ API provider.
 
 ## Structure
 
-The root package `dappco.re/go/html` contains the runtime renderer. `node.go`
+The root package `github.com/dappcore/go-render/go` contains the runtime renderer. `node.go`
 defines the renderable primitives, `layout.go` owns HLCRF slot composition,
 `responsive.go` wraps layout variants, `pipeline.go` connects rendering to the
 i18n reversal grammar imprint pipeline, and `context.go` carries locale,
@@ -37,7 +37,7 @@ or monolithic test files.
 
 Direct imports of banned stdlib packages such as `fmt`, `errors`, `strings`,
 `path`, `os`, `log`, `encoding/json`, and `bytes` are not accepted in any Go
-file. Use `dappco.re/go` wrappers directly, or keep WASM-sized local helpers
+file. Use `github.com/dappcore/go` wrappers directly, or keep WASM-sized local helpers
 small and explicit when the runtime file intentionally avoids the Core import.
 
 ## Verification

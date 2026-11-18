@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	core "dappco.re/go"
-	io "dappco.re/go/io"
-	"dappco.re/go/io/store"
-	pb "dappco.re/go/render/engine/ts/deno/proto"
+	core "github.com/dappcore/go"
+	io "github.com/dappcore/go-io/go"
+	"github.com/dappcore/go-io/go/store"
+	pb "github.com/dappcore/go-render/go/engine/ts/deno/proto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

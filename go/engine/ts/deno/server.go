@@ -8,10 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	io "dappco.re/go/io"
-	"dappco.re/go/io/store"
-	pb "dappco.re/go/render/engine/ts/deno/proto"
-	"dappco.re/go/scm/manifest"
+	io "github.com/dappcore/go-io/go"
+	"github.com/dappcore/go-io/go/store"
+	pb "github.com/dappcore/go-render/go/engine/ts/deno/proto"
+	"github.com/dappcore/go-scm/go/manifest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

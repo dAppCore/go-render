@@ -3,8 +3,8 @@ package html
 import (
 	"testing"
 
-	core "dappco.re/go"
-	i18n "dappco.re/go/i18n"
+	core "github.com/dappcore/go"
+	i18n "github.com/dappcore/go-i18n/go"
 )
 
 func TestIntegration_RenderThenReverseGood(t *testing.T) {

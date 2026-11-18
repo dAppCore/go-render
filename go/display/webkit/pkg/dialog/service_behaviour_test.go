@@ -1,7 +1,7 @@
 // pkg/dialog/service_behaviour_test.go
 package dialog
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // hasDirectDialogOptions reports true when any option other than "task" is set.
 //

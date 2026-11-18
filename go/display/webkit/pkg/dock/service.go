@@ -3,8 +3,8 @@ package dock
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/internal/coreutil"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/internal/coreutil"
 )
 
 type Options struct{}

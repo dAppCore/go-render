@@ -132,7 +132,7 @@ func TestFormatValueSeam_NilContextGood(t *testing.T) {
 // formatter_default binding" the pipe feature needs: FormatValue with no
 // Context and no stub involved, dispatching to go-i18n's real formatters
 // (formatter_default.go, !js) for every builtin pipe name. Expected values
-// are pinned to dappco.re/go/i18n v0.12.1's documented/observed en-locale
+// are pinned to github.com/dappcore/go-i18n/go v0.12.1's documented/observed en-locale
 // output (i18n.go's own N doc comment for number/percent/bytes/ordinal/ago).
 func TestFormatValue_BuiltinPipesGood(t *testing.T) {
 	tests := []struct {

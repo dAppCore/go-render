@@ -1,6 +1,6 @@
 package browser
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // Register(p) binds the browser service to a Core instance.
 // core.WithService(browser.Register(wailsBrowser))

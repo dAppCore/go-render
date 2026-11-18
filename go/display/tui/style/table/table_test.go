@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"dappco.re/go/render/display/tui/style"
-	"dappco.re/go/render/display/tui/style/table"
+	"github.com/dappcore/go-render/go/display/tui/style"
+	"github.com/dappcore/go-render/go/display/tui/style/table"
 )
 
 // StringData must satisfy Data -- the row/column source a Table reads from.

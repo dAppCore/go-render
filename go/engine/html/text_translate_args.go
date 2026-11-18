@@ -4,7 +4,7 @@ package html
 
 // Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
 // 3.5 MB raw / 1 MB gzip size budget, so count argument normalisation uses
-// small stdlib helpers instead of importing dappco.re/go/core.
+// small stdlib helpers instead of importing github.com/dappcore/go.
 
 import (
 	"strconv"

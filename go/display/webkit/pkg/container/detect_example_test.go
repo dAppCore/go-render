@@ -2,7 +2,7 @@
 
 package container
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleDetect() {
 	core.Println("Detect")

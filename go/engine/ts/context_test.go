@@ -7,7 +7,7 @@ package ts
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestContext_Invoke_Good(t *testing.T) {

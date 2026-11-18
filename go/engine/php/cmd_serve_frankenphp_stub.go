@@ -5,7 +5,7 @@ package php
 import (
 	"net/http"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // execResponseWriter writes HTTP response body directly to stdout.

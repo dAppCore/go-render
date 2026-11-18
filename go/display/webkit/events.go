@@ -3,8 +3,8 @@
 package webkit
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/events"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/events"
 )
 
 // EmitEvent fires a Wails custom event onto the WebView's event bus

@@ -3,7 +3,7 @@ package display
 import (
 	"regexp"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 var hlcrfSlotPattern = regexp.MustCompile(`\{\{\s*slot\s+"([^"]*)"\s*\}\}`)

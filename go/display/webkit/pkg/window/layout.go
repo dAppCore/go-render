@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 const layoutFileEnv = "WINDOW_LAYOUT_FILE"

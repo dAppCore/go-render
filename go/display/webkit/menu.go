@@ -5,8 +5,8 @@ package webkit
 import (
 	"runtime"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/menu"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/menu"
 )
 
 // MenuItem aliases the menu sub-package's MenuItem so consumers can

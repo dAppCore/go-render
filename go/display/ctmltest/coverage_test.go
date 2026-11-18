@@ -7,7 +7,7 @@ package ctmltest_test
 import (
 	"testing"
 
-	"dappco.re/go/render/display/ctmltest"
+	"github.com/dappcore/go-render/go/display/ctmltest"
 )
 
 // This file dogfoods the ctmltest harness against go-html's own render

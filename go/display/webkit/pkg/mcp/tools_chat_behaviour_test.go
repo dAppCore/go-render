@@ -4,7 +4,7 @@ package mcp
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // chat_send dispatches gui.chat.send and returns the message id.

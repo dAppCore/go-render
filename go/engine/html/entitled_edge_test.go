@@ -5,7 +5,7 @@ package html
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestEntitled_EmptyFeatureBad — a 2-arg call with an empty feature collapses to

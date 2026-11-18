@@ -3,7 +3,7 @@
 package api
 
 import (
-	. "dappco.re/go"
+	. "github.com/dappcore/go"
 	"github.com/gin-gonic/gin"
 )
 

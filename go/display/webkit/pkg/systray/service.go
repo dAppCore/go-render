@@ -3,9 +3,9 @@ package systray
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/internal/coreutil"
-	"dappco.re/go/render/display/webkit/pkg/notification"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/internal/coreutil"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/notification"
 )
 
 type Options struct{}

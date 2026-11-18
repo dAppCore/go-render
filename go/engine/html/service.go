@@ -15,14 +15,14 @@
 //	out := html.Render(myNode, svc.Context())
 //
 // Build-tagged !js so the WASM build (per RFC §7's 3.5 MB raw / 1 MB
-// gzip budget) doesn't pull in dappco.re/go. The shared rendering
+// gzip budget) doesn't pull in github.com/dappcore/go. The shared rendering
 // surface (context.go, node.go, render.go, etc.) stays core-free; this
 // file is the server-side service-registration layer only.
 
 package html
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // Options configures the html service. Empty values fall back to

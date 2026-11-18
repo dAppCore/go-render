@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"testing"
 
-	"dappco.re/go/render/display/tui/colorprofile"
+	"github.com/dappcore/go-render/go/display/tui/colorprofile"
 )
 
 // --- Profile constants ---

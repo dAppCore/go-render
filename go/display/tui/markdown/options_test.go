@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	core "dappco.re/go"
-	coreio "dappco.re/go/io"
+	core "github.com/dappcore/go"
+	coreio "github.com/dappcore/go-io/go"
 
-	"dappco.re/go/render/display/tui/markdown"
+	"github.com/dappcore/go-render/go/display/tui/markdown"
 )
 
 // render builds a Renderer with opts and renders md, failing the test on any

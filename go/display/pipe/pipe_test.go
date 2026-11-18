@@ -7,7 +7,7 @@ package pipe
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 type pipeRenderer struct {

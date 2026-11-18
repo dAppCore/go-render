@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // mockPlatform records Add/Remove calls and allows triggering shortcuts.

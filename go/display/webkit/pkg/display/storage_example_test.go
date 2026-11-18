@@ -2,7 +2,7 @@
 
 package display
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleNewStorageRegistry() {
 	core.Println("NewStorageRegistry")

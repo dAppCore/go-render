@@ -5,10 +5,10 @@ package main
 import (
 	"net/http"
 
-	core "dappco.re/go"
-	webkit "dappco.re/go/render/display/webkit"
-	"dappco.re/go/render/display/webkit/pkg/deno"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	webkit "github.com/dappcore/go-render/go/display/webkit"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/deno"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 )
 
 func main() {

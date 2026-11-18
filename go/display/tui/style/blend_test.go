@@ -3,7 +3,7 @@ package style_test
 import (
 	"testing"
 
-	"dappco.re/go/render/display/tui/style"
+	"github.com/dappcore/go-render/go/display/tui/style"
 )
 
 func TestBlend1D_MidpointLiesBetweenTheStops(t *testing.T) {

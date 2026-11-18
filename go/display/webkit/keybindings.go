@@ -3,9 +3,9 @@
 package webkit
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/events"
-	"dappco.re/go/render/display/webkit/pkg/keybinding"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/events"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/keybinding"
 )
 
 // Keybinding declares one global accelerator + its emit-on-trigger

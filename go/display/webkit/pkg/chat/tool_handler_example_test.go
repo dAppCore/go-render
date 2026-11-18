@@ -2,9 +2,9 @@ package chat
 
 import (
 	"context"
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 
-	guimcp "dappco.re/go/render/display/webkit/pkg/mcp"
+	guimcp "github.com/dappcore/go-render/go/display/webkit/pkg/mcp"
 )
 
 type exampleToolExecutor struct{}

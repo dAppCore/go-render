@@ -5,7 +5,7 @@ package form_test
 import (
 	"fmt"
 
-	"dappco.re/go/render/display/tui/form"
+	"github.com/dappcore/go-render/go/display/tui/form"
 )
 
 // ExampleNewForm builds a two-field form — an Input and a generic Select —

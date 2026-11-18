@@ -5,8 +5,8 @@ package ctml
 import (
 	"strings"
 
-	core "dappco.re/go"
-	html "dappco.re/go/render/engine/html"
+	core "github.com/dappcore/go"
+	html "github.com/dappcore/go-render/go/engine/html"
 )
 
 // SubcommandList generates a <ul> of a CoreCommand path's direct
@@ -14,7 +14,7 @@ import (
 // CoreCommand-derived default TUI; see docs/ctml.md S:S16 for why the
 // other half (flags -> input chips) is a design write-up, not code, in
 // this pass. A Hidden command is skipped, matching Command.Hidden's own
-// meaning elsewhere in dappco.re/go.
+// meaning elsewhere in github.com/dappcore/go.
 //
 // paths is every registered command path (typically core.Core.Commands());
 // root selects which level to list -- "" for the top level, "deploy" for

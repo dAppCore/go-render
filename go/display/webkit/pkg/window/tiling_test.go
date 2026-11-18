@@ -2,7 +2,7 @@
 package window
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestTiling_SnapPosition_String_Good(t *core.T) {

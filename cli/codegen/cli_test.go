@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // TestInputPathFromOptions_Good — explicit -input wins over the stdin default.
@@ -207,7 +207,7 @@ func TestNewCodegenApp_Good(t *testing.T) {
 
 // TestRegisterCodegenCommands_Good — registration is idempotent on a bare core.
 func TestRegisterCodegenCommands_Good(t *testing.T) {
-	// core.WithCli() opts into the CLI service (default since dappco.re/go
+	// core.WithCli() opts into the CLI service (default since github.com/dappcore/go
 	// v0.12.0 removed the previously-unconditional CLI registration).
 	c := core.New(core.WithOption("name", "codegen"), core.WithCli())
 	registerCodegenCommands(c)

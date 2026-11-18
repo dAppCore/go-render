@@ -6,8 +6,8 @@ import (
 	"slices"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/internal/textutil"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/internal/textutil"
 )
 
 type StreamCallbacks struct {

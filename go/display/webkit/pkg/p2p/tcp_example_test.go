@@ -2,7 +2,7 @@
 
 package p2p
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleNewTCPDriver() {
 	core.Println("NewTCPDriver")

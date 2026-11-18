@@ -4,7 +4,7 @@
 
 package html
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func TestTextBuilderJs_Builder_AppendByte_Good(t *core.T) {
 	b := newTextBuilder()

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 type routeDispatchKind uint8

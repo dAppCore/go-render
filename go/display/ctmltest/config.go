@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // tapeConfig is the resolved render input one _test.ctml tape's Source/Set/
@@ -82,7 +82,7 @@ func applySet(cfg *tapeConfig, cmd command) {
 // "Welcome"` seeds values["session"] = map[string]any{"title": "Welcome"}
 // and a .ctml {{session.title}} bind resolves against it -- ctml's own
 // {{path}} resolution walks Bindings.Values the same way (see
-// dappco.re/go/render/ctml's lookupPath). A key with no dot ("count") is the
+// github.com/dappcore/go-render/go/ctml's lookupPath). A key with no dot ("count") is the
 // single-segment case of the same walk: values["count"] = value directly.
 // A dotted path whose prefix was previously set to a non-map value (or vice
 // versa) simply overwrites at the point of collision -- last Data line for

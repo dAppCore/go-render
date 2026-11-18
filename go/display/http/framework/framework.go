@@ -9,8 +9,8 @@ package framework
 import (
 	nethttp "net/http"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/engine/ts"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/engine/ts"
 )
 
 // Loader creates resident CoreTS contexts for framework server bundles.

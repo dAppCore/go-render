@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/systray"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/systray"
 )
 
 // TestApplyTrayRoutes_Good registers a route table and fires three

@@ -3,7 +3,7 @@ package tree_test
 import (
 	"fmt"
 
-	"dappco.re/go/render/display/tui/style/tree"
+	"github.com/dappcore/go-render/go/display/tui/style/tree"
 )
 
 // ExampleRoot builds a small nested tree and prints it: the shape a consumer

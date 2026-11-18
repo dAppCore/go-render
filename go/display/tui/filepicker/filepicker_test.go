@@ -10,11 +10,11 @@ import (
 
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	core "dappco.re/go"
-	coreio "dappco.re/go/io"
-	tea "dappco.re/go/render/display/tui"
-	"dappco.re/go/render/display/tui/filepicker"
-	"dappco.re/go/render/display/tui/style"
+	core "github.com/dappcore/go"
+	coreio "github.com/dappcore/go-io/go"
+	tea "github.com/dappcore/go-render/go/display/tui"
+	"github.com/dappcore/go-render/go/display/tui/filepicker"
+	"github.com/dappcore/go-render/go/display/tui/style"
 )
 
 // newFixtureDir populates t.TempDir() with a deterministic tree — one

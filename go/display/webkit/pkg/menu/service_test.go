@@ -3,7 +3,7 @@ package menu
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func newTestMenuService(t *core.T) (*Service, *core.Core) {

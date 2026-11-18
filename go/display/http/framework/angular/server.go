@@ -9,9 +9,9 @@ package angular
 import (
 	nethttp "net/http"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/http/framework"
-	"dappco.re/go/render/engine/ts"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/http/framework"
+	"github.com/dappcore/go-render/go/engine/ts"
 )
 
 const requestHandlerExport = "reqHandler"

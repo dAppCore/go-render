@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	core "dappco.re/go"
-	pb "dappco.re/go/render/engine/ts/deno/proto"
-	"dappco.re/go/scm/marketplace"
+	core "github.com/dappcore/go"
+	pb "github.com/dappcore/go-render/go/engine/ts/deno/proto"
+	"github.com/dappcore/go-scm/go/marketplace"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"

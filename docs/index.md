@@ -7,7 +7,7 @@ description: HLCRF DOM compositor with grammar pipeline integration for type-saf
 
 `go-html` is a pure-Go library for building HTML documents as type-safe node trees and rendering them to string output. It provides a five-slot layout compositor (Header, Left, Content, Right, Footer -- abbreviated HLCRF), a responsive multi-variant wrapper, a server-side grammar analysis pipeline, a Web Component code generator, and an optional WASM module for client-side rendering.
 
-**Module path:** `dappco.re/go/core/html`
+**Module path:** `github.com/dappcore/go-render/go`
 **Go version:** 1.26
 **Licence:** EUPL-1.2
 
@@ -16,7 +16,7 @@ description: HLCRF DOM compositor with grammar pipeline integration for type-saf
 ```go
 package main
 
-import html "dappco.re/go/core/html"
+import html "github.com/dappcore/go-render/go"
 
 func main() {
     page := html.NewLayout("HCF").
@@ -65,17 +65,17 @@ This builds a Header-Content-Footer layout with semantic HTML elements (`<header
 ## Dependencies
 
 ```
-dappco.re/go/core/html
-  dappco.re/go/core                    (direct, server builds only, !js)
-  dappco.re/go/core/i18n               (direct, all builds)
+github.com/dappcore/go-render/go
+  github.com/dappcore/go                    (direct, server builds only, !js)
+  github.com/dappcore/go-i18n/go               (direct, all builds)
     forge.lthn.ai/core/go-inference    (indirect, via core/i18n)
-  dappco.re/go/core/i18n/reversal      (server builds only, !js)
-  dappco.re/go/core/io                 (direct, server builds only, !js)
-  dappco.re/go/core/log                (direct, server builds only, !js)
+  github.com/dappcore/go-i18n/go/reversal      (server builds only, !js)
+  github.com/dappcore/go-io/go                 (direct, server builds only, !js)
+  github.com/dappcore/go-log/go                (direct, server builds only, !js)
   github.com/stretchr/testify          (test only)
 ```
 
-WASM-linked files (layout.go, node.go, path.go, responsive.go, render.go, context.go, text_builder_js.go, text_translate_js.go) deliberately avoid `dappco.re/go/core` to respect the RFC §7 WASM size budget — core transitively pulls in fmt/os/log.
+WASM-linked files (layout.go, node.go, path.go, responsive.go, render.go, context.go, text_builder_js.go, text_translate_js.go) deliberately avoid `github.com/dappcore/go` to respect the RFC §7 WASM size budget — core transitively pulls in fmt/os/log.
 
 ## Further Reading
 

@@ -1,6 +1,6 @@
 package chat
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func coreResultError(result core.Result, fallback string) resultFailure {
 	if result.OK {

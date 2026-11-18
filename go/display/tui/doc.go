@@ -1,5 +1,5 @@
 // Package tui is go-html's terminal-UI runtime: the event loop and the
-// widgets a .ctml consumer needs, so the consumer imports dappco.re/go/render
+// widgets a .ctml consumer needs, so the consumer imports github.com/dappcore/go-render/go
 // only and never charmbracelet directly. charm becomes go-html's transitive
 // concern — optimise or replace it once here and the whole fleet inherits
 // (SPOR).

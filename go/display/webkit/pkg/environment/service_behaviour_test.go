@@ -1,7 +1,7 @@
 // pkg/environment/service_behaviour_test.go
 package environment
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // normalizeTheme accepts "", "system", "dark", "light" and rejects anything
 // else.

@@ -1,7 +1,7 @@
 package menu
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestMockPlatform_NewMenu_Good(t *core.T) {

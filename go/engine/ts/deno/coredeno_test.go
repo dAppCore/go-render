@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

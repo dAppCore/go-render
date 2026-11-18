@@ -2,7 +2,7 @@
 
 package php
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // Project probing deliberately bypasses the coreio medium.
 //

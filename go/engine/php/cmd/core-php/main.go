@@ -3,9 +3,9 @@
 package main
 
 import (
-	php "dappco.re/go/render/engine/php"
+	php "github.com/dappcore/go-render/go/engine/php"
 
-	"dappco.re/go/cli/pkg/cli"
+	"github.com/dappcore/cli/go/pkg/cli"
 )
 
 func main() {

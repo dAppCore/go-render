@@ -1,6 +1,6 @@
 package coreutil
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // DispatchAction broadcasts to every registered handler; the handler runs.
 //

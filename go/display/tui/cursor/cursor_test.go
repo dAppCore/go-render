@@ -10,8 +10,8 @@ import (
 
 	"github.com/charmbracelet/x/exp/teatest/v2"
 
-	tea "dappco.re/go/render/display/tui"
-	"dappco.re/go/render/display/tui/cursor"
+	tea "github.com/dappcore/go-render/go/display/tui"
+	"github.com/dappcore/go-render/go/display/tui/cursor"
 )
 
 // TestNew builds a cursor with the package defaults and proves them: it

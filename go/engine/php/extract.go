@@ -3,7 +3,7 @@ package php
 import (
 	"io/fs"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // Extract copies an embedded Laravel app (from embed.FS) to a temporary directory.

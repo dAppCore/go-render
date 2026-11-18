@@ -4,8 +4,8 @@ package mcp
 import (
 	"context"
 
-	"dappco.re/go/render/display/webkit/pkg/internal/coreutil"
-	"dappco.re/go/render/display/webkit/pkg/lifecycle"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/internal/coreutil"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/lifecycle"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

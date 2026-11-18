@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"io"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // drainStdin attaches an in-memory pipe as the manager's stdin and returns a

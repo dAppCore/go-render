@@ -4,7 +4,7 @@
 
 package codegen
 
-import . "dappco.re/go"
+import . "github.com/dappcore/go"
 
 func TestTypescript_GenerateTypeScriptDefinitions_Good(t *T) {
 	got := GenerateTypeScriptDefinitions(map[string]string{"H": "nav-bar"})

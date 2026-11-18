@@ -7,7 +7,7 @@ package ts
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestWeb_WebRequest(t *testing.T) {

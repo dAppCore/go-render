@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func newTestWindowService(t *core.T) (*Service, *core.Core) {

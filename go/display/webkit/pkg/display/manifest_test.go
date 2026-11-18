@@ -3,7 +3,7 @@ package display
 import (
 	"syscall"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"sync"
 )
 

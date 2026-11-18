@@ -2,7 +2,7 @@
 
 package lifecycle
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleDetectMode() {
 	core.Println("DetectMode")

@@ -8,8 +8,8 @@ import (
 	"io"
 	"strings"
 
-	core "dappco.re/go"
-	html "dappco.re/go/render/engine/html"
+	core "github.com/dappcore/go"
+	html "github.com/dappcore/go-render/go/engine/html"
 )
 
 // parser walks one document with encoding/xml.Decoder. A {{path}} token is

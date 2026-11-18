@@ -5,7 +5,7 @@
 package html
 
 import (
-	i18n "dappco.re/go/i18n"
+	i18n "github.com/dappcore/go-i18n/go"
 )
 
 func translateDefault(key string, args ...any) string {

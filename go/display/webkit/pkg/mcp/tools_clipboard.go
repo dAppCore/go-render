@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/base64"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/clipboard"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/clipboard"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

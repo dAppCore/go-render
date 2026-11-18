@@ -2,7 +2,7 @@
 
 package window
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleWindow_ToPlatformOptions() {
 	core.Println("Window_ToPlatformOptions")

@@ -8,9 +8,9 @@ import (
 	"net"
 	nethttp "net/http"
 
-	core "dappco.re/go"
-	httpdisplay "dappco.re/go/render/display/http"
-	tsengine "dappco.re/go/render/engine/ts"
+	core "github.com/dappcore/go"
+	httpdisplay "github.com/dappcore/go-render/go/display/http"
+	tsengine "github.com/dappcore/go-render/go/engine/ts"
 )
 
 // Serve serves the HTTP SSR handler over listener until the listener closes.

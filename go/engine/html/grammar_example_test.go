@@ -2,7 +2,7 @@
 
 package html
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleGrammarImprint_Imprint() {
 	stamp := (&GrammarImprint{}).Imprint(El("section", Text("body")), *NewContext())

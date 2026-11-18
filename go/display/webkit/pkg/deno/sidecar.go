@@ -7,7 +7,7 @@ import (
 	"sync"    // AX-6-exception: manager protects live process and pending RPC state across goroutines.
 	"syscall" // AX-6-exception: graceful sidecar shutdown sends SIGTERM.
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 type Options struct {

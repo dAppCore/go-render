@@ -1,6 +1,6 @@
 package preload
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func renderStoragePolyfills(pageURL string, canPersist bool) string {
 	meta := map[string]any{

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"dappco.re/go/render/display/tui/timer"
+	"github.com/dappcore/go-render/go/display/tui/timer"
 )
 
 // ExampleNew builds a ten-second countdown and confirms Init arms the first

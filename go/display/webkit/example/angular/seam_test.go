@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	webkit "dappco.re/go/render/display/webkit"
+	webkit "github.com/dappcore/go-render/go/display/webkit"
 )
 
 // frontendDir is the Angular source tree this example hosts.

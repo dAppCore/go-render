@@ -1,7 +1,7 @@
 package container
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestDetectWithEnvironment_PrefersAppleContainersOnMacOS26(t *core.T) {

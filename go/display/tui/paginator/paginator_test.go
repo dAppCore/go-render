@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	htui "dappco.re/go/render/display/tui"
-	"dappco.re/go/render/display/tui/paginator"
+	htui "github.com/dappcore/go-render/go/display/tui"
+	"github.com/dappcore/go-render/go/display/tui/paginator"
 	"github.com/charmbracelet/x/exp/teatest/v2"
 )
 

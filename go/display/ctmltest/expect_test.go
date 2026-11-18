@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	coreio "dappco.re/go/io"
-	html "dappco.re/go/render/engine/html"
+	coreio "github.com/dappcore/go-io/go"
+	html "github.com/dappcore/go-render/go/engine/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

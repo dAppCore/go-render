@@ -24,12 +24,12 @@ import { Call, Events } from '@wailsio/runtime';
  * `.RunnerService.` and `.StatsWailsService.`.
  */
 export const BINDINGS = {
-  echo: 'dappco.re/go/render/display/webkit/example/angular.RunnerService.Echo',
-  start: 'dappco.re/go/render/display/webkit/example/angular.RunnerService.Start',
-  stop: 'dappco.re/go/render/display/webkit/example/angular.RunnerService.Stop',
-  running: 'dappco.re/go/render/display/webkit/example/angular.RunnerService.Running',
-  snapshot: 'dappco.re/go/render/display/webkit/example/angular.StatsWailsService.Snapshot',
-  describe: 'dappco.re/go/render/display/webkit/example/angular.StatsWailsService.Describe',
+  echo: 'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Echo',
+  start: 'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Start',
+  stop: 'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Stop',
+  running: 'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Running',
+  snapshot: 'github.com/dappcore/go-render/go/display/webkit/example/angular.StatsWailsService.Snapshot',
+  describe: 'github.com/dappcore/go-render/go/display/webkit/example/angular.StatsWailsService.Describe',
 } as const;
 
 /** Matches the Go const angular.TickEvent in cmd/webkit-angular/main.go. */
@@ -76,7 +76,7 @@ export class WailsService {
   async probe(): Promise<boolean> {
     try {
       const reply = await Call.ByName(
-        'dappco.re/go/render/display/webkit/example/angular.RunnerService.Echo',
+        'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Echo',
         'ping',
       );
       const ok = reply === 'ping';
@@ -92,7 +92,7 @@ export class WailsService {
   /** Start a job; resolves to the RFC3339 start time. */
   start(name: string): Promise<string> {
     return Call.ByName(
-      'dappco.re/go/render/display/webkit/example/angular.RunnerService.Start',
+      'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Start',
       name,
     );
   }
@@ -100,7 +100,7 @@ export class WailsService {
   /** Stop a job; rejects when the name is unknown. */
   stop(name: string): Promise<void> {
     return Call.ByName(
-      'dappco.re/go/render/display/webkit/example/angular.RunnerService.Stop',
+      'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Stop',
       name,
     );
   }
@@ -108,21 +108,21 @@ export class WailsService {
   /** List running jobs — the slice-return path. */
   running(): Promise<string[]> {
     return Call.ByName(
-      'dappco.re/go/render/display/webkit/example/angular.RunnerService.Running',
+      'github.com/dappcore/go-render/go/display/webkit/example/angular.RunnerService.Running',
     );
   }
 
   /** Struct round-trip across the OTHER receiver shape. */
   snapshot(): Promise<Stats> {
     return Call.ByName(
-      'dappco.re/go/render/display/webkit/example/angular.StatsWailsService.Snapshot',
+      'github.com/dappcore/go-render/go/display/webkit/example/angular.StatsWailsService.Snapshot',
     );
   }
 
   /** String round-trip across the OTHER receiver shape. */
   describe(): Promise<string> {
     return Call.ByName(
-      'dappco.re/go/render/display/webkit/example/angular.StatsWailsService.Describe',
+      'github.com/dappcore/go-render/go/display/webkit/example/angular.StatsWailsService.Describe',
     );
   }
 }

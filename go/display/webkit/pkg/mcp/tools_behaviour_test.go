@@ -4,14 +4,14 @@ package mcp
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/container"
-	"dappco.re/go/render/display/webkit/pkg/contextmenu"
-	"dappco.re/go/render/display/webkit/pkg/deno"
-	"dappco.re/go/render/display/webkit/pkg/dock"
-	"dappco.re/go/render/display/webkit/pkg/environment"
-	"dappco.re/go/render/display/webkit/pkg/notification"
-	"dappco.re/go/render/display/webkit/pkg/p2p"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/container"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/contextmenu"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/deno"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/dock"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/environment"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/notification"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/p2p"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

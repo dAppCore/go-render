@@ -4,7 +4,7 @@ package notification
 import (
 	"context"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // notification.send accepts direct field options (no "task" wrapper),

@@ -3,9 +3,9 @@
 package main
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 
-	"dappco.re/go/render/engine/codegen"
+	"github.com/dappcore/go-render/go/engine/codegen"
 )
 
 // buildComponentJS takes a JSON slot map and returns the WC bundle JS result.

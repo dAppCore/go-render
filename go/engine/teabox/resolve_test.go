@@ -5,8 +5,8 @@ package teabox
 import (
 	"testing"
 
-	core "dappco.re/go"
-	html "dappco.re/go/render/engine/html"
+	core "github.com/dappcore/go"
+	html "github.com/dappcore/go-render/go/engine/html"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

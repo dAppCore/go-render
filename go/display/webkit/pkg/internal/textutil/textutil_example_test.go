@@ -2,7 +2,7 @@
 
 package textutil
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func ExampleFirstNonEmpty() {
 	core.Println("FirstNonEmpty")

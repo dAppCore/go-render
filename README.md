@@ -1,4 +1,4 @@
-[![Go Reference](https://pkg.go.dev/badge/dappco.re/go/core/html.svg)](https://pkg.go.dev/dappco.re/go/core/html)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dappcore/go-render/go.svg)](https://pkg.go.dev/github.com/dappcore/go-render/go)
 [![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg)](LICENSE.md)
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat&logo=go)](go.mod)
 
@@ -6,14 +6,14 @@
 
 HLCRF DOM compositor with grammar pipeline integration for server-side HTML generation and optional WASM client rendering. Provides a type-safe node tree (El, Text, Raw, If, Each, Switch, Entitled, AriaLabel, AltText, TabIndex, AutoFocus, Role), a five-slot Header/Left/Content/Right/Footer layout compositor with deterministic `data-block` path IDs and ARIA roles, a responsive multi-variant wrapper, a server-side grammar pipeline (StripTags, GrammarImprint via go-i18n reversal, CompareVariants), a build-time Web Component codegen CLI with optional TypeScript declarations, and a WASM module (2.90 MB raw, 842 KB gzip) exposing `renderToString()`.
 
-**Module**: `dappco.re/go/render`
+**Module**: `github.com/dappcore/go-render/go`
 **Licence**: EUPL-1.2
 **Language**: Go 1.26
 
 ## Quick Start
 
 ```go
-import html "dappco.re/go/core/html"
+import html "github.com/dappcore/go-render/go"
 
 page := html.NewLayout("HCF").
     H(html.El("nav", html.Text("i18n.label.navigation"))).

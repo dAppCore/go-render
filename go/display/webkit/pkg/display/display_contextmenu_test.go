@@ -4,8 +4,8 @@ import (
 	"maps"
 	"sync"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/contextmenu"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/contextmenu"
 )
 
 type wsContextMenuPlatform struct {

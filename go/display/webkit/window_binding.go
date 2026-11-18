@@ -3,8 +3,8 @@
 package webkit
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/window"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/window"
 )
 
 // WindowBindingService is the canonical Wails IPC binding for

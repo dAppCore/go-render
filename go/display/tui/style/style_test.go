@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"dappco.re/go/render/display/tui/style"
+	"github.com/dappcore/go-render/go/display/tui/style"
 )
 
 // Color must satisfy Paint -- the colour interface a Style's

@@ -1,5 +1,5 @@
 # html
-**Import:** `dappco.re/go/core/html`
+**Import:** `github.com/dappcore/go-render/go`
 **Files:** 13
 
 ## Types

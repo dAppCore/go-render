@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/p2p"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/p2p"
 )
 
 func newDisplayP2PTestService(t *core.T) (*Service, *p2p.Service, *core.Core, <-chan Event) {

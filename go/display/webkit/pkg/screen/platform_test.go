@@ -1,7 +1,7 @@
 package screen
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestScreenPlatform_Rect_OriginCornerContains_Good(t *core.T) {

@@ -1,7 +1,7 @@
 package webview
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestDiagnostics_ComputedStyleScript_Good(t *core.T) {

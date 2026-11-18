@@ -5,7 +5,7 @@ package stopwatch_test
 import (
 	"fmt"
 
-	"dappco.re/go/render/display/tui/stopwatch"
+	"github.com/dappcore/go-render/go/display/tui/stopwatch"
 )
 
 // ExampleNew builds a stopwatch and confirms Init arms the running state:

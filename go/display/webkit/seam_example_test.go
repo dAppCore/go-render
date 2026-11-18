@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing/fstest"
 
-	webkit "dappco.re/go/render/display/webkit"
+	webkit "github.com/dappcore/go-render/go/display/webkit"
 )
 
 // exampleRunner stands in for a consumer's bound domain service.
@@ -24,8 +24,8 @@ func ExampleBindingNames() {
 		fmt.Println(name)
 	}
 	// Output:
-	// dappco.re/go/render/display/webkit_test.exampleRunner.Start
-	// dappco.re/go/render/display/webkit_test.exampleRunner.Status
+	// github.com/dappcore/go-render/go/display/webkit_test.exampleRunner.Start
+	// github.com/dappcore/go-render/go/display/webkit_test.exampleRunner.Status
 }
 
 // ExampleBindingName resolves a single method to its call string.
@@ -36,7 +36,7 @@ func ExampleBindingName() {
 	_, ok = webkit.BindingName(&exampleRunner{}, "Renamed")
 	fmt.Println("Renamed resolves:", ok)
 	// Output:
-	// dappco.re/go/render/display/webkit_test.exampleRunner.Start true
+	// github.com/dappcore/go-render/go/display/webkit_test.exampleRunner.Start true
 	// Renamed resolves: false
 }
 
@@ -44,12 +44,12 @@ func ExampleBindingName() {
 // checked against the Go services that back them.
 func ExampleUnresolvedBindingNames() {
 	called := []string{
-		"dappco.re/go/render/display/webkit_test.exampleRunner.Start",
-		"dappco.re/go/render/display/webkit_test.exampleRunner.Halt",
+		"github.com/dappcore/go-render/go/display/webkit_test.exampleRunner.Start",
+		"github.com/dappcore/go-render/go/display/webkit_test.exampleRunner.Halt",
 	}
 	fmt.Println(webkit.UnresolvedBindingNames(called, &exampleRunner{}))
 	// Output:
-	// [dappco.re/go/render/display/webkit_test.exampleRunner.Halt]
+	// [github.com/dappcore/go-render/go/display/webkit_test.exampleRunner.Halt]
 }
 
 // ExampleScanCallByName pulls the call strings out of a frontend tree so

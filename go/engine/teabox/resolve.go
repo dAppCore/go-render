@@ -14,7 +14,7 @@
 //	    }
 package teabox
 
-import html "dappco.re/go/render/engine/html"
+import html "github.com/dappcore/go-render/go/engine/html"
 
 // Hit is one resolved box map entry.
 type Hit struct {

@@ -3,7 +3,7 @@ package deno
 import (
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	"github.com/stretchr/testify/assert"
 )
 

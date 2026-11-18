@@ -3,8 +3,8 @@ package display
 import (
 	"context"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/webkit/pkg/p2p"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/webkit/pkg/p2p"
 )
 
 func (s *Service) attachP2PBridge() {

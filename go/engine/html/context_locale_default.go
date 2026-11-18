@@ -4,9 +4,9 @@
 
 package html
 
-import i18n "dappco.re/go/i18n"
+import i18n "github.com/dappcore/go-i18n/go"
 
-// applyLocaleFallback drives dappco.re/go/i18n's Service directly. Its
+// applyLocaleFallback drives github.com/dappcore/go-i18n/go's Service directly. Its
 // SetLanguage returns core.Result rather than error, so it can't satisfy the
 // static interface check in context.go's applyLocaleToService — this is the
 // real bridge for that shape. The core.Result return is intentionally

@@ -2,7 +2,7 @@ package html
 
 // Note: this file is WASM-linked. Per RFC §7 the WASM build must stay under the
 // 3.5 MB raw / 1 MB gzip size budget, so this shared context type remains free
-// of dappco.re/go/core and other heavyweight server-only dependencies.
+// of github.com/dappcore/go and other heavyweight server-only dependencies.
 
 // Translator provides Text() lookups for a rendering context.
 // Usage example: ctx := NewContextWithService(myTranslator)
@@ -42,7 +42,7 @@ type Context struct {
 }
 
 // applyLocaleFallback bridges translators whose SetLanguage doesn't return a
-// plain error — e.g. dappco.re/go/i18n's Service, whose SetLanguage returns
+// plain error — e.g. github.com/dappcore/go-i18n/go's Service, whose SetLanguage returns
 // core.Result. A plain interface assertion can't do this: Go requires a
 // method's return type to match an interface's declared return type exactly
 // (no covariance), so interface{ SetLanguage(string) error } below stops
@@ -51,7 +51,7 @@ type Context struct {
 // context_locale_default.go (!js) / context_locale_js.go (js), split the
 // same way translateDefault is in text_translate_default.go /
 // text_translate_js.go, so this WASM-linked file never has to import
-// dappco.re/go/i18n (and transitively dappco.re/go) merely to name
+// github.com/dappcore/go-i18n/go (and transitively github.com/dappcore/go) merely to name
 // core.Result.
 func applyLocaleToService(svc Translator, locale string) {
 	if svc == nil || locale == "" {

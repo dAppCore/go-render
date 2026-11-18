@@ -2,7 +2,7 @@
 
 package html
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 func containsText(s, substr string) bool {
 	return core.Contains(s, substr)

@@ -17,9 +17,9 @@ package main
 import (
 	"time"
 
-	core "dappco.re/go"
-	webkit "dappco.re/go/render/display/webkit"
-	"dappco.re/go/render/display/webkit/example/angular"
+	core "github.com/dappcore/go"
+	webkit "github.com/dappcore/go-render/go/display/webkit"
+	"github.com/dappcore/go-render/go/display/webkit/example/angular"
 )
 
 // TickEvent is the event name the renderer subscribes to. Namespacing it

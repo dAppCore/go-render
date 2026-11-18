@@ -5,7 +5,7 @@ package php
 import (
 	"syscall"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // setSysProcAttr sets Unix-specific process attributes for clean process group handling.

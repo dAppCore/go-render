@@ -7,9 +7,9 @@ package httpdisplay
 import (
 	nethttp "net/http"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/http/framework"
-	tsengine "dappco.re/go/render/engine/ts"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/http/framework"
+	tsengine "github.com/dappcore/go-render/go/engine/ts"
 )
 
 // Option configures Handler.

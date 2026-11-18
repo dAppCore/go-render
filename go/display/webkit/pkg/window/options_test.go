@@ -1,7 +1,7 @@
 package window
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func applyWindowOptions(t *core.T, options ...WindowOption) *Window {

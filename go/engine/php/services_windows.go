@@ -5,7 +5,7 @@ package php
 import (
 	"syscall"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // setSysProcAttr sets Windows-specific process attributes.

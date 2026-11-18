@@ -1,7 +1,7 @@
 // pkg/menu/service_behaviour_test.go
 package menu
 
-import core "dappco.re/go"
+import core "github.com/dappcore/go"
 
 // taskSetAppMenuFromOptions resolves a typed task, a map[string]any task, and
 // direct field options.

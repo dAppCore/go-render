@@ -9,8 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	core "dappco.re/go"
-	"dappco.re/go/render/display/http/framework"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/go-render/go/display/http/framework"
 )
 
 type renderStub struct {

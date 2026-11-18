@@ -3,10 +3,10 @@
 package codegen
 
 import (
-	. "dappco.re/go"
+	. "github.com/dappcore/go"
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestGenerateClass_ValidTagGood(t *testing.T) {

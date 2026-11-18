@@ -1,4 +1,4 @@
-module dappco.re/go/render
+module github.com/dappcore/go-render/go
 
 go 1.26.2
 
@@ -8,11 +8,6 @@ require (
 	charm.land/glamour/v2 v2.0.1
 	charm.land/huh/v2 v2.0.3
 	charm.land/lipgloss/v2 v2.0.5
-	dappco.re/go/cli v0.13.0
-	dappco.re/go/config v0.18.0
-	dappco.re/go/i18n v0.12.1
-	dappco.re/go/io v0.15.4
-	dappco.re/go/webview v0.11.0
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/harmonica v0.2.0
 	github.com/charmbracelet/ultraviolet v0.0.0-20260730003005-19049f296fa9
@@ -21,6 +16,11 @@ require (
 	github.com/charmbracelet/x/mosaic v0.0.0-20260730164118-7e2d3e6c5238
 	github.com/charmbracelet/x/vt v0.0.0-20260730164118-7e2d3e6c5238
 	github.com/charmbracelet/x/vttest v0.0.0-20260730164118-7e2d3e6c5238
+	github.com/dappcore/cli/go v0.14.0
+	github.com/dappcore/config/go v0.19.0
+	github.com/dappcore/go-i18n/go v0.13.0
+	github.com/dappcore/go-io/go v0.16.0
+	github.com/dappcore/go-webview/go v0.12.0
 	github.com/dunglas/frankenphp v1.12.6
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/websocket v1.5.3
@@ -33,7 +33,6 @@ require (
 )
 
 require (
-	dappco.re/go/log v0.13.1 // indirect
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/MauriceGit/skiplist v0.0.0-20211105230623-77f5c8d3e145 // indirect
 	github.com/RoaringBitmap/roaring/v2 v2.24.0 // indirect
@@ -65,6 +64,7 @@ require (
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/coder/websocket v1.8.15 // indirect
 	github.com/creack/pty v1.1.24 // indirect
+	github.com/dappcore/go-log/go v0.14.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dlclark/regexp2/v2 v2.5.2 // indirect
 	github.com/duckdb/duckdb-go-bindings v0.10505.0 // indirect
@@ -165,8 +165,8 @@ require (
 )
 
 require (
-	dappco.re/go v0.12.0
-	dappco.re/go/scm v0.22.0
+	github.com/dappcore/go v0.14.0
+	github.com/dappcore/go-scm/go v0.23.0
 	golang.org/x/text v0.40.0
 	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.11

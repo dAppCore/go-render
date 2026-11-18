@@ -15,11 +15,11 @@ import (
 	"sync"
 	"time"
 
-	core "dappco.re/go"
-	io "dappco.re/go/io"
-	"dappco.re/go/io/store"
-	"dappco.re/go/scm/manifest"
-	"dappco.re/go/scm/marketplace"
+	core "github.com/dappcore/go"
+	io "github.com/dappcore/go-io/go"
+	"github.com/dappcore/go-io/go/store"
+	"github.com/dappcore/go-scm/go/manifest"
+	"github.com/dappcore/go-scm/go/marketplace"
 )
 
 // Service wraps the CoreDeno sidecar as a framework service.
@@ -218,7 +218,7 @@ func loadAppManifest(medium io.Medium, pub ed25519.PublicKey) (*manifest.Manifes
 			// in the manifest itself, so a caller who wants to trust an
 			// externally supplied key (rather than whatever the document
 			// claims) overrides SignKey on a copy before verifying — the
-			// same pattern dappco.re/go/scm/manifest.LoadVerified uses.
+			// same pattern github.com/dappcore/go-scm/go/manifest.LoadVerified uses.
 			verifyManifest := *m
 			verifyManifest.SignKey = base64.StdEncoding.EncodeToString(pub)
 
@@ -238,7 +238,7 @@ func loadAppManifest(medium io.Medium, pub ed25519.PublicKey) (*manifest.Manifes
 }
 
 // canonicalManifestPayload mirrors the canonicalisation
-// dappco.re/go/scm/manifest signs and verifies against internally (Sign and
+// github.com/dappcore/go-scm/go/manifest signs and verifies against internally (Sign and
 // SignKey cleared, then JSON-marshalled) — needed here because loadAppManifest
 // supports the view.yaml/view.yml/manifest.yaml candidate chain that the
 // package's own manifest.Load/LoadVerified do not.

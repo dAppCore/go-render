@@ -1,8 +1,8 @@
 package container
 
 import (
-	core "dappco.re/go"
-	"dappco.re/go/config"
+	core "github.com/dappcore/go"
+	"github.com/dappcore/config/go"
 )
 
 type AppMode string

@@ -3,7 +3,7 @@
 package html
 
 // Note: this file is WASM-linked (no build tag) — see context.go's own note.
-// It must stay free of dappco.re/go/core and other heavyweight server-only
+// It must stay free of github.com/dappcore/go and other heavyweight server-only
 // dependencies (no fmt, no encoding/json); build-tag-specific weight lives
 // in formatter_default.go / formatter_js.go, exactly as translateText /
 // translateDefault split across text_translate.go / text_translate_default.go

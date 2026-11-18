@@ -1,7 +1,7 @@
 package php
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // DetectedService represents a service that was detected in a Laravel project.
