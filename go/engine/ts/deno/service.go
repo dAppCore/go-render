@@ -1,0 +1,822 @@
+package deno
+
+import (
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
+	core "dappco.re/go"
+	io "dappco.re/go/io"
+	"dappco.re/go/io/store"
+	"dappco.re/go/scm/manifest"
+	"dappco.re/go/scm/marketplace"
+)
+
+// Service wraps the CoreDeno sidecar as a framework service.
+// Implements Startable and Stoppable for lifecycle management.
+//
+// Registration:
+//
+//	core.New()
+type Service struct {
+	*core.ServiceRuntime[Options]
+	mu               sync.RWMutex
+	sidecar          *Sidecar
+	grpcServer       *Server
+	store            *store.KeyValueStore
+	grpcCancel       context.CancelFunc
+	grpcDone         chan error
+	denoClient       *DenoClient
+	installer        *marketplace.Installer
+	supervisorCancel context.CancelFunc
+	supervisorDone   chan struct{}
+	desiredModules   map[string]moduleSpec
+}
+
+type moduleSpec struct {
+	EntryPoint  string
+	Permissions ModulePermissions
+}
+
+// errProcessUnavailable marks the process bridge as unavailable when the host
+// Core application has not registered a process capability.
+var errProcessUnavailable = errors.New("coredeno: process capability unavailable")
+
+// NewServiceFactory returns a factory function for framework registration via WithService.
+func NewServiceFactory(opts Options) func(*core.Core) core.Result {
+	return func(c *core.Core) core.Result {
+		return core.Ok(&Service{
+			ServiceRuntime: core.NewServiceRuntime(c, opts),
+			sidecar:        NewSidecar(opts),
+			desiredModules: make(map[string]moduleSpec),
+		})
+	}
+}
+
+// OnStartup boots the CoreDeno subsystem. Called by the framework on app startup.
+// Satisfies core.Startable.
+//
+// Sequence: medium → store → server → manifest → gRPC listener → sidecar.
+func (s *Service) OnStartup(ctx context.Context) core.Result {
+	if err := s.startup(ctx); err != nil {
+		return core.Fail(err)
+	}
+	return core.Ok(nil)
+}
+
+func (s *Service) startup(ctx context.Context) (err error) {
+	defer func() {
+		if err != nil {
+			s.cleanupStartupState()
+		}
+	}()
+
+	opts := s.effectiveOptions()
+
+	// 1. Create sandboxed Medium (or mock if no AppRoot)
+	var medium io.Medium
+	if opts.AppRoot != "" {
+		var mediumErr error
+		medium, mediumErr = io.NewSandboxed(opts.AppRoot)
+		if mediumErr != nil {
+			err = fmt.Errorf("coredeno: medium: %w", mediumErr)
+			return err
+		}
+	} else {
+		medium = io.NewMockMedium()
+	}
+
+	// 2. Create Store
+	dbPath := opts.StoreDBPath
+	if dbPath == "" {
+		dbPath = ":memory:"
+	}
+	s.store, err = store.New(store.Options{Path: dbPath})
+	if err != nil {
+		err = fmt.Errorf("coredeno: store: %w", err)
+		return err
+	}
+
+	// 3. Create gRPC Server
+	s.grpcServer = NewServer(medium, s.store)
+	s.grpcServer.SetProcessRunner(newExecProcessRunner(s.grpcServer.clearProcessOwner))
+
+	// 4. Load manifest if AppRoot set (non-fatal if missing)
+	if opts.AppRoot != "" {
+		appManifest, manifestErr := loadAppManifest(medium, opts.PublicKey)
+		if manifestErr != nil {
+			err = fmt.Errorf("coredeno: manifest: %w", manifestErr)
+			return err
+		}
+		if appManifest != nil {
+			s.grpcServer.RegisterModule(appManifest)
+		}
+	}
+
+	// 5. Start gRPC listener in background
+	grpcCtx, grpcCancel := context.WithCancel(ctx)
+	s.grpcCancel = grpcCancel
+	s.grpcDone = make(chan error, 1)
+	go func() {
+		s.grpcDone <- ListenGRPC(grpcCtx, opts.SocketPath, s.grpcServer)
+	}()
+
+	// 6. Start sidecar (if args provided)
+	if len(opts.SidecarArgs) > 0 {
+		supervisorCtx, supervisorCancel := context.WithCancel(ctx)
+		s.supervisorCancel = supervisorCancel
+
+		// Wait for core socket so sidecar can connect to our gRPC server.
+		socketWaitErr := waitForGRPCSocket(ctx, opts.SocketPath, 5*time.Second, s.grpcDone)
+		if socketWaitErr != nil {
+			err = fmt.Errorf("coredeno: core socket: %w", socketWaitErr)
+			return err
+		}
+
+		if sidecarStartErr := s.sidecar.Start(supervisorCtx, opts.SidecarArgs...); sidecarStartErr != nil {
+			err = fmt.Errorf("coredeno: sidecar: %w", sidecarStartErr)
+			return err
+		}
+
+		// 7. Wait for Deno's server and connect as client
+		if s.shouldConnectDeno() {
+			denoClient, dialErr := dialDenoReady(supervisorCtx, opts.DenoSocketPath, 10*time.Second)
+			if dialErr != nil {
+				err = fmt.Errorf("coredeno: deno client: %w", dialErr)
+				return err
+			}
+			s.setDenoClient(denoClient)
+		}
+
+		s.supervisorDone = make(chan struct{})
+		go s.superviseSidecar(supervisorCtx)
+	}
+
+	// 8. Create installer and auto-load installed modules
+	if opts.AppRoot != "" {
+		modulesDir := filepath.Join(opts.AppRoot, "modules")
+		s.installer = marketplace.NewInstaller(medium, modulesDir)
+
+		if s.denoClient != nil {
+			installed, installedErr := s.installer.Installed()
+			if installedErr != nil {
+				err = fmt.Errorf("coredeno: installed modules: %w", installedErr)
+				return err
+			}
+			for _, mod := range installed {
+				perms := ModulePermissions{
+					Read:  mod.Permissions.Read,
+					Write: mod.Permissions.Write,
+					Net:   mod.Permissions.Net,
+					Run:   mod.Permissions.Run,
+				}
+				if _, loadErr := s.LoadModule(mod.Code, mod.EntryPoint, perms); loadErr != nil {
+					err = fmt.Errorf("coredeno: autoload %s: %w", mod.Code, loadErr)
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func loadAppManifest(medium io.Medium, pub ed25519.PublicKey) (*manifest.Manifest, error) {
+	candidates := []string{
+		".core/view.yaml",
+		".core/view.yml",
+		".core/manifest.yaml",
+	}
+
+	for _, path := range candidates {
+		if !medium.Exists(path) {
+			continue
+		}
+
+		data, err := medium.Read(path)
+		if err != nil {
+			return nil, fmt.Errorf("read %s: %w", path, err)
+		}
+
+		m, err := manifest.Parse([]byte(data))
+		if err != nil {
+			return nil, fmt.Errorf("parse %s: %w", path, err)
+		}
+
+		if pub != nil {
+			// manifest.Verify checks m.Sign against the SignKey embedded
+			// in the manifest itself, so a caller who wants to trust an
+			// externally supplied key (rather than whatever the document
+			// claims) overrides SignKey on a copy before verifying — the
+			// same pattern dappco.re/go/scm/manifest.LoadVerified uses.
+			verifyManifest := *m
+			verifyManifest.SignKey = base64.StdEncoding.EncodeToString(pub)
+
+			payload, payloadErr := canonicalManifestPayload(m)
+			if payloadErr != nil {
+				return nil, fmt.Errorf("canonicalise %s: %w", path, payloadErr)
+			}
+			if verr := manifest.Verify(&verifyManifest, payload); verr != nil {
+				return nil, fmt.Errorf("verify %s: %w", path, verr)
+			}
+		}
+
+		return m, nil
+	}
+
+	return nil, nil
+}
+
+// canonicalManifestPayload mirrors the canonicalisation
+// dappco.re/go/scm/manifest signs and verifies against internally (Sign and
+// SignKey cleared, then JSON-marshalled) — needed here because loadAppManifest
+// supports the view.yaml/view.yml/manifest.yaml candidate chain that the
+// package's own manifest.Load/LoadVerified do not.
+func canonicalManifestPayload(m *manifest.Manifest) ([]byte, error) {
+	cp := *m
+	cp.Sign = ""
+	cp.SignKey = ""
+	r := core.JSONMarshal(cp)
+	if !r.OK {
+		if err, ok := r.Value.(error); ok {
+			return nil, err
+		}
+		return nil, fmt.Errorf("coredeno: canonicalise manifest: %v", r.Value)
+	}
+	data, _ := r.Value.([]byte)
+	return data, nil
+}
+
+// OnShutdown stops the CoreDeno subsystem. Called by the framework on app
+// shutdown. Satisfies core.Stoppable.
+func (s *Service) OnShutdown(_ context.Context) core.Result {
+	if s.supervisorCancel != nil {
+		s.supervisorCancel()
+		if s.supervisorDone != nil {
+			<-s.supervisorDone
+		}
+	}
+
+	s.clearDesiredModules()
+
+	// Close Deno client connection
+	s.closeDenoClient()
+
+	// Stop any managed subprocesses before the sidecar exits.
+	s.closeProcessRunner()
+
+	// Stop sidecar
+	s.stopSidecar()
+
+	// Stop gRPC listener
+	if s.grpcCancel != nil {
+		s.grpcCancel()
+		<-s.grpcDone
+	}
+
+	// Close store
+	s.closeStore()
+
+	s.grpcCancel = nil
+	s.grpcDone = nil
+	s.supervisorCancel = nil
+	s.supervisorDone = nil
+	s.denoClient = nil
+	s.grpcServer = nil
+	s.store = nil
+	s.installer = nil
+
+	return core.Ok(nil)
+}
+
+// Sidecar returns the underlying sidecar for direct access.
+func (s *Service) Sidecar() *Sidecar {
+	return s.sidecar
+}
+
+// GRPCServer returns the gRPC server for direct access.
+func (s *Service) GRPCServer() *Server {
+	return s.grpcServer
+}
+
+// DenoClient returns the DenoService client for calling the Deno sidecar.
+// Returns nil if the sidecar was not started or has no DenoSocketPath.
+func (s *Service) DenoClient() *DenoClient {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.denoClient
+}
+
+// Installer returns the marketplace module installer.
+// Returns nil if AppRoot was not set.
+func (s *Service) Installer() *marketplace.Installer {
+	return s.installer
+}
+
+// LoadModule registers module permissions on the Go side, then loads the module in Deno.
+func (s *Service) LoadModule(code, entryPoint string, perms ModulePermissions) (*LoadModuleResponse, error) {
+	if s.grpcServer == nil {
+		return nil, fmt.Errorf("coredeno: gRPC server not started")
+	}
+	if strings.TrimSpace(code) == "" {
+		return nil, fmt.Errorf("coredeno: module code required")
+	}
+	if strings.TrimSpace(entryPoint) == "" {
+		return nil, fmt.Errorf("coredeno: module entry point required")
+	}
+	client := s.DenoClient()
+	if client == nil {
+		return nil, fmt.Errorf("coredeno: Deno client not connected")
+	}
+
+	s.grpcServer.RegisterModule(&manifest.Manifest{
+		Code: code,
+		Permissions: manifest.Permissions{
+			Read:  perms.Read,
+			Write: perms.Write,
+			Net:   perms.Net,
+			Run:   perms.Run,
+		},
+	})
+
+	resp, err := client.LoadModule(code, entryPoint, perms)
+	if err != nil {
+		s.grpcServer.UnregisterModule(code)
+		return nil, err
+	}
+	if resp.Ok {
+		s.rememberModule(code, entryPoint, perms)
+	} else {
+		s.grpcServer.UnregisterModule(code)
+	}
+	return resp, nil
+}
+
+// UnloadModule unloads a module from the Deno runtime.
+func (s *Service) UnloadModule(code string) (*UnloadModuleResponse, error) {
+	client := s.DenoClient()
+	if client == nil {
+		return nil, fmt.Errorf("coredeno: Deno client not connected")
+	}
+	resp, err := client.UnloadModule(code)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Ok {
+		s.forgetModule(code)
+	}
+	return resp, nil
+}
+
+// ModuleStatus queries a module's status from the Deno runtime.
+func (s *Service) ModuleStatus(code string) (*ModuleStatusResponse, error) {
+	client := s.DenoClient()
+	if client == nil {
+		return nil, fmt.Errorf("coredeno: Deno client not connected")
+	}
+	return client.ModuleStatus(code)
+}
+
+// ReloadModules asks the Deno sidecar to reload all active modules.
+func (s *Service) ReloadModules() (*ReloadModulesResponse, error) {
+	client := s.DenoClient()
+	if client == nil {
+		return nil, fmt.Errorf("coredeno: Deno client not connected")
+	}
+
+	resp, err := client.ReloadModules()
+	if err != nil {
+		return nil, err
+	}
+	return &ReloadModulesResponse{
+		Ok:      resp.Ok,
+		Results: resp.Results,
+	}, nil
+}
+
+func (s *Service) setDenoClient(client *DenoClient) {
+	s.mu.Lock()
+	old := s.denoClient
+	s.denoClient = client
+	s.mu.Unlock()
+
+	if old != nil && old != client {
+		if cerr := old.Close(); cerr != nil {
+			_ = cerr
+		}
+	}
+}
+
+func (s *Service) closeDenoClient() {
+	s.setDenoClient(nil)
+}
+
+func (s *Service) cleanupStartupState() {
+	s.closeDenoClient()
+	s.clearDesiredModules()
+	s.closeProcessRunner()
+
+	if s.supervisorCancel != nil {
+		s.supervisorCancel()
+		if s.supervisorDone != nil {
+			<-s.supervisorDone
+		}
+	}
+
+	s.stopSidecar()
+
+	if s.grpcCancel != nil {
+		s.grpcCancel()
+		if s.grpcDone != nil {
+			<-s.grpcDone
+		}
+	}
+
+	s.closeStore()
+
+	s.grpcCancel = nil
+	s.grpcDone = nil
+	s.supervisorCancel = nil
+	s.supervisorDone = nil
+	s.grpcServer = nil
+	s.installer = nil
+	s.store = nil
+}
+
+func (s *Service) stopSidecar() {
+	if s == nil || s.sidecar == nil {
+		return
+	}
+	_ = s.sidecar.Stop()
+}
+
+func (s *Service) closeStore() {
+	if s == nil || s.store == nil {
+		return
+	}
+	s.store.Close()
+}
+
+func (s *Service) rememberModule(code, entryPoint string, perms ModulePermissions) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.desiredModules == nil {
+		s.desiredModules = make(map[string]moduleSpec)
+	}
+	s.desiredModules[code] = moduleSpec{
+		EntryPoint:  entryPoint,
+		Permissions: perms,
+	}
+}
+
+func (s *Service) forgetModule(code string) {
+	s.mu.Lock()
+	if s.desiredModules != nil {
+		delete(s.desiredModules, code)
+	}
+	grpcServer := s.grpcServer
+	s.mu.Unlock()
+
+	if grpcServer != nil {
+		grpcServer.UnregisterModule(code)
+	}
+}
+
+func (s *Service) clearDesiredModules() {
+	for code := range s.desiredModuleSnapshot() {
+		s.forgetModule(code)
+	}
+}
+
+func (s *Service) desiredModuleSnapshot() map[string]moduleSpec {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	snapshot := make(map[string]moduleSpec, len(s.desiredModules))
+	for code, spec := range s.desiredModules {
+		snapshot[code] = spec
+	}
+	return snapshot
+}
+
+func (s *Service) superviseSidecar(ctx context.Context) {
+	defer close(s.supervisorDone)
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if !s.sidecar.IsRunning() {
+				_ = s.restartSidecar(ctx)
+				continue
+			}
+
+			client := s.DenoClient()
+			if client == nil {
+				_ = s.reconnectDeno(ctx)
+				continue
+			}
+			if err := client.Ping(); err != nil {
+				s.closeDenoClient()
+				_ = s.reconnectDeno(ctx)
+			}
+		}
+	}
+}
+
+func (s *Service) restartSidecar(ctx context.Context) error {
+	s.closeDenoClient()
+
+	opts := s.effectiveOptions()
+
+	if err := s.sidecar.Start(ctx, opts.SidecarArgs...); err != nil {
+		return err
+	}
+
+	if err := s.reconnectDeno(ctx); err != nil {
+		_ = s.sidecar.Stop()
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) reconnectDeno(ctx context.Context) error {
+	if !s.shouldConnectDeno() {
+		return nil
+	}
+
+	opts := s.effectiveOptions()
+
+	dc, err := dialDenoReady(ctx, opts.DenoSocketPath, 10*time.Second)
+	if err != nil {
+		return err
+	}
+	s.setDenoClient(dc)
+
+	return s.reloadDesiredModules()
+}
+
+func (s *Service) shouldConnectDeno() bool {
+	opts := s.effectiveOptions()
+	if opts.DenoSocketPath == "" {
+		return false
+	}
+	if s.Options().DenoSocketPath != "" {
+		return true
+	}
+	return looksLikeDenoRuntime(opts.SidecarArgs)
+}
+
+func looksLikeDenoRuntime(args []string) bool {
+	for _, arg := range args {
+		switch {
+		case arg == "run":
+			return true
+		case strings.HasSuffix(arg, ".ts"):
+			return true
+		case strings.HasSuffix(arg, ".tsx"):
+			return true
+		case strings.HasSuffix(arg, ".js"):
+			return true
+		case strings.HasSuffix(arg, ".mjs"):
+			return true
+		case strings.HasSuffix(arg, ".cjs"):
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) effectiveOptions() Options {
+	if s.sidecar != nil {
+		return s.sidecar.opts
+	}
+	return s.Options()
+}
+
+func (s *Service) reloadDesiredModules() error {
+	client := s.DenoClient()
+	if client == nil {
+		return fmt.Errorf("coredeno: Deno client not connected")
+	}
+
+	for code, spec := range s.desiredModuleSnapshot() {
+		resp, err := client.LoadModule(code, spec.EntryPoint, spec.Permissions)
+		if err != nil {
+			return err
+		}
+		if !resp.Ok {
+			return fmt.Errorf("coredeno: reload %s: %s", code, resp.Error)
+		}
+	}
+	return nil
+}
+
+func dialDenoReady(ctx context.Context, socketPath string, timeout time.Duration) (*DenoClient, error) {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+
+	for time.Now().Before(deadline) {
+		if err := waitForSocket(ctx, socketPath, 250*time.Millisecond); err == nil {
+			client, err := DialDeno(socketPath)
+			if err == nil {
+				if pingErr := client.Ping(); pingErr == nil {
+					return client, nil
+				} else {
+					lastErr = pingErr
+				}
+				if cerr := client.Close(); cerr != nil {
+					_ = cerr
+				}
+			} else {
+				lastErr = err
+			}
+		} else if ctx.Err() != nil {
+			return nil, ctx.Err()
+		} else {
+			lastErr = err
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("timeout waiting for Deno sidecar")
+	}
+	return nil, lastErr
+}
+
+// waitForSocket polls until a Unix socket file appears or the context/timeout expires.
+func waitForSocket(ctx context.Context, path string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		if _, err := os.Stat(path); err == nil {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for socket %s", path)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+}
+
+func waitForGRPCSocket(ctx context.Context, path string, timeout time.Duration, done <-chan error) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		if _, err := os.Stat(path); err == nil {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for socket %s", path)
+		}
+		select {
+		case err := <-done:
+			if err != nil {
+				return err
+			}
+			return fmt.Errorf("gRPC listener stopped before socket became ready")
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+}
+
+type execProcessRunner struct {
+	mu        sync.Mutex
+	processes map[string]*exec.Cmd
+	onExit    func(string)
+}
+
+type execProcessHandle struct {
+	id string
+}
+
+func newExecProcessRunner(onExit func(string)) ProcessRunner {
+	return &execProcessRunner{
+		processes: make(map[string]*exec.Cmd),
+		onExit:    onExit,
+	}
+}
+
+func (r *execProcessRunner) Start(ctx context.Context, command string, args ...string) (ProcessHandle, error) {
+	if r == nil {
+		return nil, errProcessUnavailable
+	}
+
+	cmd := exec.CommandContext(ctx, command, args...)
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("coredeno: process start: %w", err)
+	}
+
+	id, err := newProcessID()
+	if err != nil {
+		_ = cmd.Process.Kill()
+		_, _ = cmd.Process.Wait()
+		return nil, fmt.Errorf("coredeno: process id: %w", err)
+	}
+
+	r.mu.Lock()
+	r.processes[id] = cmd
+	r.mu.Unlock()
+
+	go func() {
+		_ = cmd.Wait()
+		r.mu.Lock()
+		delete(r.processes, id)
+		onExit := r.onExit
+		r.mu.Unlock()
+		if onExit != nil {
+			onExit(id)
+		}
+	}()
+
+	return &execProcessHandle{id: id}, nil
+}
+
+func (r *execProcessRunner) Kill(id string) error {
+	if r == nil {
+		return errProcessUnavailable
+	}
+
+	r.mu.Lock()
+	cmd, ok := r.processes[id]
+	r.mu.Unlock()
+	if !ok || cmd == nil || cmd.Process == nil {
+		return fmt.Errorf("process not found: %s", id)
+	}
+
+	if err := cmd.Process.Kill(); err != nil {
+		return fmt.Errorf("coredeno: process stop: %w", err)
+	}
+	return nil
+}
+
+func (h *execProcessHandle) Info() ProcessInfo {
+	return ProcessInfo{ID: h.id}
+}
+
+func (r *execProcessRunner) Close() error {
+	if r == nil {
+		return nil
+	}
+
+	r.mu.Lock()
+	cmds := make([]*exec.Cmd, 0, len(r.processes))
+	for _, cmd := range r.processes {
+		cmds = append(cmds, cmd)
+	}
+	r.processes = make(map[string]*exec.Cmd)
+	r.mu.Unlock()
+
+	for _, cmd := range cmds {
+		if cmd == nil || cmd.Process == nil {
+			continue
+		}
+		_ = cmd.Process.Kill()
+	}
+
+	return nil
+}
+
+func newProcessID() (string, error) {
+	var raw [16]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(raw[:]), nil
+}
+
+func (s *Service) closeProcessRunner() {
+	if s.grpcServer == nil || s.grpcServer.processes == nil {
+		return
+	}
+	if closer, ok := s.grpcServer.processes.(interface{ Close() error }); ok {
+		if cerr := closer.Close(); cerr != nil {
+			_ = cerr
+		}
+	}
+}

@@ -6,7 +6,7 @@ package ts
 
 import (
 	core "dappco.re/go"
-	corets "dappco.re/go/ts"
+	corets "dappco.re/go/render/engine/ts/deno"
 )
 
 const (
@@ -54,7 +54,9 @@ func New(opts corets.Options) (*Engine, error) {
 		opts.DenoSocketPath = core.PathJoin(tempDir, "deno.sock")
 	}
 
-	app := core.New(core.WithService(corets.NewServiceFactory(opts)))
+	// Named explicitly: discovery would name it after its package ("deno"),
+	// but the CoreTS service is "ts" wherever its code lives.
+	app := core.New(core.WithName("ts", corets.NewServiceFactory(opts)))
 	service, ok := core.ServiceFor[*corets.Service](app, "ts")
 	if !ok || service == nil {
 		removeResult := core.RemoveAll(tempDir)

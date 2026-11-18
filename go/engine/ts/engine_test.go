@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	core "dappco.re/go"
-	corets "dappco.re/go/ts"
+	corets "dappco.re/go/render/engine/ts/deno"
 )
 
 func TestEngine_New_Good(t *testing.T) {

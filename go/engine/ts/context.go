@@ -6,7 +6,7 @@ package ts
 
 import (
 	core "dappco.re/go"
-	corets "dappco.re/go/ts"
+	corets "dappco.re/go/render/engine/ts/deno"
 )
 
 const contextConnectTimeout = 10 * core.Second
